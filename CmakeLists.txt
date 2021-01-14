@@ -2,14 +2,16 @@ cmake_minimum_required(VERSION 3.10)
 
 project(allium VERSION 0.0.1)
 
+enable_testing()
+
 add_executable(allium
   lib/driver.cpp
   lib/Interpreter/ASTLower.cpp
   lib/Interpreter/program.cpp)
 
 target_include_directories(allium PUBLIC include)
-target_link_libraries(allium PUBLIC LogParse)
-target_link_libraries(allium PUBLIC LogSemAna)
+target_link_libraries(allium PUBLIC AlliumParse)
+target_link_libraries(allium PUBLIC AlliumSemAna)
 
 set_property(TARGET allium PROPERTY CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -18,22 +20,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # libraries
 #############################
 
-add_library(LogParse SHARED
+add_library(AlliumParse SHARED
   lib/parse/AST.cpp
   lib/parse/lexer.cpp
   lib/parse/parser.cpp)
 
-target_include_directories(LogParse PUBLIC include)
-set_property(TARGET LogParse PROPERTY CXX_STANDARD 17)
+target_include_directories(AlliumParse PUBLIC include)
+set_property(TARGET AlliumParse PROPERTY CXX_STANDARD 17)
 
 
-add_library(LogSemAna SHARED
+add_library(AlliumSemAna SHARED
   lib/SemAna/Predicates.cpp
   lib/SemAna/StaticError.cpp)
 
-target_include_directories(LogSemAna PUBLIC include)
-target_link_libraries(LogSemAna PUBLIC LogParse)
-set_property(TARGET LogSemAna PROPERTY CXX_STANDARD 17)
+target_include_directories(AlliumSemAna PUBLIC include)
+target_link_libraries(AlliumSemAna PUBLIC AlliumParse)
+set_property(TARGET AlliumSemAna PROPERTY CXX_STANDARD 17)
 
 #############################
 # unit tests
@@ -44,13 +46,16 @@ add_executable(unittests
   unittests/TestTaggedUnion.cpp
   unittests/TestParse.cpp
   unittests/TestSema.cpp)
+add_test(unittests unittests)
 
-set_property(TARGET unittests PROPERTY CXX_STANDARD 17)
+set_target_properties(unittests PROPERTIES
+  CXX_STANDARD 17
+  EXCLUDE_FROM_ALL TRUE)
 target_include_directories(unittests PUBLIC include)
 target_link_libraries(unittests gtest_main)
 target_link_libraries(unittests gmock)
-target_link_libraries(unittests LogParse)
-target_link_libraries(unittests LogSemAna)
+target_link_libraries(unittests AlliumParse)
+target_link_libraries(unittests AlliumSemAna)
 
 #############################
 # googletest
