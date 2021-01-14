@@ -1,0 +1,34 @@
+type Void {}
+
+type Unit {
+    ctor unit;
+}
+
+type Bool {
+    ctor T;
+    ctor F;
+}
+
+type IceCreamFlavor {
+    ctor chocolate;
+    ctor vanilla;
+    ctor strawberry;
+}
+
+type Sauce {
+    ctor fudge;
+    ctor caramel;
+    ctor raspberry;
+}
+
+type Sundae {
+    ctor sundae(IceCreamFlavor, Sauce);
+}
+
+pred hasVanilla(Sundae) {
+    hasVanilla(sundae(vanilla, _)) <- true;
+}
+
+pred main {
+    main <- hasVanilla(sundae(vanilla, raspberry));
+}

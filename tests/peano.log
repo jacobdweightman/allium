@@ -1,0 +1,14 @@
+type Nat {
+    ctor zero;
+    ctor s(Nat);
+}
+
+pred geOne(Nat) {
+    geOne( s(_) ) <- true;
+}
+
+pred main {
+    main <- geOne( s(zero) ),
+        geOne( s(s(zero)) ),
+        geOne( s(s(s(zero))) );
+}

@@ -1,0 +1,16 @@
+pred p {
+    p <- true;
+}
+
+pred q {
+    q <- false;
+}
+
+pred r {
+    r <- p, q;
+}
+
+pred main {
+    main <- r;
+    main <- p;
+}

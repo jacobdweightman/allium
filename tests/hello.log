@@ -1,0 +1,3 @@
+pred main {
+    main <- true;
+}
