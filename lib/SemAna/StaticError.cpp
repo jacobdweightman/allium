@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 
 #include "SemAna/StaticError.h"
@@ -13,6 +14,10 @@ std::string formatString(ErrorMessage msg) {
     case ErrorMessage::unknown_constructor:
         return "\"%s\" is not a known constructor of type %s.";
     }
+    // The preceding switch should be exhaustive. Add this to support VC++.
+    printf("Error - unhandled case: %d\n", (int) msg);
+    assert(false);
+    return "";
 }
 
 std::ostream& operator<<(std::ostream &out, const ErrorMessage &msg) {

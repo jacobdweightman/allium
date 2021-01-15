@@ -26,6 +26,10 @@ std::ostream& operator<<(std::ostream& out, const Token::Type value) {
     case Token::Type::paren_r: return out << "Type::paren_r";
     case Token::Type::true_literal: return out << "Type::true_literal";
     }
+    // The preceding switch should be exhaustive. Add this to support VC++.
+    printf("Error - unhandled case: %d\n", (int) value);
+    assert(false);
+    return out;
 }
 
 Token Lexer::peek_next() {
@@ -43,7 +47,7 @@ Token Lexer::take_next() {
     }
 
     while(isspace(line.peek())) line.get();
-    int columnNumber = line.tellg();
+    int columnNumber = (int) line.tellg();
     std::string word;
     line >> word;
 

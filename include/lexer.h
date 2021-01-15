@@ -18,11 +18,11 @@ struct Token {
         false_literal,
         identifier,
         implied_by,
-        kw_ctor, // new
+        kw_ctor,
         kw_pred,
         kw_type,
-        paren_l, // new
-        paren_r, // new
+        paren_l,
+        paren_r,
         true_literal,
     };
 

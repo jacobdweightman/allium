@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(allium VERSION 0.0.1)
 
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 enable_testing()
 
 add_executable(allium
@@ -20,6 +21,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # libraries
 #############################
 
+include(GenerateExportHeader)
+
 add_library(AlliumParse SHARED
   lib/parse/AST.cpp
   lib/parse/lexer.cpp
@@ -27,6 +30,7 @@ add_library(AlliumParse SHARED
 
 target_include_directories(AlliumParse PUBLIC include)
 set_property(TARGET AlliumParse PROPERTY CXX_STANDARD 17)
+GENERATE_EXPORT_HEADER(AlliumParse)
 
 
 add_library(AlliumSemAna SHARED
@@ -36,6 +40,7 @@ add_library(AlliumSemAna SHARED
 target_include_directories(AlliumSemAna PUBLIC include)
 target_link_libraries(AlliumSemAna PUBLIC AlliumParse)
 set_property(TARGET AlliumSemAna PROPERTY CXX_STANDARD 17)
+GENERATE_EXPORT_HEADER(AlliumSemAna)
 
 #############################
 # unit tests

@@ -313,8 +313,7 @@ typedef TaggedUnion<
     ConstructorRef
 > ValueBase;
 
-class Value : public ValueBase {
-public:
+struct Value : public ValueBase {
     using ValueBase::ValueBase;
     Value(): Value(AnonymousVariable()) {}
 };
