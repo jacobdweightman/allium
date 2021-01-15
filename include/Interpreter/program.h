@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <assert.h>
 #include <limits>
+#include <memory>
 #include <vector>
 
 #include "../values/TaggedUnion.h"

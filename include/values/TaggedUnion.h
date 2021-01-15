@@ -135,21 +135,18 @@ public:
 
     template <typename T>
     Optional<T> as_a() const {
-        static_assert(!std::is_same<T, Head>::value,
-            "template <Head> should be handled by the other template implementation.");
-        if(is_active_case) {
-            return Optional<T>();
+        if constexpr (std::is_same<T, Head>::value) {
+            if(is_active_case) {
+                return Optional<T>(static_cast<T>(value.head));
+            } else {
+                return Optional<T>();
+            }
         } else {
-            return value.tail.template as_a<T>();
-        }
-    }
-
-    template <>
-    Optional<Head> as_a<Head>() const {
-        if(is_active_case) {
-            return Optional<Head>(value.head);
-        } else {
-            return Optional<Head>();
+            if(is_active_case) {
+                return Optional<T>();
+            } else {
+                return value.tail.template as_a<T>();
+            }
         }
     }
 
@@ -207,14 +204,11 @@ public:
 
     template <typename U>
     Optional<U> as_a() const {
-        static_assert(!std::is_same<T, U>::value,
-            "template <Head> should be handled by the other template implementation.");
-        return Optional<U>();
-    }
-
-    template <>
-    Optional<T> as_a() const {
-        return Optional<T>(value);
+        if constexpr (std::is_same<T, U>::value) {
+            return Optional<T>(value);
+        } else {
+            return Optional<U>();
+        }
     }
 
 private:
