@@ -1,6 +1,10 @@
 # Allium
 
-The Allium programming language.
+Allium is a strongly typed logic programming language.
+
+It currently runs on Linux, MacOS, and Windows.
+
+![Test Badge](https://github.com/jacobdweightman/allium/workflows/Run%20Tests/badge.svg)
 
 ## Getting Started
 
