@@ -5,14 +5,12 @@ project(allium VERSION 0.0.1)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 enable_testing()
 
-add_executable(allium
-  lib/driver.cpp
-  lib/Interpreter/ASTLower.cpp
-  lib/Interpreter/program.cpp)
+add_executable(allium lib/driver.cpp)
 
 target_include_directories(allium PUBLIC include)
 target_link_libraries(allium PUBLIC AlliumParse)
 target_link_libraries(allium PUBLIC AlliumSemAna)
+target_link_libraries(allium PUBLIC AlliumInterpreter)
 
 set_property(TARGET allium PROPERTY CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -42,6 +40,15 @@ target_link_libraries(AlliumSemAna PUBLIC AlliumParse)
 set_property(TARGET AlliumSemAna PROPERTY CXX_STANDARD 17)
 GENERATE_EXPORT_HEADER(AlliumSemAna)
 
+add_library(AlliumInterpreter SHARED
+  lib/Interpreter/ASTLower.cpp
+  lib/Interpreter/program.cpp)
+
+target_include_directories(AlliumInterpreter PUBLIC include)
+target_link_libraries(AlliumInterpreter PUBLIC AlliumSemAna)
+set_property(TARGET AlliumInterpreter PROPERTY CXX_STANDARD 17)
+GENERATE_EXPORT_HEADER(AlliumInterpreter)
+
 #############################
 # unit tests
 #############################
@@ -50,7 +57,8 @@ add_executable(unittests
   unittests/TestOptional.cpp
   unittests/TestTaggedUnion.cpp
   unittests/TestParse.cpp
-  unittests/TestSema.cpp)
+  unittests/TestSema.cpp
+  unittests/TestInterpreter.cpp)
 add_test(unittests unittests)
 
 set_target_properties(unittests PROPERTIES
@@ -61,6 +69,7 @@ target_link_libraries(unittests gtest_main)
 target_link_libraries(unittests gmock)
 target_link_libraries(unittests AlliumParse)
 target_link_libraries(unittests AlliumSemAna)
+target_link_libraries(unittests AlliumInterpreter)
 
 #############################
 # googletest
