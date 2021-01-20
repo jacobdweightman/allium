@@ -42,15 +42,15 @@ int main(int argc, char *argv[]) {
     } while(changed);
 
     ErrorEmitter errorEmitter(std::cout);
-    Program sema(types, predicates, errorEmitter);
-    sema.checkAll();
+    Program semAna(types, predicates, errorEmitter);
+    semAna.checkAll();
     unsigned errors = errorEmitter.getErrors();
     if(errors > 0) {
         std::cout << "Compilation failed with " << errors << " errors.\n";
         return 1;
     }
 
-    interpreter::Program interpreter = lower(sema);
+    interpreter::Program interpreter = lower(semAna);
     return interpreter.getEntryPoint().switchOver<int>(
         [&](interpreter::PredicateReference main) {
             return !interpreter.prove(main);

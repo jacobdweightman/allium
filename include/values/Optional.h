@@ -114,12 +114,35 @@ public:
     /// ```
     /// int x;
     /// if(Optional<int>(5).unwrapInto(x)) {
-    ///     // now x = 5
+    ///     // now x = 5, and this wouldn't execute if the optional had no value!
     /// }
     /// ```
     bool unwrapInto(T &x) const {
         if(has_value) x = value.wrapped;
         return has_value;
+    }
+
+    
+    /// Writes the value of the optional into the given variable if there is one
+    /// and returns false on success.
+    ///
+    /// This is intended to unwrap optionals similarly to `unwrapInto`, but requires
+    /// that the function not continue execution if it returns false. In this way,
+    /// one can avoid a level of nesting that would occur with unwrap into.
+    ///
+    /// Example:
+    /// ```
+    /// int x;
+    /// if(Optional<int>(5).unwrapGuard(x)) {
+    ///     // this code must exit the function!
+    /// }
+    /// // now x = 5, but would be uninitialized if the optional had no value!
+    /// ```
+    ///
+    /// See also: `unwrapInto(T&)`
+    bool unwrapGuard(T &x) const {
+        if(has_value) x = value.wrapped;
+        return !has_value;
     }
 
     // TODO: this function should only be defined if T implements <<.

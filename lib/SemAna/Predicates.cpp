@@ -1,49 +1,24 @@
 #include <algorithm>
 #include "SemAna/Predicates.h"
 
-static void checkPredicateArgumentTypes(
-    const Program &program,
-    const ErrorEmitter &error,
-    const Predicate &predicate,
-    const PredicateRef &pRef
-) {
-    // TODO: this can probably be collapsed into Sema::visit(ConstructorRef)
-    assert(predicate.name.parameters.size() == pRef.arguments.size());
-    auto parameter = predicate.name.parameters.begin();
-    for(const auto &argument : pRef.arguments) {
-        argument.switchOver(
-        [](AnonymousVariable) {},
-        [&](ConstructorRef cr) {
-            const auto typeCandidates = program.types.find(parameter->name);
-            if(typeCandidates == program.types.end()) {
-                // TODO: emit error for non-existent parameter type.
-                // Once SemAna migrates to visitor pattern, this check should be
-                // applied to the PredicateDecl.
-                return;
-            }
-            const Type &type = typeCandidates->second;
-            auto ctor = std::find_if(
-                type.constructors.begin(),
-                type.constructors.end(),
-                [&](const Constructor &ctor) { return ctor.name == cr.name; });
-            if(ctor == type.constructors.end()) {
-                error.emit(
-                    cr.location,
-                    ErrorMessage::unknown_constructor,
-                    cr.name.string(),
-                    type.declaration.name.string());
-            }
-        });
-        ++parameter;
-    }
-}
-
-class Sema: ASTVisitor<void> {
+class SemAna: ASTVisitor<void> {
     const Program &program;
     const ErrorEmitter &error;
 
+    /// The predicate definition enclosing the current AST node being analyzed, if there is one.
+    mutable Optional<Predicate> enclosingPredicate;
+
+    /// The implication enclosing the current AST node being analyzed, if there is one.
+    mutable Optional<Implication> enclosingImplication;
+
+    /// The type definition enclosing the current AST node being analyzed, if there is one.
+    mutable Optional<Type> enclosingType;
+
+    /// The inferred type of a value being analyzed.
+    mutable Optional<Type> inferredType;
+
 public:
-    Sema(const Program & program, const ErrorEmitter &error):
+    SemAna(const Program & program, const ErrorEmitter &error):
         program(program), error(error) {}
     
     void visit(const TruthLiteral &tl) override {}
@@ -54,15 +29,25 @@ public:
         }
     }
 
-    void visit(const PredicateRef &pn) override {
-        auto p = program.predicates.find(pn.name);
+    void visit(const PredicateRef &pr) override {
+        auto p = program.predicates.find(pr.name);
         if(p == program.predicates.end()) {
             error.emit(
-                pn.location,
+                pr.location,
                 ErrorMessage::undefined_predicate,
-                pn.name.string());
-        } else {
-            checkPredicateArgumentTypes(program, error, p->second, pn);
+                pr.name.string());
+            return;
+        }
+
+        const Predicate &predicate = p->second;
+        // TODO: this assert should be a short-circuiting diagnostic
+        assert(predicate.name.parameters.size() == pr.arguments.size());
+        auto parameter = predicate.name.parameters.begin();
+        for(const auto &argument : pr.arguments) {
+            inferredType = program.resolveTypeRef(*parameter);
+            visit(argument);
+            inferredType = Optional<Type>();
+            ++parameter;
         }
     }
 
@@ -80,11 +65,14 @@ public:
     }
 
     void visit(const Implication &impl) override {
+        enclosingImplication = impl;
         visit(impl.lhs);
         visit(impl.rhs);
+        enclosingImplication = Optional<Implication>();
     }
 
     void visit(const Predicate &p) override {
+        enclosingPredicate = p;
         visit(p.name);
         for(const auto &impl : p.implications) {
             if(impl.lhs.name != p.name.name) {
@@ -95,6 +83,7 @@ public:
             }
             visit(impl);
         }
+        enclosingPredicate = Optional<Predicate>();
     }
 
     void visit(const TypeDecl &td) override {}
@@ -117,7 +106,36 @@ public:
 
     void visit(const AnonymousVariable &av) override {}
 
-    void visit(const ConstructorRef &ctor) override {}
+    void visit(const ConstructorRef &cr) override {
+        Type type;
+        if(inferredType.unwrapGuard(type)) {
+            assert(false && "type inference failed.");
+            return;
+        }
+        auto ctor = std::find_if(
+            type.constructors.begin(),
+            type.constructors.end(),
+            [&](const Constructor &ctor) { return ctor.name == cr.name; });
+        
+        if(ctor == type.constructors.end()) {
+            error.emit(
+                cr.location,
+                ErrorMessage::unknown_constructor,
+                cr.name.string(),
+                type.declaration.name.string());
+            return;
+        }
+
+        // TODO: this assert should be a short-circuiting diagnostic
+        assert(ctor->parameters.size() == cr.arguments.size());
+        auto parameter = ctor->parameters.begin();
+        for(const auto &argument : cr.arguments) {
+            inferredType = program.resolveTypeRef(*parameter);
+            visit(argument);
+            inferredType = Optional<Type>();
+            ++parameter;
+        }
+    }
 
     void visit(const Value &val) override {
         val.switchOver(
@@ -127,21 +145,23 @@ public:
     }
 
     void visit(const Type &type) override {
+        enclosingType = type;
         visit(type.declaration);
         for(const Constructor &ctor : type.constructors) {
             visit(ctor);
         }
+        enclosingType = Optional<Type>();
     }
 };
 
 void Program::checkAll() {
-    Sema sema(*this, error);
+    SemAna semAna(*this, error);
 
     for(const auto &pair : types) {
-        sema.visit(pair.second);
+        semAna.visit(pair.second);
     }
 
     for(const auto &pair : predicates) {
-        sema.visit(pair.second);
+        semAna.visit(pair.second);
     }
 }

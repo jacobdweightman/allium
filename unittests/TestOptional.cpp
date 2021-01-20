@@ -146,15 +146,19 @@ TEST(TestOptional, coalesce) {
     EXPECT_EQ(Optional<int>().coalesce(0), 0);
 }
 
-TEST(TestOptional, unwrap) {
+TEST(TestOptional, unwrapInto) {
     bool was_called = false;
     int x;
-    if(Optional<int>(5).unwrapInto(x)) {
-        was_called = true;
-    }
-    EXPECT_TRUE(was_called);
+    EXPECT_TRUE(Optional<int>(5).unwrapInto(x));
+    EXPECT_EQ(x, 5);
 
-    if(Optional<int>().unwrapInto(x)) {
-        FAIL();
-    }
+    EXPECT_FALSE(Optional<int>().unwrapInto(x));
+}
+
+TEST(TestOptional, unwrapGuard) {
+    int x;
+    EXPECT_FALSE(Optional<int>(5).unwrapGuard(x));
+    EXPECT_EQ(x, 5);
+
+    EXPECT_TRUE(Optional<int>().unwrapGuard(x));
 }
