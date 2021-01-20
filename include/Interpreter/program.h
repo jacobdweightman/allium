@@ -33,39 +33,100 @@ typedef TaggedUnion<
     Conjunction
 > Expression;
 
-struct ProgramNode {};
+std::ostream& operator<<(std::ostream &out, const Expression &expr);
 
-struct ConstructorRef: public ProgramNode {
-    ConstructorRef(size_t index, std::vector<ConstructorRef> arguments): 
+class Value;
+
+struct ConstructorRef {
+    ConstructorRef(): index(std::numeric_limits<size_t>::max()) {}
+    ConstructorRef(size_t index, std::vector<Value> arguments):
         index(index), arguments(arguments) {}
 
-    bool matches(const ConstructorRef &other) const;
+    friend bool operator==(const ConstructorRef &lhs, const ConstructorRef &rhs) {
+        return lhs.index == rhs.index && lhs.arguments == rhs.arguments;
+    }
 
-    static const size_t anonymousVariable = std::numeric_limits<size_t>::max();
+    friend bool operator!=(const ConstructorRef &lhs, const ConstructorRef &rhs) {
+        return !(lhs == rhs);
+    }
 
     size_t index;
-    std::vector<ConstructorRef> arguments;
+    std::vector<Value> arguments;
 };
 
-struct TruthValue: public ProgramNode {
+std::ostream& operator<<(std::ostream &out, const ConstructorRef &ctor);
+
+struct VariableRef {
+    VariableRef(): index(anonymousIndex) {}
+    VariableRef(size_t index, bool isDefinition):
+        index(index), isDefinition(isDefinition) {}
+
+    friend bool operator==(const VariableRef &lhs, const VariableRef &rhs) {
+        return lhs.index == rhs.index && lhs.isDefinition == rhs.isDefinition;
+    }
+
+    friend bool operator!=(const VariableRef &lhs, const VariableRef &rhs) {
+        return !(lhs == rhs);
+    }
+
+    static const size_t anonymousIndex = std::numeric_limits<size_t>::max();
+
+    size_t index;
+    bool isDefinition;
+};
+
+std::ostream& operator<<(std::ostream &out, const VariableRef &vr);
+
+typedef TaggedUnion<
+    ConstructorRef,
+    VariableRef
+> ValueBase;
+
+class Value : public ValueBase {
+public:
+    using ValueBase::ValueBase;
+    Value(): ValueBase(VariableRef()) {}
+};
+
+std::ostream& operator<<(std::ostream &out, const Value &val);
+
+struct TruthValue {
     TruthValue(bool value): value(value) {}
+
+    friend bool operator==(const TruthValue &left, const TruthValue &right) {
+        return left.value == right.value;
+    }
+
+    friend bool operator!=(const TruthValue &left, const TruthValue &right) {
+        return !(left == right);
+    }
 
     bool value;
 };
 
-struct PredicateReference: public ProgramNode {
-    PredicateReference(size_t index, std::vector<ConstructorRef> arguments): 
-        index(index), arguments(arguments) {}
-    
-    bool matches(const PredicateReference &other) const;
+std::ostream& operator<<(std::ostream &out, const TruthValue &tv);
 
+struct PredicateReference {
+    PredicateReference(size_t index, std::vector<Value> arguments): 
+        index(index), arguments(arguments) {}
+
+    friend bool operator==(const PredicateReference &left, const PredicateReference &right) {
+        return left.index == right.index && left.arguments == right.arguments;
+    }
+
+    friend bool operator!=(const PredicateReference &left, const PredicateReference &right) {
+        return !(left == right);
+    }
+    
     /// The index into the program's predicate list.
     size_t index;
 
-    std::vector<ConstructorRef> arguments;
+    std::vector<Value> arguments;
 };
 
-struct Conjunction: public ProgramNode {
+std::ostream& operator<<(std::ostream &out, const PredicateReference &pr);
+
+struct Conjunction {
     Conjunction(Expression left, Expression right):
         left(new auto(left)), right(new auto(right)) {}
 
@@ -79,21 +140,58 @@ struct Conjunction: public ProgramNode {
         return *this;
     }
 
-    Expression &getLeft() { return *left; }
-    Expression &getRight() { return *right; }
+    friend bool operator==(const Conjunction &left, const Conjunction &right) {
+        return left.getLeft() == right.getLeft() && left.getRight() == right.getRight();
+    }
+
+    friend bool operator!=(const Conjunction &left, const Conjunction &right) {
+        return !(left == right);
+    }
+
+    const Expression &getLeft() const { return *left; }
+    const Expression &getRight() const { return *right; }
 private:
     std::unique_ptr<Expression> left, right;
 };
 
-struct Implication: public ProgramNode {
-    Implication(PredicateReference head, Expression body):
-        head(head), body(body) {}
+std::ostream& operator<<(std::ostream &out, const Conjunction &conj);
+
+struct Implication {
+    Implication(
+        PredicateReference head, Expression body, size_t numVars
+    ):head(head), body(body) {
+        variables.resize(numVars);
+    }
+
+    Implication operator=(Implication other) {
+        using std::swap;
+        swap(head, other.head);
+        swap(body, other.body);
+        swap(variables, other.variables);
+        return *this;
+    }
+
+    /// Returns a copy of the body, but with all variables defined in the head
+    /// instantiated.
+    Expression instantiateBody() const;
+
+    bool matches(const PredicateReference &left, const PredicateReference &right) const;
+    bool matches(const VariableRef &left, const VariableRef &right) const;
+    bool matches(const ConstructorRef &left, const ConstructorRef &right) const;
+    bool matches(const VariableRef &left, const ConstructorRef &right) const;
+    bool matches(const Value &left, const Value &right) const;
 
     PredicateReference head;
     Expression body;
+
+    /// Store the values of the variables scoped to this implication. Indexed
+    /// with a VariableRef.
+    mutable std::vector<ConstructorRef> variables;
 };
 
-struct Predicate: public ProgramNode {
+std::ostream& operator<<(std::ostream &out, const Implication &impl);
+
+struct Predicate {
     Predicate(std::vector<Implication> implications):
         implications(implications) {}
 
@@ -105,7 +203,9 @@ struct Predicate: public ProgramNode {
     std::vector<Implication> implications;
 };
 
-class Program: public ProgramNode {
+std::ostream& operator<<(std::ostream &out, const Predicate &p);
+
+class Program {
 public:
     Program(std::vector<Predicate> ps, Optional<PredicateReference> main):
         predicates(ps), entryPoint(main) {}
@@ -117,6 +217,14 @@ public:
     }
 
 protected:
+    bool match(
+        const Implication &impl,
+        const VariableRef &vr,
+        const ConstructorRef &cr) const;
+    bool match(const VariableRef &vl, const VariableRef &vr) const;
+    bool match(const ConstructorRef &cl, const ConstructorRef &cr) const;
+    bool match(const Value &left, const Value &right) const;
+
     /// A collection of the predicates defined in the program. Predicates
     /// refer to each other through their indices in this vector.
     std::vector<Predicate> predicates;

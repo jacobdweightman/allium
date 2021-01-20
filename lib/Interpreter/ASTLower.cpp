@@ -8,8 +8,8 @@ class ASTLowerer {
 public:
     ASTLowerer(const Program &semanaProgram): semanaProgram(semanaProgram) {}
 
-    interpreter::ConstructorRef visit(const AnonymousVariable &av) {
-        return interpreter::ConstructorRef(-1, {});
+    interpreter::VariableRef visit(const AnonymousVariable &av) {
+        return interpreter::VariableRef();
     }
 
     /// Note: To support type inference, this requires the additional
@@ -18,7 +18,7 @@ public:
         size_t index = getConstructorIndex(tr, cr);
         const Constructor &ctor = semanaProgram.resolveConstructorRef(tr, cr);
 
-        std::vector<interpreter::ConstructorRef> arguments;
+        std::vector<interpreter::Value> arguments;
         for(int i=0; i<cr.arguments.size(); ++i) {
             arguments.push_back(visit(cr.arguments[i], ctor.parameters[i]));
         }
@@ -26,8 +26,8 @@ public:
         return interpreter::ConstructorRef(index, arguments);
     }
 
-    interpreter::ConstructorRef visit(const Value &val, const TypeRef &tr) {
-        return val.match<interpreter::ConstructorRef>(
+    interpreter::Value visit(const Value &val, const TypeRef &tr) {
+        return val.match<interpreter::Value>(
             [&](AnonymousVariable av) { return visit(av); },
             [&](ConstructorRef cr) { return visit(cr, tr); }
         );
@@ -40,7 +40,7 @@ public:
     interpreter::PredicateReference visit(const PredicateRef &pr) {
         size_t predicateIndex = getPredicateIndex(pr.name);
 
-        std::vector<interpreter::ConstructorRef> arguments;
+        std::vector<interpreter::Value> arguments;
         const Predicate &p = semanaProgram.resolvePredicateRef(pr);
         for(int i=0; i<p.name.parameters.size(); ++i) {
             auto loweredCtorRef = visit(pr.arguments[i], p.name.parameters[i]);
@@ -66,7 +66,7 @@ public:
     }
 
     interpreter::Implication visit(const Implication &impl) {
-        return interpreter::Implication(visit(impl.lhs), visit(impl.rhs));
+        return interpreter::Implication(visit(impl.lhs), visit(impl.rhs), 0);
     }
 
     interpreter::Predicate visit(const Predicate &p) {
