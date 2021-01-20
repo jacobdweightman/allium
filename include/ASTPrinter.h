@@ -99,6 +99,11 @@ public:
         out << "<AnonymousVariable line:" << av.location << ">\n";
     }
 
+    void visit(const Variable &v) override {
+        indent();
+        out << "<Variable \"" << v.name << "\" line:" << v.location << ">\n";
+    }
+
     void visit(const ConstructorRef &ctor) override {
         indent();
         out << "<ConstructorRef \"" << ctor.name << "\" line:" <<
@@ -113,6 +118,7 @@ public:
     void visit(const Value &val) override {
         val.switchOver(
         [&](AnonymousVariable av) { visit(av); },
+        [&](Variable v) { visit(v); },
         [&](ConstructorRef cr) { visit(cr); }
         );
     }

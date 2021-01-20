@@ -20,6 +20,7 @@ std::ostream& operator<<(std::ostream& out, const Token::Type value) {
     case Token::Type::identifier: return out << "Type::identifier";
     case Token::Type::implied_by: return out << "Type::implied_by";
     case Token::Type::kw_ctor: return out << "Type::kw_ctor";
+    case Token::Type::kw_let: return out << "Type::kw_let";
     case Token::Type::kw_pred: return out << "Type::kw_predicate";
     case Token::Type::kw_type: return out << "Type::kw_type";
     case Token::Type::paren_l: return out << "Type::paren_l";
@@ -75,6 +76,7 @@ Token Lexer::take_next() {
         return Token(type, text, location, fileStartPos);
     };
 
+    if(word == "let") return makeToken(Token::Type::kw_let, word);
     if(word == "pred") return makeToken(Token::Type::kw_pred, word);
     if(word == "type") return makeToken(Token::Type::kw_type, word);
     if(word == "ctor") return makeToken(Token::Type::kw_ctor, word);

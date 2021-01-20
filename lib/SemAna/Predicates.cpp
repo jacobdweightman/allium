@@ -106,6 +106,9 @@ public:
 
     void visit(const AnonymousVariable &av) override {}
 
+    void visit(const Variable &v) override {
+    }
+
     void visit(const ConstructorRef &cr) override {
         Type type;
         if(inferredType.unwrapGuard(type)) {
@@ -140,6 +143,7 @@ public:
     void visit(const Value &val) override {
         val.switchOver(
         [&](AnonymousVariable av) { visit(av); },
+        [&](Variable v) { visit(v); },
         [&](ConstructorRef cr) { visit(cr); }
         );
     }

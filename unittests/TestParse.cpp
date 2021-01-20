@@ -86,6 +86,41 @@ TEST(TestParser, parse_predicate_with_parameters) {
     );
 }
 
+TEST(TestParser, parse_predicate_with_variable_definition) {
+    std::istringstream f("tall(let x)");
+    Lexer lexer(f);
+
+    auto actual = parsePredicateRef(lexer);
+
+    EXPECT_EQ(
+        actual,
+        Optional(PredicateRef(
+            "tall",
+            { Variable("x", true, SourceLocation(1, 9)) },
+            SourceLocation(1, 0)
+        ))
+    );
+}
+
+TEST(TestParser, parse_predicate_with_variable_use) {
+    // There is an ambiguity between variables used after definition and
+    // constructors which take no arguments. This can be disambiguated during
+    // SemAna, so for now we parse variables as constructor references.
+    std::istringstream f("tall(x)");
+    Lexer lexer(f);
+
+    auto actual = parsePredicateRef(lexer);
+
+    EXPECT_EQ(
+        actual,
+        Optional(PredicateRef(
+            "tall",
+            { ConstructorRef("x", {}, SourceLocation(1, 5)) },
+            SourceLocation(1, 0)
+        ))
+    );
+}
+
 TEST(TestParser, lex_peek_beginning) {
     std::istringstream f("false;");
     Lexer lexer(f);

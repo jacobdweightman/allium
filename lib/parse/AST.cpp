@@ -77,6 +77,16 @@ std::ostream& operator<<(std::ostream &out, const Constructor &ctor) {
     return out;
 }
 
+std::ostream& operator<<(std::ostream &out, const AnonymousVariable &av) {
+    ASTPrinter(out).visit(av);
+    return out;
+}
+
+std::ostream& operator<<(std::ostream &out, const Variable &v) {
+    ASTPrinter(out).visit(v);
+    return out;
+}
+
 std::ostream& operator<<(std::ostream &out, const ConstructorRef &cr) {
     ASTPrinter(out).visit(cr);
     return out;

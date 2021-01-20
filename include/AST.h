@@ -274,6 +274,26 @@ struct AnonymousVariable {
 
 std::ostream& operator<<(std::ostream &out, const AnonymousVariable &av);
 
+struct Variable {
+    Variable() {}
+    Variable(std::string name, bool isDefinition, SourceLocation location):
+        name(name), isDefinition(isDefinition), location(location) {}
+    
+    friend bool operator==(const Variable &lhs, const Variable &rhs) {
+        return lhs.name == rhs.name && lhs.location == rhs.location;
+    }
+
+    friend bool operator!=(const Variable &lhs, const Variable &rhs) {
+        return !(lhs == rhs);
+    }
+
+    Name<Variable> name;
+    bool isDefinition;
+    SourceLocation location;
+};
+
+std::ostream& operator<<(std::ostream &out, const Variable &v);
+
 struct ConstructorRef {
     ConstructorRef() {}
     ConstructorRef(std::string name, SourceLocation location):
@@ -310,6 +330,7 @@ std::ostream& operator<<(std::ostream &out, const ConstructorRef &ctor);
 
 typedef TaggedUnion<
     AnonymousVariable,
+    Variable,
     ConstructorRef
 > ValueBase;
 
@@ -375,6 +396,7 @@ public:
     virtual T visit(const TypeRef &typeRef) = 0;
     virtual T visit(const Constructor &ctor) = 0;
     virtual T visit(const AnonymousVariable &av) = 0;
+    virtual T visit(const Variable &v) = 0;
     virtual T visit(const ConstructorRef &ctor) = 0;
     virtual T visit(const Value &val) = 0;
     virtual T visit(const Type &type) = 0;

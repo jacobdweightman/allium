@@ -12,6 +12,11 @@ public:
         return interpreter::VariableRef();
     }
 
+    interpreter::VariableRef visit(const Variable &v) {
+        // TODO: proper lowering
+        return interpreter::VariableRef(0, false);
+    }
+
     /// Note: To support type inference, this requires the additional
     /// context information of the type. 
     interpreter::ConstructorRef visit(const ConstructorRef &cr, const TypeRef &tr) {
@@ -29,6 +34,7 @@ public:
     interpreter::Value visit(const Value &val, const TypeRef &tr) {
         return val.match<interpreter::Value>(
             [&](AnonymousVariable av) { return visit(av); },
+            [&](Variable v) { return visit(v); },
             [&](ConstructorRef cr) { return visit(cr, tr); }
         );
     }

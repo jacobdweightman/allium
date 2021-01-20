@@ -71,6 +71,21 @@ Optional<AnonymousVariable> parseAnonymousVariable(Lexer &lexer) {
     return Optional<AnonymousVariable>();
 }
 
+Optional<Variable> parseVariable(Lexer &lexer) {
+    Token next = lexer.take_next();
+
+    if(next.type == Token::Type::kw_let) {
+        Token identifier;
+        if(lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
+            return Variable(identifier.text, true, identifier.location);
+        }
+    } else if(next.type == Token::Type::identifier) {
+        return Variable(next.text, false, next.location);
+    }
+
+    return Optional<Variable>();
+}
+
 Optional<Value> parseValue(Lexer &lexer) {
     Token next = lexer.peek_next();
 
@@ -83,6 +98,12 @@ Optional<Value> parseValue(Lexer &lexer) {
     ConstructorRef cr;
     if(parseConstructorRef(lexer).unwrapInto(cr)) {
         return Value(cr);
+    }
+
+    lexer.rewind(next);
+    Variable v;
+    if(parseVariable(lexer).unwrapInto(v)) {
+        return Value(v);
     }
 
     lexer.rewind(next);

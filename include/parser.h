@@ -22,6 +22,7 @@ Optional<TypeDecl> parseTypeDecl(Lexer &lexer);
 Optional<TypeRef> parseTypeRef(Lexer &lexer);
 Optional<Constructor> parseConstructor(Lexer &lexer);
 Optional<AnonymousVariable> parseAnonymousVariable(Lexer &lexer);
+Optional<Variable> parseVariable(Lexer &lexer);
 Optional<ConstructorRef> parseConstructorRef(Lexer &lexer);
 
 #endif // PARSER_H

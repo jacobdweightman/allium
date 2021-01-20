@@ -1,0 +1,19 @@
+type Letter {
+    ctor a;
+    ctor b;
+}
+
+type Word {
+    ctor empty;
+    ctor ht(Letter, Word);
+}
+
+pred second(Word, Letter) {
+    second(ht(_, ht(let c, _)), c) <- true;
+}
+
+pred main {
+    main <- second(
+        ht(a, ht(b, ht(a, ht(a, empty)))),
+        a);
+}
