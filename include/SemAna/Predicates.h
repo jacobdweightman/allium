@@ -58,6 +58,22 @@ public:
     /// a map to access type definitions from their names.
     std::map<Name<Type>, Type> types;
 
+    /// Represents the variables and their types defined in a scope.
+    typedef std::map<Name<Variable>, Type> Scope;
+
+    struct ImplicationCMP {
+        bool operator()(const Implication &a, const Implication &b) const {
+            // sort implications by the order they appear in source. This will
+            // need to be reconsidered for multi-file support.
+            return a.lhs.location < b.lhs.location;
+        }
+    };
+
+    /// access variable types by name and the implication where they occur.
+    /// These are built up dynamically while analyzing the program. A
+    /// function of type Implication -> Name<Variable> -> TypeRef.
+    mutable std::map<Implication, Scope, ImplicationCMP> scopes;
+
 private:
     ErrorEmitter &error;
 };

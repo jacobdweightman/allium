@@ -3,12 +3,16 @@ type Nat {
     ctor s(Nat);
 }
 
-pred geOne(Nat) {
-    geOne( s(_) ) <- true;
+pred even(Nat) {
+    even(zero) <- true;
+    even(s(s(let x))) <- even(x);
+}
+
+pred add(Nat, Nat, Nat) {
+    add(let x, zero, x) <- true;
+    add(let x, s(let y), s(let z)) <- add(x, y, z);
 }
 
 pred main {
-    main <- geOne( s(zero) ),
-        geOne( s(s(zero)) ),
-        geOne( s(s(s(zero))) );
+    main <- add(s(s(zero)), s(s(zero)), s(s(s(s(zero)))));
 }

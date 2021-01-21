@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <string>
 #include "SemAna/Predicates.h"
 
 class SemAna: ASTVisitor<void> {
@@ -10,6 +11,10 @@ class SemAna: ASTVisitor<void> {
 
     /// The implication enclosing the current AST node being analyzed, if there is one.
     mutable Optional<Implication> enclosingImplication;
+
+    /// Whether or not the current AST node being analyzed occurs in the body of an implication.
+    /// TODO: remove this when variables can be defined in implication bodies.
+    mutable bool inBody = false;
 
     /// The type definition enclosing the current AST node being analyzed, if there is one.
     mutable Optional<Type> enclosingType;
@@ -40,8 +45,16 @@ public:
         }
 
         const Predicate &predicate = p->second;
-        // TODO: this assert should be a short-circuiting diagnostic
-        assert(predicate.name.parameters.size() == pr.arguments.size());
+
+        if(predicate.name.parameters.size() != pr.arguments.size()) {
+            error.emit(
+                pr.location,
+                ErrorMessage::predicate_argument_count,
+                pr.name.string(),
+                std::to_string(predicate.name.parameters.size()));
+            return;
+        }
+
         auto parameter = predicate.name.parameters.begin();
         for(const auto &argument : pr.arguments) {
             inferredType = program.resolveTypeRef(*parameter);
@@ -65,9 +78,12 @@ public:
     }
 
     void visit(const Implication &impl) override {
+        program.scopes.insert({ impl, Program::Scope() });
         enclosingImplication = impl;
         visit(impl.lhs);
+        inBody = true;
         visit(impl.rhs);
+        inBody = false;
         enclosingImplication = Optional<Implication>();
     }
 
@@ -107,6 +123,51 @@ public:
     void visit(const AnonymousVariable &av) override {}
 
     void visit(const Variable &v) override {
+        Implication impl;
+        if(enclosingImplication.unwrapGuard(impl)) {
+            assert(false && "A variable must not be defined outside an implication.");
+            return;
+        }
+        auto iter = program.scopes.find(impl);
+        assert(iter != program.scopes.end());
+        Program::Scope &scope = iter->second;
+
+        Type type;
+        if(inferredType.unwrapGuard(type)) {
+            assert(inferredType && "inferred type not set!");
+            return;
+        }
+
+        if(v.isDefinition) {
+            if(inBody) {
+                error.emit(v.location, ErrorMessage::variable_defined_in_body, v.name.string());
+            }
+
+            if(scope.find(v.name) == scope.end()) {
+                scope.insert({ v.name, type });
+            } else {
+                error.emit(v.location, ErrorMessage::variable_redefined, v.name.string());
+            }
+        } else {
+            auto iterType = scope.find(v.name);
+            if(iterType == scope.end()) {
+                error.emit(
+                    v.location,
+                    ErrorMessage::unknown_constructor_or_variable,
+                    v.name.string(),
+                    type.declaration.name.string());
+            } else {
+                Type &variableTypeAtDefinition = iterType->second;
+                if(type != variableTypeAtDefinition) {
+                    error.emit(
+                        v.location,
+                        ErrorMessage::variable_type_mismatch,
+                        v.name.string(),
+                        variableTypeAtDefinition.declaration.name.string(),
+                        type.declaration.name.string());
+                }
+            }
+        }
     }
 
     void visit(const ConstructorRef &cr) override {
@@ -121,16 +182,34 @@ public:
             [&](const Constructor &ctor) { return ctor.name == cr.name; });
         
         if(ctor == type.constructors.end()) {
+            // this must be a constructor (and not a variable) if it takes parameters.
+            // Otherwise, we must "fall through" and check if it's a variable since
+            // we cannot distinguish variable use from constructors without parameters.
+            if(cr.arguments.size() > 0) {
+                error.emit(
+                    cr.location,
+                    ErrorMessage::unknown_constructor,
+                    cr.name.string(),
+                    type.declaration.name.string());
+                return;
+            } else {
+                // There is an ambiguity in the grammar between constructors without
+                // arguments and variables, so if the constructor doesn't match any
+                // of the type's constructors then attempt to resolve it as a variable.
+                visit(Variable(cr.name.string(), false, cr.location));
+                return;
+            }
+        }
+
+        if(ctor->parameters.size() != cr.arguments.size()) {
             error.emit(
                 cr.location,
-                ErrorMessage::unknown_constructor,
+                ErrorMessage::constructor_argument_count,
                 cr.name.string(),
-                type.declaration.name.string());
+                std::to_string(ctor->parameters.size()));
             return;
         }
 
-        // TODO: this assert should be a short-circuiting diagnostic
-        assert(ctor->parameters.size() == cr.arguments.size());
         auto parameter = ctor->parameters.begin();
         for(const auto &argument : cr.arguments) {
             inferredType = program.resolveTypeRef(*parameter);

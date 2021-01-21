@@ -6,10 +6,16 @@
 #include "values/ParserValues.h"
 
 enum class ErrorMessage {
+    constructor_argument_count,
     impl_head_mismatches_predicate,
+    predicate_argument_count,
     undefined_predicate,
     undefined_type,
     unknown_constructor,
+    unknown_constructor_or_variable,
+    variable_redefined,
+    variable_type_mismatch,
+    variable_defined_in_body,
 };
 
 std::string formatString(ErrorMessage msg);
@@ -28,6 +34,7 @@ public:
     virtual void emit(SourceLocation, ErrorMessage) const;
     virtual void emit(SourceLocation, ErrorMessage, std::string) const;
     virtual void emit(SourceLocation, ErrorMessage, std::string, std::string) const;
+    virtual void emit(SourceLocation, ErrorMessage, std::string, std::string, std::string) const;
     
     // template <typename ... Args>
     // void emit(ErrorMessage msg, Args&& ... args) {

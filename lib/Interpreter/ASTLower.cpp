@@ -1,10 +1,14 @@
 #include <algorithm>
+#include <limits>
 
 #include "Interpreter/ASTLower.h"
 
 /// Traverses the AST and lowers it to interpreter primitives using
 /// the visitor pattern.
 class ASTLowerer {
+    /// The implication enclosing the current AST node being analyzed, if there is one.
+    Optional<Implication> enclosingImplication;
+
 public:
     ASTLowerer(const Program &semanaProgram): semanaProgram(semanaProgram) {}
 
@@ -13,8 +17,12 @@ public:
     }
 
     interpreter::VariableRef visit(const Variable &v) {
-        // TODO: proper lowering
-        return interpreter::VariableRef(0, false);
+        Implication impl;
+        if(enclosingImplication.unwrapGuard(impl)) {
+            assert(false && "implication not set!");
+        }
+        size_t index = getVariableIndex(impl, v);
+        return interpreter::VariableRef(index, v.isDefinition);
     }
 
     /// Note: To support type inference, this requires the additional
@@ -35,7 +43,15 @@ public:
         return val.match<interpreter::Value>(
             [&](AnonymousVariable av) { return visit(av); },
             [&](Variable v) { return visit(v); },
-            [&](ConstructorRef cr) { return visit(cr, tr); }
+            [&](ConstructorRef cr) -> interpreter::Value {
+                // disambiguate constructors without arguments from variables
+                if(getConstructorIndex(tr, cr) == std::numeric_limits<size_t>::max()) {
+                    Variable v(cr.name.string(), false, cr.location);
+                    return visit(v);
+                } else {
+                    return visit(cr, tr);
+                }
+            }
         );
     }
 
@@ -72,7 +88,13 @@ public:
     }
 
     interpreter::Implication visit(const Implication &impl) {
-        return interpreter::Implication(visit(impl.lhs), visit(impl.rhs), 0);
+        enclosingImplication = impl;
+        auto head = visit(impl.lhs);
+        auto body = visit(impl.rhs);
+        enclosingImplication = Optional<Implication>();
+
+        size_t numVariables = semanaProgram.scopes[impl].size();
+        return interpreter::Implication(head, body, numVariables);
     }
 
     interpreter::Predicate visit(const Predicate &p) {
@@ -102,10 +124,24 @@ private:
 
         size_t i = 0;
         for(const Constructor &ctor : type.constructors) {
-            if(ctor.name == cr.name) break;
+            if(ctor.name == cr.name) return i;
             ++i;
         }
-        return i;
+        // the "constructor reference" is actually a variable.
+        return std::numeric_limits<size_t>::max(); 
+    }
+
+    /// Computes the implication's variable list and returns the variable's
+    /// index within it.
+    size_t getVariableIndex(const Implication &impl, const Variable &v) {
+        auto scopeIter = semanaProgram.scopes.find(impl);
+        assert(scopeIter != semanaProgram.scopes.end());
+        auto scope = scopeIter->second;
+
+        size_t index = 0;
+        auto vIter = scope.find(v.name);
+        for(; vIter != scope.begin(); --vIter) ++index;
+        return index;
     }
 
     const Program &semanaProgram;

@@ -18,6 +18,11 @@ struct SourceLocation {
     friend bool operator!=(const SourceLocation &lhs, const SourceLocation &rhs) {
         return !(lhs == rhs);
     }
+
+    friend bool operator<(const SourceLocation &lhs, const SourceLocation &rhs) {
+        if(lhs.lineNumber != rhs.lineNumber) return lhs.lineNumber < rhs.lineNumber;
+        return lhs.columnNumber < rhs.columnNumber;
+    }
     
     friend std::ostream& operator<<(std::ostream &out, SourceLocation loc) {
         return out << loc.lineNumber << ":" << loc.columnNumber;
