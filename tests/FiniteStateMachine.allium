@@ -1,0 +1,24 @@
+type Symbol {
+    ctor a;
+    ctor b;
+}
+
+type SymbolList {
+    ctor empty;
+    ctor cons(Symbol, SymbolList);
+}
+
+type State {
+    ctor readA;
+    ctor readB;
+}
+
+pred simulate(State, SymbolList) {
+    simulate(readA, empty) <- true;
+    simulate(readA, cons(a, let tail)) <- simulate(readB, tail);
+    simulate(readB, cons(b, let tail)) <- simulate(readA, tail);
+}
+
+pred main {
+    main <- simulate(readA, cons(a, cons(b, cons(a, empty))));
+}

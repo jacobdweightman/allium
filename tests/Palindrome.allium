@@ -1,0 +1,27 @@
+type Symbol {
+    ctor a;
+    ctor b;
+}
+
+type SymbolList {
+    ctor empty;
+    ctor cons(Symbol, SymbolList);
+}
+
+pred main {
+    main <- palindrome(cons(a, cons(b, cons(b, cons(a, empty)))));
+}
+
+pred palindrome(SymbolList) {
+    palindrome(let x) <- reverse(x, x);
+}
+
+pred reverse(SymbolList, SymbolList) {
+    reverse(let x, let y) <- reverseHelper(x, y, empty);
+}
+
+pred reverseHelper(SymbolList, SymbolList, SymbolList) {
+    reverseHelper(empty, let y, y) <- true;
+    reverseHelper(cons(let head, let tail), let y, let z) <-
+        reverseHelper(tail, y, cons(head, z));
+}

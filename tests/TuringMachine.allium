@@ -1,0 +1,44 @@
+type Symbol {
+    ctor a;
+    ctor b;
+    ctor c;
+    ctor markA;
+    ctor markB;
+    ctor markC;
+}
+
+type HalfTape {
+    ctor empty;
+    ctor cons(Symbol, HalfTape);
+}
+
+type State {
+    ctor markA;
+    ctor markB;
+    ctor markC;
+    ctor scanLeft;
+    ctor check;
+}
+
+pred simulate(State, Symbol, HalfTape, HalfTape) {
+    simulate(markA, a, let l, cons(let next, let r)) <- simulate(markB, next, cons(markA, l), r);
+    simulate(markB, a, let l, cons(let next, let r)) <- simulate(markB, next, cons(a, l), r);
+    simulate(markB, markB, let l, cons(let next, let r)) <- simulate(markB, next, cons(markB, l), r);
+    simulate(markB, b, let l, cons(let next, let r)) <- simulate(markC, next, cons(markB, l), r);
+    simulate(markC, b, let l, cons(let next, let r)) <- simulate(markC, next, cons(b, l), r);
+    simulate(markC, markC, let l, cons(let next, let r)) <- simulate(markC, next, cons(markC, l), r);
+    simulate(markC, c, cons(let next, let l), empty) <- simulate(check, next, l, cons(markC, empty));
+    simulate(markC, c, cons(let next, let l), let r) <- simulate(scanLeft, next, l, cons(markC, r));
+
+    simulate(check, markA, _, _) <- true;
+    simulate(check, markB, cons(let next, let l), let r) <- simulate(check, next, l, cons(markB, r));
+    simulate(check, markC, cons(let next, let l), let r) <- simulate(check, next, l, cons(markC, r));
+    simulate(check, let s, cons(let next, let l), let r) <- simulate(scanLeft, next, l, cons(s, r));
+
+    simulate(scanLeft, markA, let l, cons(let next, let r)) <- simulate(markA, next, cons(markA, l), r);
+    simulate(scanLeft, let s, cons(let next, let l), let r) <- simulate(scanLeft, next, l, cons(s, r));
+}
+
+pred main {
+    main <- simulate(markA, a, empty, cons(a, cons(b, cons(b, cons(c, cons(c, empty))))));
+}

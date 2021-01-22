@@ -1,0 +1,34 @@
+type Symbol {
+    ctor a;
+    ctor b;
+}
+
+type Input {
+    ctor empty;
+    ctor cons(Symbol, Input);
+}
+
+type StackSymbol {
+    ctor i;
+}
+
+type Stack {
+    ctor empty;
+    ctor push(StackSymbol, Stack);
+}
+
+type State {
+    ctor readA;
+    ctor readB;
+}
+
+pred simulate(State, Stack, Input) {
+    simulate(readB, empty, empty) <- true;
+    simulate(readA, let stack, cons(a, let tail)) <- simulate(readA, push(i, stack), tail);
+    simulate(readA, push(i, let stack), cons(b, let tail)) <- simulate(readB, stack, tail);
+    simulate(readB, push(i, let stack), cons(b, let tail)) <- simulate(readB, stack, tail);
+}
+
+pred main {
+    main <- simulate(readA, empty, cons(a, cons(a, cons(b, cons(b, empty)))));
+}

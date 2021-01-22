@@ -1,0 +1,30 @@
+type Nat {
+    ctor zero;
+    ctor s(Nat);
+}
+
+pred even(Nat) {
+    even(zero) <- true;
+    even(s(s(let x))) <- even(x);
+}
+
+pred add(Nat, Nat, Nat) {
+    add(let x, zero, x) <- true;
+    add(let x, s(let y), s(let z)) <- add(x, y, z);
+}
+
+pred mul(Nat, Nat, Nat) {
+    mul(let x, let y, let z) <- mulHelper(x, y, x, zero, z);
+}
+
+pred mulHelper(Nat, Nat, Nat, Nat, Nat) {
+    mulHelper(_, _, zero, zero, _) <- true;
+    mulHelper(let x, let y, s(let ix), zero, let acc) <- mulHelper(x, y, ix, y, acc);
+    mulHelper(let x, let y, let ix, s(let iy), s(let acc)) <- mulHelper(x, y, ix, iy, acc);
+}
+
+pred main {
+    main <- even(s(s(s(s(s(s(zero))))))),
+        add(s(s(zero)), s(s(s(zero))), s(s(s(s(s(zero)))))),
+        mul(s(s(zero)), s(s(s(zero))), s(s(s(s(s(s(zero)))))));
+}
