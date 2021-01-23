@@ -1,5 +1,5 @@
 #include "values/Optional.h"
-#include "parser.h"
+#include "Parser/parser.h"
 
 /// Consumes a truth literal token from the lexer, and produces an AST node to
 /// match.

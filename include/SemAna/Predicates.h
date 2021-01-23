@@ -4,7 +4,7 @@
 #include <vector>
 #include <map>
 
-#include "AST.h"
+#include "Parser/AST.h"
 #include "SemAna/StaticError.h"
 
 /// Represents a complete program for the purpose of semantic analysis.

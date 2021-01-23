@@ -5,8 +5,8 @@
 
 #include "values/Optional.h"
 #include "values/TaggedUnion.h"
-#include "AST.h"
-#include "lexer.h"
+#include "Parser/AST.h"
+#include "Parser/lexer.h"
 
 Optional<Implication> parseImplication(Lexer &lexer);
 Optional<Predicate> parsePredicate(Lexer &lexer);

@@ -1,11 +1,11 @@
 #include <iostream>
 #include <vector>
 
-#include "ASTPrinter.h"
 #include "Interpreter/ASTLower.h"
 #include "Interpreter/program.h"
-#include "lexer.h"
-#include "parser.h"
+#include "Parser/ASTPrinter.h"
+#include "Parser/lexer.h"
+#include "Parser/parser.h"
 
 int main(int argc, char *argv[]) {
     if(argc != 2) {

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <limits>
 
-#include "lexer.h"
+#include "Parser/lexer.h"
 
 std::ostream& operator<<(std::ostream& out, const Token value) {
     return out << "Token(" << value.type << ", " << value.text << ")\n";

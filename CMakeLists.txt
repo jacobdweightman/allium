@@ -22,9 +22,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(GenerateExportHeader)
 
 add_library(AlliumParse SHARED
-  lib/parse/AST.cpp
-  lib/parse/lexer.cpp
-  lib/parse/parser.cpp)
+  lib/Parser/AST.cpp
+  lib/Parser/lexer.cpp
+  lib/Parser/parser.cpp)
 
 target_include_directories(AlliumParse PUBLIC include)
 set_property(TARGET AlliumParse PROPERTY CXX_STANDARD 17)

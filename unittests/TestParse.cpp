@@ -1,6 +1,7 @@
-#include "gtest/gtest.h"
-#include "parser.h"
 #include <iostream>
+
+#include "gtest/gtest.h"
+#include "Parser/parser.h"
 
 TEST(TestParser, parse_true_as_truth_literal) {
     std::istringstream f("true");

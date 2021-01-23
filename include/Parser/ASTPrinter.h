@@ -1,7 +1,7 @@
 #ifndef AST_PRINTER_H
 #define AST_PRINTER_H
 
-#include "AST.h"
+#include "Parser/AST.h"
 
 class ASTPrinter: public ASTVisitor<void> {
 public:

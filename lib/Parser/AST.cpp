@@ -1,5 +1,5 @@
-#include "AST.h"
-#include "ASTPrinter.h"
+#include "Parser/AST.h"
+#include "Parser/ASTPrinter.h"
 
 std::ostream& operator<<(std::ostream &out, const Expression &e) {
     return e.match<std::ostream&>(
