@@ -36,18 +36,12 @@ struct TruthLiteral {
     TruthLiteral(bool value, SourceLocation location):
         value(value), location(location) {}
 
-    friend bool operator==(const TruthLiteral &lhs, const TruthLiteral &rhs) {
-        return lhs.value == rhs.value && lhs.location == rhs.location;
-    }
-
-    friend inline bool operator!=(const TruthLiteral &lhs, const TruthLiteral &rhs) {
-        return !(lhs == rhs);
-    }
-
     bool value;
     SourceLocation location;
 };
 
+bool operator==(const TruthLiteral &lhs, const TruthLiteral &rhs);
+bool operator!=(const TruthLiteral &lhs, const TruthLiteral &rhs);
 std::ostream& operator<<(std::ostream &out, const TruthLiteral &tl);
 
 /// Represents the signature of a predicate at the start of its definition.
@@ -59,20 +53,13 @@ struct PredicateDecl {
         SourceLocation location
     ): name(name), parameters(parameters), location(location) {}
 
-    friend bool operator==(const PredicateDecl &lhs, const PredicateDecl &rhs) {
-        return lhs.location == rhs.location && lhs.name == rhs.name &&
-            lhs.parameters == rhs.parameters;
-    }
-
-    friend inline bool operator!=(const PredicateDecl &lhs, const PredicateDecl &rhs) {
-        return !(lhs == rhs);
-    }
-
     Name<Predicate> name;
     std::vector<TypeRef> parameters;
     SourceLocation location;
 };
 
+bool operator==(const PredicateDecl &lhs, const PredicateDecl &rhs);
+bool operator!=(const PredicateDecl &lhs, const PredicateDecl &rhs);
 std::ostream& operator<<(std::ostream &out, const PredicateDecl &pd);
 
 /// Represents a reference to a predicate in the AST.
@@ -88,20 +75,13 @@ struct PredicateRef {
         SourceLocation location
     ): name(name), arguments(arguments), location(location) {}
 
-    friend bool operator==(const PredicateRef &lhs, const PredicateRef &rhs) {
-        return lhs.name == rhs.name && lhs.location == rhs.location &&
-            lhs.arguments == rhs.arguments;
-    }
-
-    friend bool operator!=(const PredicateRef &lhs, const PredicateRef &rhs) {
-        return !(lhs == rhs);
-    }
-
     Name<Predicate> name;
     std::vector<Value> arguments;
     SourceLocation location;
 };
 
+bool operator==(const PredicateRef &lhs, const PredicateRef &rhs);
+bool operator!=(const PredicateRef &lhs, const PredicateRef &rhs);
 std::ostream& operator<<(std::ostream &out, const PredicateRef &p);
 
 /// Represents the conjunction of two expressions.
@@ -116,9 +96,6 @@ public:
         swap(_right, other._right);
         return *this;
     }
-
-    friend bool operator==(const Conjunction &lhs, const Conjunction &rhs);
-    friend bool operator!=(const Conjunction &lhs, const Conjunction &rhs);
 
     friend void swap(Conjunction &lhs, Conjunction &rhs) {
         using std::swap;
@@ -149,6 +126,8 @@ protected:
     std::unique_ptr<Expression> _left, _right;
 };
 
+bool operator==(const Conjunction &lhs, const Conjunction &rhs);
+bool operator!=(const Conjunction &lhs, const Conjunction &rhs);
 std::ostream& operator<<(std::ostream &out, const Conjunction &conj);
 
 class Expression : public ExpressionBase {
@@ -168,18 +147,12 @@ struct Implication {
         return *this;
     }
 
-    friend bool operator==(const Implication &lhs, const Implication &rhs) {
-        return lhs.lhs == rhs.lhs && lhs.rhs == rhs.rhs;
-    }
-
-    friend inline bool operator!=(const Implication &lhs, const Implication &rhs) {
-        return !(lhs == rhs);
-    }
-
     PredicateRef lhs;
     Expression rhs;
 };
 
+bool operator==(const Implication &lhs, const Implication &rhs);
+bool operator!=(const Implication &lhs, const Implication &rhs);
 std::ostream& operator<<(std::ostream &out, const Implication &impl);
 
 /// Represents a complete predicate definition in the AST.
@@ -195,19 +168,27 @@ struct Predicate {
         return *this;
     }
 
-    friend bool operator==(const Predicate &lhs, const Predicate &rhs) {
-        return lhs.name == rhs.name && lhs.implications == rhs.implications;
-    }
-
-    friend inline bool operator!=(const Predicate &lhs, const Predicate &rhs) {
-        return !(lhs == rhs);
-    }
-
     PredicateDecl name;
     std::vector<Implication> implications;
 };
 
+bool operator==(const Predicate &lhs, const Predicate &rhs);
+inline bool operator!=(const Predicate &lhs, const Predicate &rhs);
 std::ostream& operator<<(std::ostream &out, const Predicate &pred);
+
+/// Represents the declaration of a type at the begining of its definition.
+struct TypeDecl {
+    TypeDecl() {}
+    TypeDecl(std::string name, SourceLocation location):
+        name(name), location(location) {}
+    
+    Name<Type> name;
+    SourceLocation location;
+};
+
+bool operator==(const TypeDecl &lhs, const TypeDecl &rhs);
+bool operator!=(const TypeDecl &lhs, const TypeDecl &rhs);
+std::ostream& operator<<(std::ostream &out, const TypeDecl &td);
 
 /// Represents a reference to a type in the AST, for example in a predicate's
 /// signature definition.
@@ -220,18 +201,12 @@ struct TypeRef {
     TypeRef(const TypeRef &other):
         name(other.name), location(other.location) {}
 
-    friend bool operator==(const TypeRef &lhs, const TypeRef &rhs) {
-        return lhs.name == rhs.name && lhs.location == rhs.location;
-    }
-
-    friend bool operator!=(const TypeRef &lhs, const TypeRef &rhs) {
-        return !(lhs == rhs);
-    }
-
     Name<Type> name;
     SourceLocation location;
 };
 
+bool operator==(const TypeRef &lhs, const TypeRef &rhs);
+bool operator!=(const TypeRef &lhs, const TypeRef &rhs);
 std::ostream& operator<<(std::ostream &out, const TypeRef &typeRef);
 
 struct Constructor {
@@ -242,56 +217,38 @@ struct Constructor {
         SourceLocation location
     ): name(name), parameters(parameters), location(location) {}
 
-    friend bool operator==(const Constructor &lhs, const Constructor &rhs) {
-        return lhs.name == rhs.name && lhs.location == rhs.location;
-    }
-
-    friend bool operator!=(const Constructor &lhs, const Constructor &rhs) {
-        return !(lhs == rhs);
-    }
-
     Name<Constructor> name;
     std::vector<TypeRef> parameters;
     SourceLocation location;
 };
 
+bool operator==(const Constructor &lhs, const Constructor &rhs);
+bool operator!=(const Constructor &lhs, const Constructor &rhs);
 std::ostream& operator<<(std::ostream &out, const Constructor &ctor);
 
 struct AnonymousVariable {
     AnonymousVariable() {}
     AnonymousVariable(SourceLocation location): location(location) {}
 
-    friend bool operator==(const AnonymousVariable &lhs, const AnonymousVariable &rhs) {
-        return lhs.location == rhs.location;
-    }
-
-    friend bool operator!=(const AnonymousVariable &lhs, const AnonymousVariable &rhs) {
-        return !(lhs == rhs);
-    }
-
     SourceLocation location;
 };
 
+bool operator==(const AnonymousVariable &lhs, const AnonymousVariable &rhs);
+bool operator!=(const AnonymousVariable &lhs, const AnonymousVariable &rhs);
 std::ostream& operator<<(std::ostream &out, const AnonymousVariable &av);
 
 struct Variable {
     Variable() {}
     Variable(std::string name, bool isDefinition, SourceLocation location):
         name(name), isDefinition(isDefinition), location(location) {}
-    
-    friend bool operator==(const Variable &lhs, const Variable &rhs) {
-        return lhs.name == rhs.name && lhs.location == rhs.location;
-    }
-
-    friend bool operator!=(const Variable &lhs, const Variable &rhs) {
-        return !(lhs == rhs);
-    }
 
     Name<Variable> name;
     bool isDefinition;
     SourceLocation location;
 };
 
+bool operator==(const Variable &lhs, const Variable &rhs);
+bool operator!=(const Variable &lhs, const Variable &rhs);
 std::ostream& operator<<(std::ostream &out, const Variable &v);
 
 struct ConstructorRef {
@@ -312,20 +269,13 @@ struct ConstructorRef {
         return *this;
     }
 
-    friend bool operator==(const ConstructorRef &lhs, const ConstructorRef &rhs) {
-        return lhs.name == rhs.name && lhs.location == rhs.location &&
-            lhs.arguments == rhs.arguments;
-    }
-
-    friend bool operator!=(const ConstructorRef &lhs, const ConstructorRef &rhs) {
-        return !(lhs == rhs);
-    }
-
     Name<Constructor> name;
     std::vector<Value> arguments;
     SourceLocation location;
 };
 
+bool operator==(const ConstructorRef &lhs, const ConstructorRef &rhs);
+bool operator!=(const ConstructorRef &lhs, const ConstructorRef &rhs);
 std::ostream& operator<<(std::ostream &out, const ConstructorRef &ctor);
 
 typedef TaggedUnion<
@@ -339,47 +289,20 @@ struct Value : public ValueBase {
     Value(): Value(AnonymousVariable()) {}
 };
 
-std::ostream& operator<<(std::ostream &out, const ConstructorRef &ctor);
-
-/// Represents the declaration of a type at the begining of its definition.
-struct TypeDecl {
-    TypeDecl() {}
-    TypeDecl(std::string name, SourceLocation location):
-        name(name), location(location) {}
-
-    friend bool operator==(const TypeDecl &lhs, const TypeDecl &rhs) {
-        return lhs.name == rhs.name && lhs.location == rhs.location;
-    }
-
-    friend bool operator!=(const TypeDecl &lhs, const TypeDecl &rhs) {
-        return !(lhs == rhs);
-    }
-    
-    Name<Type> name;
-    SourceLocation location;
-};
-
-std::ostream& operator<<(std::ostream &out, const TypeDecl &td);
+std::ostream& operator<<(std::ostream &out, const Value &val);
 
 /// Represents the complete definition of a type in the AST.
 struct Type {
     Type() {}
     Type(TypeDecl declaration, std::vector<Constructor> ctors):
         declaration(declaration), constructors(ctors) {}
-    
-    friend bool operator==(const Type &lhs, const Type &rhs) {
-        return lhs.declaration == rhs.declaration &&
-            lhs.constructors == rhs.constructors;
-    }
-
-    friend bool operator!=(const Type &lhs, const Type &rhs) {
-        return !(lhs == rhs);
-    }
 
     TypeDecl declaration;
     std::vector<Constructor> constructors;
 };
 
+bool operator==(const Type &lhs, const Type &rhs);
+bool operator!=(const Type &lhs, const Type &rhs);
 std::ostream& operator<<(std::ostream &out, const Type &type);
 
 template <typename T>
