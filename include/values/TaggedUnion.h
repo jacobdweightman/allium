@@ -34,7 +34,7 @@ public:
     TaggedUnion(Head h): is_active_case(true), value(h) {}
 
     template <typename T>
-    TaggedUnion(T t): is_active_case(false), value(TaggedUnion<Tail...>(t)) {
+    explicit TaggedUnion(T t): is_active_case(false), value(TaggedUnion<Tail...>(t)) {
         static_assert(!std::is_same<T, Head>::value,
             "This constructor shouldn't be used with type 'Head'");
     }

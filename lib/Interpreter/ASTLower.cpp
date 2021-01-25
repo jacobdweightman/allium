@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <limits>
 
+#include "Parser/AST.h"
 #include "Interpreter/ASTLower.h"
 
 /// Traverses the AST and lowers it to interpreter primitives using
@@ -41,15 +42,15 @@ public:
 
     interpreter::Value visit(const Value &val, const TypeRef &tr) {
         return val.match<interpreter::Value>(
-            [&](AnonymousVariable av) { return visit(av); },
-            [&](Variable v) { return visit(v); },
+            [&](AnonymousVariable av) { return interpreter::Value(visit(av)); },
+            [&](Variable v) { return interpreter::Value(visit(v)); },
             [&](ConstructorRef cr) -> interpreter::Value {
                 // disambiguate constructors without arguments from variables
                 if(getConstructorIndex(tr, cr) == std::numeric_limits<size_t>::max()) {
                     Variable v(cr.name.string(), false, cr.location);
-                    return visit(v);
+                    return interpreter::Value(visit(v));
                 } else {
-                    return visit(cr, tr);
+                    return interpreter::Value(visit(cr, tr));
                 }
             }
         );
@@ -81,9 +82,9 @@ public:
 
     interpreter::Expression visit(const Expression &expr) {
         return expr.match<interpreter::Expression>(
-        [&](TruthLiteral tl) { return visit(tl); },
-        [&](PredicateRef pr) { return visit(pr); },
-        [&](Conjunction conj) { return visit(conj); }
+        [&](TruthLiteral tl) { return interpreter::Expression(visit(tl)); },
+        [&](PredicateRef pr) { return interpreter::Expression(visit(pr)); },
+        [&](Conjunction conj) { return interpreter::Expression(visit(conj)); }
         );
     }
 
@@ -163,7 +164,7 @@ interpreter::Program lower(const Program &semanaProgram) {
         if(p.second.name.name == Name<Predicate>("main"))
             // If main did take arguments, this would be the place to
             // pass them to the program!
-            main = Optional(interpreter::PredicateReference(i, {}));
+            main = interpreter::PredicateReference(i, {});
         ++i;
     }
 

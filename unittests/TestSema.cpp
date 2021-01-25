@@ -44,7 +44,7 @@ TEST(TestSemAnaPredicates, undefined_predicate) {
             {
                 Implication(
                     PredicateRef("a", SourceLocation(2, 4)),
-                    PredicateRef("b", errorLocation)
+                    Expression(PredicateRef("b", errorLocation))
                 )
             }
         )
@@ -101,12 +101,12 @@ TEST(TestSemAnaPredicates, predicate_argument_count_mismatch) {
                     PredicateRef(
                         "p",
                         {
-                            ConstructorRef("foo", SourceLocation(2, 16)),
-                            ConstructorRef("foo", SourceLocation(2, 20))
+                            Value(ConstructorRef("foo", SourceLocation(2, 16))),
+                            Value(ConstructorRef("foo", SourceLocation(2, 20)))
                         },
                         errorLocation
                     ),
-                    TruthLiteral(true, SourceLocation(2, 30))
+                    Expression(TruthLiteral(true, SourceLocation(2, 30)))
                 )
             }
         )
@@ -141,13 +141,14 @@ TEST(TestSemAnaPredicates, constructor_argument_count_mismatch) {
                     PredicateRef(
                         "p",
                         {
-                            ConstructorRef(
+                            Value(ConstructorRef(
                                 "s",
                                 {
-                                    ConstructorRef("zero", SourceLocation(2, 18)),
-                                    ConstructorRef("zero", SourceLocation(2, 24))
+                                    Value(ConstructorRef("zero", SourceLocation(2, 18))),
+                                    Value(ConstructorRef("zero", SourceLocation(2, 24)))
                                 },
-                                errorLocation)
+                                errorLocation
+                            ))
                         },
                         SourceLocation(2, 14)
                     ),
@@ -182,7 +183,13 @@ TEST(TestSemAnaPredicates, predicate_argument_with_arguments_type_mismatch) {
                 Implication(
                     PredicateRef(
                         "a",
-                        { ConstructorRef("baz", { ConstructorRef("bar", SourceLocation()) }, errorLocation) },
+                        {
+                            Value(ConstructorRef(
+                                "baz",
+                                { Value(ConstructorRef("bar", SourceLocation())) },
+                                errorLocation
+                            ))
+                        },
                         SourceLocation()
                     ),
                     TruthLiteral(true, SourceLocation(2, 8))
@@ -211,8 +218,12 @@ TEST(TestSemAnaPredicates, predicate_argument_type_mismatch) {
             PredicateDecl("a", { TypeRef("Foo", SourceLocation()) }, SourceLocation(1, 4)),
             {
                 Implication(
-                    PredicateRef("a", { ConstructorRef("baz", errorLocation) }, SourceLocation()),
-                    TruthLiteral(true, SourceLocation(2, 8))
+                    PredicateRef(
+                        "a",
+                        { Value(ConstructorRef("baz", errorLocation)) },
+                        SourceLocation()
+                    ),
+                    Expression(TruthLiteral(true, SourceLocation(2, 8)))
                 )
             }
         )
@@ -261,12 +272,12 @@ TEST(TestSemAnaPredicates, variable_redefinition) {
                 PredicateRef(
                     "p",
                     {
-                        Variable("x", true, SourceLocation(3, 10)),
-                        Variable("x", true, errorLocation),
+                        Value(Variable("x", true, SourceLocation(3, 10))),
+                        Value(Variable("x", true, errorLocation)),
                     },
                     SourceLocation(3, 4)
                 ),
-                TruthLiteral(true, SourceLocation(3, 23))
+                Expression(TruthLiteral(true, SourceLocation(3, 23)))
             )
         })
     };
@@ -302,8 +313,8 @@ TEST(TestSemAnaPredicates, variable_type_mismatch) {
             PredicateDecl("q", { TypeRef("Bar", SourceLocation(5, 7)) }, SourceLocation(5, 5)),
             {
                 Implication(
-                    PredicateRef("q", { Variable("x", true, SourceLocation(6, 10)) }, SourceLocation(6, 4)),
-                    PredicateRef("p", { Variable("x", false, errorLocation) }, SourceLocation(6, 16))
+                    PredicateRef("q", { Value(Variable("x", true, SourceLocation(6, 10))) }, SourceLocation(6, 4)),
+                    Expression(PredicateRef("p", { Value(Variable("x", false, errorLocation)) }, SourceLocation(6, 16)))
                 )
             }
         )

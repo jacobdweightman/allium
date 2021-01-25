@@ -23,8 +23,8 @@ public:
             Predicate({
                 Implication(PredicateReference(2, { ConstructorRef(0, {}) }), TruthValue(true), 0),
                 Implication(
-                    PredicateReference(2, { ConstructorRef(1, { VariableRef(0, true) }) }),
-                    PredicateReference(2, { VariableRef(0, false) }),
+                    PredicateReference(2, { ConstructorRef(1, { Value(VariableRef(0, true)) }) }),
+                    Expression(PredicateReference(2, { Value(VariableRef(0, false)) })),
                     1
                 )
             })
@@ -39,25 +39,25 @@ TEST_F(TestInterpreter, prove_truth_literal) {
 }
 
 TEST_F(TestInterpreter, prove_predicate) {
-    EXPECT_TRUE(program.prove(PredicateReference(0, {})));
-    EXPECT_FALSE(program.prove(PredicateReference(1, {})));
+    EXPECT_TRUE(program.prove(Expression(PredicateReference(0, {}))));
+    EXPECT_FALSE(program.prove(Expression(PredicateReference(1, {}))));
 }
 
 TEST_F(TestInterpreter, prove_predicate_with_arguments) {
-    EXPECT_TRUE(program.prove(PredicateReference(2, { ConstructorRef(0, {}) })));
-    EXPECT_TRUE(program.prove(PredicateReference(2,
+    EXPECT_TRUE(program.prove(Expression(PredicateReference(2, { ConstructorRef(0, {}) }))));
+    EXPECT_TRUE(program.prove(Expression(PredicateReference(2,
         { ConstructorRef(1, { ConstructorRef(0, {}) }) }
-    )));
-    EXPECT_TRUE(program.prove(PredicateReference(2,
+    ))));
+    EXPECT_TRUE(program.prove(Expression(PredicateReference(2,
         { ConstructorRef(1, { ConstructorRef(1, { ConstructorRef(0, {}) }) }) }
-    )));
+    ))));
 }
 
 TEST_F(TestInterpreter, prove_conjunction) {
-    EXPECT_TRUE(program.prove(Conjunction(TruthValue(true), TruthValue(true))));
-    EXPECT_FALSE(program.prove(Conjunction(TruthValue(true), TruthValue(false))));
-    EXPECT_FALSE(program.prove(Conjunction(TruthValue(false), TruthValue(true))));
-    EXPECT_FALSE(program.prove(Conjunction(TruthValue(false), TruthValue(false))));
+    EXPECT_TRUE(program.prove(Expression(Conjunction(TruthValue(true), TruthValue(true)))));
+    EXPECT_FALSE(program.prove(Expression(Conjunction(TruthValue(true), TruthValue(false)))));
+    EXPECT_FALSE(program.prove(Expression(Conjunction(TruthValue(false), TruthValue(true)))));
+    EXPECT_FALSE(program.prove(Expression(Conjunction(TruthValue(false), TruthValue(false)))));
 }
 
 class TestMatching : public testing::Test {
@@ -68,13 +68,13 @@ public:
     // p(zero) <- true;
     Implication impl = Implication(
         PredicateReference(0, { ConstructorRef(0, {}) }),
-        pr,
+        Expression(pr),
         2
     );
     // p(s(let x)) <- p(x);
     Implication impl2 = Implication(
-        PredicateReference(0, { ConstructorRef(1, { VariableRef(0, true) }) }),
-        PredicateReference(0, { VariableRef(0, true) }),
+        PredicateReference(0, { ConstructorRef(1, { Value(VariableRef(0, true)) }) }),
+        Expression(PredicateReference(0, { Value(VariableRef(0, true)) })),
         1
     );
 };
@@ -161,6 +161,6 @@ TEST_F(TestMatching, instantiation) {
 
     EXPECT_EQ(
         impl2.instantiateBody(),
-        PredicateReference(0, { ConstructorRef(0, {}) })
+        Expression(PredicateReference(0, { Value(ConstructorRef(0, {})) }))
     );
 }

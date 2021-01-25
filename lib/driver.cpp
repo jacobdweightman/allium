@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
     interpreter::Program interpreter = lower(semAna);
     return interpreter.getEntryPoint().switchOver<int>(
         [&](interpreter::PredicateReference main) {
-            return !interpreter.prove(main);
+            return !interpreter.prove(interpreter::Expression(main));
         },
         [] {
             std::cout << "Invoked program with no predicate named main.\n";

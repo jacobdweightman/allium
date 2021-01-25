@@ -45,7 +45,7 @@ static Expression instantiate(
     const std::vector<ConstructorRef> &variables
 ) {
     return expr.match<Expression>(
-    [](TruthValue tv) { return tv; },
+    [](TruthValue tv) { return interpreter::Expression(tv); },
     [&](PredicateReference pr) {
         for(Value &arg : pr.arguments) {
             arg = arg.match<Value>(
@@ -53,19 +53,19 @@ static Expression instantiate(
             [&](VariableRef vr) -> Value {
                 if( vr.index != VariableRef::anonymousIndex &&
                     variables[vr.index] != ConstructorRef()) {
-                        return variables[vr.index];
+                        return interpreter::Value(variables[vr.index]);
                 } else {
-                    return vr;
+                    return interpreter::Value(vr);
                 }
             });
         }
-        return pr;
+        return interpreter::Expression(pr);
     },
     [&](Conjunction conj) {
-        return Conjunction(
+        return interpreter::Expression(Conjunction(
             instantiate(conj.getLeft(), variables),
             instantiate(conj.getRight(), variables)
-        );
+        ));
     });
 }
 

@@ -9,7 +9,7 @@ TEST(TestParser, parse_true_as_truth_literal) {
     
     EXPECT_EQ(
         parseTruthLiteral(lexer),
-        Optional(TruthLiteral(true, SourceLocation(1, 0)))
+        TruthLiteral(true, SourceLocation(1, 0))
     );
 }
 
@@ -19,7 +19,7 @@ TEST(TestParser, parse_false_as_truth_literal) {
     
     EXPECT_EQ(
         parseTruthLiteral(lexer),
-        Optional(TruthLiteral(false, SourceLocation(1, 0)))
+        TruthLiteral(false, SourceLocation(1, 0))
     );
 }
 
@@ -39,7 +39,7 @@ TEST(TestParser, parse_simple_predicate_name) {
     
     EXPECT_EQ(
         parsePredicateRef(lexer),
-        Optional(PredicateRef("open", SourceLocation(1, 0)))
+        PredicateRef("open", SourceLocation(1, 0))
     );
 }
 
@@ -49,7 +49,7 @@ TEST(TestParser, parse_snake_case_predicate_name) {
     
     EXPECT_EQ(
         parsePredicateRef(lexer),
-        Optional(PredicateRef("is_open", SourceLocation(1, 0)))
+        PredicateRef("is_open", SourceLocation(1, 0))
     );
 }
 
@@ -59,7 +59,7 @@ TEST(TestParser, parse_predicate_name_does_not_match_whitespace) {
     
     EXPECT_EQ(
         parsePredicateRef(lexer),
-        Optional(PredicateRef("open", SourceLocation(1, 0)))
+        PredicateRef("open", SourceLocation(1, 0))
     );
 }
 
@@ -69,7 +69,7 @@ TEST(TestParser, parse_predicate_ignores_semicolon) {
     
     EXPECT_EQ(
         parsePredicateRef(lexer),
-        Optional(PredicateRef("open", SourceLocation(1, 0)))
+        PredicateRef("open", SourceLocation(1, 0))
     );
 }
 
@@ -79,11 +79,11 @@ TEST(TestParser, parse_predicate_with_parameters) {
 
     EXPECT_EQ(
         parsePredicateRef(lexer),
-        Optional(PredicateRef(
+        PredicateRef(
             "tall",
-            { ConstructorRef("redwood", SourceLocation(1, 5)) },
+            { Value(ConstructorRef("redwood", SourceLocation(1, 5))) },
             SourceLocation(1, 0)
-        ))
+        )
     );
 }
 
@@ -95,11 +95,11 @@ TEST(TestParser, parse_predicate_with_variable_definition) {
 
     EXPECT_EQ(
         actual,
-        Optional(PredicateRef(
+        PredicateRef(
             "tall",
-            { Variable("x", true, SourceLocation(1, 9)) },
+            { Value(Variable("x", true, SourceLocation(1, 9))) },
             SourceLocation(1, 0)
-        ))
+        )
     );
 }
 
@@ -114,11 +114,11 @@ TEST(TestParser, parse_predicate_with_variable_use) {
 
     EXPECT_EQ(
         actual,
-        Optional(PredicateRef(
+        PredicateRef(
             "tall",
-            { ConstructorRef("x", {}, SourceLocation(1, 5)) },
+            { Value(ConstructorRef("x", {}, SourceLocation(1, 5))) },
             SourceLocation(1, 0)
-        ))
+        )
     );
 }
 
@@ -138,7 +138,7 @@ TEST(TestParser, parse_truth_literal_as_expression) {
     
     EXPECT_EQ(
         parseExpression(lexer),
-        Optional(Expression(TruthLiteral(false, SourceLocation(1, 0))))
+        Expression(TruthLiteral(false, SourceLocation(1, 0)))
     );
 }
 
@@ -148,7 +148,7 @@ TEST(TestParser, parse_predicate_name_as_expression) {
 
     EXPECT_EQ(
         parseExpression(lexer),
-        Optional(Expression(PredicateRef("open", SourceLocation(1, 0))))
+        Expression(PredicateRef("open", SourceLocation(1, 0)))
     );
 }
 
@@ -158,10 +158,10 @@ TEST(TestParser, parse_simple_conjunction_expression) {
 
     EXPECT_EQ(
         parseExpression(lexer),
-        Optional(Expression(Conjunction(
+        Expression(Conjunction(
             Expression(PredicateRef("a", SourceLocation(1, 0))),
             Expression(PredicateRef("b", SourceLocation(1, 3)))
-        )))
+        ))
     );
 }
 
@@ -171,13 +171,13 @@ TEST(TestParser, parse_conjunction_left_associative) {
 
     EXPECT_EQ(
         parseExpression(lexer),
-        Optional(Expression(Conjunction(
+        Expression(Conjunction(
             Expression(Conjunction(
                 Expression(PredicateRef("a", SourceLocation(1, 0))),
                 Expression(PredicateRef("b", SourceLocation(1, 3)))
             )),
             Expression(PredicateRef("c", SourceLocation(1, 6)))
-        )))
+        ))
     );
 }
 
@@ -187,10 +187,10 @@ TEST(TestParser, parse_implication) {
 
     EXPECT_EQ(
         parseImplication(lexer),
-        Optional(Implication(
+        Implication(
             PredicateRef("main", SourceLocation(1, 0)),
             Expression(TruthLiteral(true, SourceLocation(1, 8))) // returning 7 and not 8... need to skip whitespace for count?
-        ))
+        )
     );
 }
 
@@ -200,9 +200,9 @@ TEST(TestParser, parse_trivial_predicate) {
 
     EXPECT_EQ(
         parsePredicate(lexer),
-        Optional(Predicate(
+        Predicate(
             PredicateDecl("trivial", {}, SourceLocation(1, 5)),
-            std::vector<Implication>())
+            std::vector<Implication>()
         )
     );
 }
@@ -213,10 +213,10 @@ TEST(TestParser, parse_predicate_unspaced_braces) {
 
     EXPECT_EQ(
         parsePredicate(lexer),
-        Optional(Predicate(
+        Predicate(
             PredicateDecl("trivial", {}, SourceLocation(1, 5)),
             std::vector<Implication>()
-        ))
+        )
     );
 }
 
@@ -226,7 +226,7 @@ TEST(TestParser, parse_predicate_with_implications) {
 
     EXPECT_EQ(
         parsePredicate(lexer),
-        Optional(Predicate(
+        Predicate(
             PredicateDecl("trivial", {}, SourceLocation(1, 5)),
             std::vector<Implication>({
                 Implication(
@@ -234,7 +234,7 @@ TEST(TestParser, parse_predicate_with_implications) {
                     Expression(TruthLiteral(true, SourceLocation(1, 26)))
                 )
             })
-        ))
+        )
     );
 }
 
@@ -244,7 +244,7 @@ TEST(TestParser, parse_predicate_minimal_whitespace) {
 
     EXPECT_EQ(
         parsePredicate(lexer),
-        Optional(Predicate(
+        Predicate(
             PredicateDecl("trivial", {}, SourceLocation(1, 5)),
             std::vector<Implication>({
                 Implication(
@@ -252,7 +252,7 @@ TEST(TestParser, parse_predicate_minimal_whitespace) {
                     Expression(TruthLiteral(true, SourceLocation(1, 24)))
                 )
             })
-        ))
+        )
     );
 }
 
@@ -266,7 +266,7 @@ TEST(TestParser, parse_predicate_multiple_implications) {
 
     EXPECT_EQ(
         parsePredicate(lexer),
-        Optional(Predicate(
+        Predicate(
             PredicateDecl("a", {}, SourceLocation(1, 5)),
             std::vector<Implication>({
                 Implication(
@@ -278,7 +278,7 @@ TEST(TestParser, parse_predicate_multiple_implications) {
                     Expression(PredicateRef("c", SourceLocation(3, 9)))
                 )
             })
-        ))
+        )
     );
 }
 
@@ -288,7 +288,7 @@ TEST(TestParser, parse_type_ref) {
 
     EXPECT_EQ(
         parseTypeRef(lexer),
-        Optional(TypeRef("IceCreamFlavor", SourceLocation(1, 0)))
+        TypeRef("IceCreamFlavor", SourceLocation(1, 0))
     );
 }
 
@@ -298,7 +298,7 @@ TEST(TestParser, parse_constructor) {
 
     EXPECT_EQ(
         parseConstructor(lexer),
-        Optional(Constructor("vanilla", {}, SourceLocation(1, 5)))
+        Constructor("vanilla", {}, SourceLocation(1, 5))
     );
 }
 
@@ -308,11 +308,11 @@ TEST(TestParser, parse_constructor_with_one) {
 
     EXPECT_EQ(
         parseConstructor(lexer),
-        Optional(Constructor(
+        Constructor(
             "s",
             { TypeRef("Nat", SourceLocation(1, 7)) },
             SourceLocation(1, 5)
-        ))
+        )
     );
 }
 
@@ -322,14 +322,14 @@ TEST(TestParser, parse_constructor_with_multiple_parameters) {
 
     EXPECT_EQ(
         parseConstructor(lexer),
-        Optional(Constructor(
+        Constructor(
             "sundae",
             {
                 TypeRef("IceCream", SourceLocation(1, 12)),
                 TypeRef("Sauce", SourceLocation(1, 22))
             },
             SourceLocation(1, 5)
-        ))
+        )
     );
 }
 
@@ -339,7 +339,7 @@ TEST(TestParser, parse_simple_constructor_ref) {
 
     EXPECT_EQ(
         parseConstructorRef(lexer),
-        Optional(ConstructorRef("vinaigrette", {}, SourceLocation(1, 0)))
+        ConstructorRef("vinaigrette", {}, SourceLocation(1, 0))
     );
 }
 
@@ -349,11 +349,11 @@ TEST(TestParser, parse_constructor_ref_with_argument) {
 
     EXPECT_EQ(
         parseConstructorRef(lexer),
-        Optional(ConstructorRef("s",
-        {
-            ConstructorRef("zero", {}, SourceLocation(1, 2))
-        },
-        SourceLocation(1, 0)))
+        ConstructorRef(
+            "s",
+            { Value(ConstructorRef("zero", {}, SourceLocation(1, 2))) },
+            SourceLocation(1, 0)
+        )
     );
 }
 
@@ -363,7 +363,7 @@ TEST(TestParser, parse_uninhabited_type) {
 
     EXPECT_EQ(
         parseType(lexer),
-        Optional(Type(TypeDecl("void", SourceLocation(1, 5)), {}))
+        Type(TypeDecl("void", SourceLocation(1, 5)), {})
     );
 }
 
@@ -376,8 +376,10 @@ TEST(TestParser, parse_unit_type) {
 
     EXPECT_EQ(
         parseType(lexer),
-        Optional(Type(TypeDecl("unit", SourceLocation(1, 5)),
-        { Constructor("unit", {}, SourceLocation(2, 9)) }))
+        Type(
+            TypeDecl("unit", SourceLocation(1, 5)),
+            { Constructor("unit", {}, SourceLocation(2, 9)) }
+        )
     );
 }
 
@@ -391,12 +393,14 @@ TEST(TestParser, parse_recursive_type) {
 
     EXPECT_EQ(
         parseType(lexer),
-        Optional(Type(TypeDecl("Nat", SourceLocation(1, 5)),
-        {
-            Constructor("zero", {}, SourceLocation(2, 9)),
-            Constructor("s", {
-                TypeRef("Nat", SourceLocation(3, 11))
-            }, SourceLocation(3, 9))
-        }))
+        Type(
+            TypeDecl("Nat", SourceLocation(1, 5)),
+            {
+                Constructor("zero", {}, SourceLocation(2, 9)),
+                Constructor("s", {
+                    TypeRef("Nat", SourceLocation(3, 11))
+                }, SourceLocation(3, 9))
+            }
+        )
     );
 }
