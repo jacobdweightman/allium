@@ -107,6 +107,20 @@ public:
         return interpreter::Predicate(implications);
     }
 
+    void visit(const PredicateDecl &pd) { assert(false && "not implemented"); };
+
+    void visit(const TypeDecl &td) { assert(false && "not implemented"); };
+
+    void visit(const TypeRef &tr) { assert(false && "not implemented"); };
+
+    void visit(const Constructor &ctor) { assert(false && "not implemented"); };
+
+    void visit(const ConstructorRef &cr) { assert(false && "not implemented"); };
+
+    void visit(const Value &val) { assert(false && "not implemented"); };
+
+    void visit(const Type &t) { assert(false && "not implemented"); };
+
 private:
     size_t getPredicateIndex(const Name<Predicate> &pn) {
         // TODO: it should be possible to do this in logarithmic time,
@@ -147,6 +161,8 @@ private:
 
     const Program &semanaProgram;
 };
+
+static_assert(has_all_visitors<ASTLowerer>());
 
 interpreter::Program lower(const Program &semanaProgram) {
     ASTLowerer lowerer(semanaProgram);

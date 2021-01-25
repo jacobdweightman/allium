@@ -305,24 +305,56 @@ bool operator==(const Type &lhs, const Type &rhs);
 bool operator!=(const Type &lhs, const Type &rhs);
 std::ostream& operator<<(std::ostream &out, const Type &type);
 
-template <typename T>
-class ASTVisitor {
-public:
-    virtual T visit(const TruthLiteral &tl) = 0;
-    virtual T visit(const PredicateDecl &pd) = 0;
-    virtual T visit(const PredicateRef &pr) = 0;
-    virtual T visit(const Conjunction &conj) = 0;
-    virtual T visit(const Expression &expr) = 0;
-    virtual T visit(const Implication &impl) = 0;
-    virtual T visit(const Predicate &p) = 0;
-    virtual T visit(const TypeDecl &td) = 0;
-    virtual T visit(const TypeRef &typeRef) = 0;
-    virtual T visit(const Constructor &ctor) = 0;
-    virtual T visit(const AnonymousVariable &av) = 0;
-    virtual T visit(const Variable &v) = 0;
-    virtual T visit(const ConstructorRef &ctor) = 0;
-    virtual T visit(const Value &val) = 0;
-    virtual T visit(const Type &type) = 0;
+template <typename Visitor, typename Node>
+struct has_visit {
+    template <typename T>
+    static constexpr
+    decltype(std::declval<Visitor>().visit(std::declval<T>()), bool())
+    find_method(int) {
+        return true;
+    }
+
+    template <typename T>
+    static constexpr bool find_method(...) {
+        return false;
+    }
+
+    static constexpr bool value = find_method<Node>(0);
 };
+
+template <typename Subclass>
+constexpr bool has_all_visitors() {
+    static_assert(has_visit<Subclass, TruthLiteral>::value);
+    static_assert(has_visit<Subclass, PredicateDecl>::value);
+    static_assert(has_visit<Subclass, PredicateRef>::value);
+    static_assert(has_visit<Subclass, Conjunction>::value);
+    static_assert(has_visit<Subclass, Expression>::value);
+    static_assert(has_visit<Subclass, Implication>::value);
+    static_assert(has_visit<Subclass, Predicate>::value);
+    static_assert(has_visit<Subclass, TypeDecl>::value);
+    static_assert(has_visit<Subclass, TypeRef>::value);
+    static_assert(has_visit<Subclass, Constructor>::value);
+    static_assert(has_visit<Subclass, AnonymousVariable>::value);
+    static_assert(has_visit<Subclass, Variable>::value);
+    static_assert(has_visit<Subclass, ConstructorRef>::value);
+    static_assert(has_visit<Subclass, Value>::value);
+    static_assert(has_visit<Subclass, Type>::value);
+
+    return has_visit<Subclass, TruthLiteral>::value &&
+        has_visit<Subclass, PredicateDecl>::value &&
+        has_visit<Subclass, PredicateRef>::value &&
+        has_visit<Subclass, Conjunction>::value &&
+        has_visit<Subclass, Expression>::value &&
+        has_visit<Subclass, Implication>::value &&
+        has_visit<Subclass, Predicate>::value &&
+        has_visit<Subclass, TypeDecl>::value &&
+        has_visit<Subclass, TypeRef>::value &&
+        has_visit<Subclass, Constructor>::value &&
+        has_visit<Subclass, AnonymousVariable>::value &&
+        has_visit<Subclass, Variable>::value &&
+        has_visit<Subclass, ConstructorRef>::value &&
+        has_visit<Subclass, Value>::value &&
+        has_visit<Subclass, Type>::value;
+}
 
 #endif // AST_H

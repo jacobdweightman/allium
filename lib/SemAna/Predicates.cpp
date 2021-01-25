@@ -2,7 +2,7 @@
 #include <string>
 #include "SemAna/Predicates.h"
 
-class SemAna: ASTVisitor<void> {
+class SemAna {
     const Program &program;
     const ErrorEmitter &error;
 
@@ -26,15 +26,15 @@ public:
     SemAna(const Program & program, const ErrorEmitter &error):
         program(program), error(error) {}
     
-    void visit(const TruthLiteral &tl) override {}
+    void visit(const TruthLiteral &tl) {}
 
-    void visit(const PredicateDecl &pd) override {
+    void visit(const PredicateDecl &pd) {
         for(const TypeRef &typeRef : pd.parameters) {
             visit(typeRef);
         }
     }
 
-    void visit(const PredicateRef &pr) override {
+    void visit(const PredicateRef &pr) {
         auto p = program.predicates.find(pr.name);
         if(p == program.predicates.end()) {
             error.emit(
@@ -64,12 +64,12 @@ public:
         }
     }
 
-    void visit(const Conjunction &conj) override {
+    void visit(const Conjunction &conj) {
         visit(conj.getLeft());
         visit(conj.getRight());
     }
 
-    void visit(const Expression &expr) override {
+    void visit(const Expression &expr) {
         expr.switchOver(
         [&](TruthLiteral tl) { visit(tl); },
         [&](PredicateRef pr) { visit(pr); },
@@ -77,7 +77,7 @@ public:
         );
     }
 
-    void visit(const Implication &impl) override {
+    void visit(const Implication &impl) {
         program.scopes.insert({ impl, Program::Scope() });
         enclosingImplication = impl;
         visit(impl.lhs);
@@ -87,7 +87,7 @@ public:
         enclosingImplication = Optional<Implication>();
     }
 
-    void visit(const Predicate &p) override {
+    void visit(const Predicate &p) {
         enclosingPredicate = p;
         visit(p.name);
         for(const auto &impl : p.implications) {
@@ -102,9 +102,9 @@ public:
         enclosingPredicate = Optional<Predicate>();
     }
 
-    void visit(const TypeDecl &td) override {}
+    void visit(const TypeDecl &td) {}
 
-    void visit(const TypeRef &typeRef) override {
+    void visit(const TypeRef &typeRef) {
         const auto typeCandidates = program.types.find(typeRef.name);
         if(typeCandidates == program.types.end()) {
             error.emit(
@@ -114,15 +114,15 @@ public:
         }
     }
 
-    void visit(const Constructor &ctor) override {
+    void visit(const Constructor &ctor) {
         for(const auto &param : ctor.parameters) {
             visit(param);
         }
     }
 
-    void visit(const AnonymousVariable &av) override {}
+    void visit(const AnonymousVariable &av) {}
 
-    void visit(const Variable &v) override {
+    void visit(const Variable &v) {
         Implication impl;
         if(enclosingImplication.unwrapGuard(impl)) {
             assert(false && "A variable must not be defined outside an implication.");
@@ -170,7 +170,7 @@ public:
         }
     }
 
-    void visit(const ConstructorRef &cr) override {
+    void visit(const ConstructorRef &cr) {
         Type type;
         if(inferredType.unwrapGuard(type)) {
             assert(false && "type inference failed.");
@@ -219,7 +219,7 @@ public:
         }
     }
 
-    void visit(const Value &val) override {
+    void visit(const Value &val) {
         val.switchOver(
         [&](AnonymousVariable av) { visit(av); },
         [&](Variable v) { visit(v); },
@@ -227,7 +227,7 @@ public:
         );
     }
 
-    void visit(const Type &type) override {
+    void visit(const Type &type) {
         enclosingType = type;
         visit(type.declaration);
         for(const Constructor &ctor : type.constructors) {
@@ -236,6 +236,8 @@ public:
         enclosingType = Optional<Type>();
     }
 };
+
+static_assert(has_all_visitors<SemAna>());
 
 void Program::checkAll() {
     SemAna semAna(*this, error);

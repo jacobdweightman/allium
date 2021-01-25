@@ -3,17 +3,17 @@
 
 #include "Parser/AST.h"
 
-class ASTPrinter: public ASTVisitor<void> {
+class ASTPrinter {
 public:
     ASTPrinter(std::ostream &out): out(out) {}
 
-    void visit(const TruthLiteral &tl) override {
+    void visit(const TruthLiteral &tl) {
         indent();
         out << "<TruthLiteral " << (tl.value ? "true" : "false") <<
             " line:" << tl.location << ">\n";
     }
 
-    void visit(const PredicateDecl &pd) override {
+    void visit(const PredicateDecl &pd) {
         indent();
         out << "<PredicateDecl \"" << pd.name << "\" line:" <<
             pd.location << ">\n";
@@ -24,7 +24,7 @@ public:
         --depth;
     }
 
-    void visit(const PredicateRef &pn) override {
+    void visit(const PredicateRef &pn) {
         indent();
         out << "<PredicateRef \"" << pn.name << "\" line:" <<
             pn.location << ">\n";
@@ -35,7 +35,7 @@ public:
         --depth;
     }
 
-    void visit(const Conjunction &conj) override {
+    void visit(const Conjunction &conj) {
         indent();
         out << "<Conjunction>\n";
         ++depth;
@@ -44,7 +44,7 @@ public:
         --depth;
     }
 
-    void visit(const Expression &expr) override {
+    void visit(const Expression &expr) {
         expr.switchOver(
         [&](TruthLiteral tl) { visit(tl); },
         [&](PredicateRef pr) { visit(pr); },
@@ -52,7 +52,7 @@ public:
         );
     }
 
-    void visit(const Implication &impl) override {
+    void visit(const Implication &impl) {
         indent();
         out << "<Implication>\n";
         ++depth;
@@ -60,7 +60,7 @@ public:
         visit(impl.rhs);
         --depth;
     }
-    void visit(const Predicate &p) override {
+    void visit(const Predicate &p) {
         indent();
         out << "<Predicate \"" << p.name.name << "\" line:" <<
             p.name.location << ">\n";
@@ -71,19 +71,19 @@ public:
         --depth;
     }
 
-    void visit(const TypeDecl &td) override {
+    void visit(const TypeDecl &td) {
         indent();
         out << "<TypeDecl \"" << td.name << "\" line:" <<
             td.location << ">\n";
     }
 
-    void visit(const TypeRef &typeRef) override {
+    void visit(const TypeRef &typeRef) {
         indent();
         out << "<TypeRef \"" << typeRef.name << "\" line:" <<
             typeRef.location << ">\n";
     }
 
-    void visit(const Constructor &ctor) override {
+    void visit(const Constructor &ctor) {
         indent();
         out << "<Constructor \"" << ctor.name << "\" line:" <<
             ctor.location << ">\n";
@@ -94,17 +94,17 @@ public:
         --depth;
     }
 
-    void visit(const AnonymousVariable &av) override {
+    void visit(const AnonymousVariable &av) {
         indent();
         out << "<AnonymousVariable line:" << av.location << ">\n";
     }
 
-    void visit(const Variable &v) override {
+    void visit(const Variable &v) {
         indent();
         out << "<Variable \"" << v.name << "\" line:" << v.location << ">\n";
     }
 
-    void visit(const ConstructorRef &ctor) override {
+    void visit(const ConstructorRef &ctor) {
         indent();
         out << "<ConstructorRef \"" << ctor.name << "\" line:" <<
             ctor.location << ">\n";
@@ -115,7 +115,7 @@ public:
         --depth;
     }
 
-    void visit(const Value &val) override {
+    void visit(const Value &val) {
         val.switchOver(
         [&](AnonymousVariable av) { visit(av); },
         [&](Variable v) { visit(v); },
@@ -123,7 +123,7 @@ public:
         );
     }
 
-    void visit(const Type &type) override {
+    void visit(const Type &type) {
         out << "<Type \"" << type.declaration.name << "\" line:" <<
             type.declaration.location << ">\n";
         ++depth;
@@ -141,5 +141,7 @@ private:
     std::ostream &out;
     int depth = 0;
 };
+
+static_assert(has_all_visitors<ASTPrinter>());
 
 #endif // AST_PRINTER_H
