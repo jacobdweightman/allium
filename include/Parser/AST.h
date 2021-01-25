@@ -305,6 +305,20 @@ bool operator==(const Type &lhs, const Type &rhs);
 bool operator!=(const Type &lhs, const Type &rhs);
 std::ostream& operator<<(std::ostream &out, const Type &type);
 
+/// An AST representing a complete source file.
+struct AST {
+    AST() {}
+    AST(std::vector<Type> types, std::vector<Predicate> predicates):
+        types(types), predicates(predicates) {}
+
+    std::vector<Type> types;
+    std::vector<Predicate> predicates;
+};
+
+bool operator==(const AST &lhs, const AST &rhs);
+bool operator!=(const AST &lhs, const AST &rhs);
+std::ostream& operator<<(std::ostream &out, const AST &ast);
+
 template <typename Visitor, typename Node>
 struct has_visit {
     template <typename T>

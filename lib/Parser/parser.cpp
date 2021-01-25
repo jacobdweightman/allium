@@ -379,3 +379,26 @@ Optional<Type> parseType(Lexer &lexer) {
         return Optional<Type>();
     }
 }
+
+Optional<AST> parseAST(Lexer &lexer) {
+    std::vector<Predicate> predicates;
+    std::vector<Type> types;
+    Predicate p;
+    Type t;
+
+    bool changed;
+    do {
+        changed = false;
+        if(parsePredicate(lexer).unwrapInto(p)) {
+            predicates.push_back(p);
+            changed = true;
+        }
+
+        if(parseType(lexer).unwrapInto(t)) {
+            types.push_back(t);
+            changed = true;
+        }
+    } while(changed);
+
+    return AST(types, predicates);
+}

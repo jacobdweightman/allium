@@ -11,6 +11,7 @@
 Optional<Implication> parseImplication(Lexer &lexer);
 Optional<Predicate> parsePredicate(Lexer &lexer);
 Optional<Type> parseType(Lexer &lexer);
+Optional<AST> parseAST(Lexer &lexer);
 
 // Exposed for test
 // TODO: guard these declarations with a compile flag.

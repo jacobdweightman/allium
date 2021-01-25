@@ -210,3 +210,23 @@ std::ostream& operator<<(std::ostream &out, const Type &type) {
     out << "}";
     return out;
 }
+
+bool operator==(const AST &lhs, const AST &rhs) {
+    return lhs.types == rhs.types && lhs.predicates == rhs.predicates;
+}
+
+bool operator!=(const AST &lhs, const AST &rhs) {
+    return !(lhs == rhs);
+}
+
+std::ostream& operator<<(std::ostream &out, const AST &ast) {
+    for(const auto &predicate : ast.predicates) {
+        out << predicate << "\n";
+    }
+
+    for(const auto &type : ast.types) {
+        out << type << "\n";
+    }
+
+    return out;
+}

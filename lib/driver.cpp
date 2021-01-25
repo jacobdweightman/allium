@@ -17,32 +17,15 @@ int main(int argc, char *argv[]) {
 
     std::ifstream file(argv[1]);
     Lexer lexer(file);
-
-    ASTPrinter astPrinter(std::cout);
-    std::vector<Predicate> predicates;
-    std::vector<Type> types;
-    Predicate p;
-    Type t;
     
-    // TODO: move this into new parseProgram function.
-    bool changed;
-    do {
-        changed = false;
-        if(parsePredicate(lexer).unwrapInto(p)) {
-            astPrinter.visit(p);
-            predicates.push_back(p);
-            changed = true;
-        }
-
-        if(parseType(lexer).unwrapInto(t)) {
-            astPrinter.visit(t);
-            types.push_back(t);
-            changed = true;
-        }
-    } while(changed);
+    AST ast;
+    if(parseAST(lexer).unwrapGuard(ast)) {
+        std::cout << "Syntax error.\n";
+        return 1;
+    }
 
     ErrorEmitter errorEmitter(std::cout);
-    Program semAna(types, predicates, errorEmitter);
+    Program semAna(ast.types, ast.predicates, errorEmitter);
     semAna.checkAll();
     unsigned errors = errorEmitter.getErrors();
     if(errors > 0) {

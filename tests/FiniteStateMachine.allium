@@ -20,5 +20,5 @@ pred simulate(State, SymbolList) {
 }
 
 pred main {
-    main <- simulate(readA, cons(a, cons(b, cons(a, empty))));
+    main <- simulate(readA, cons(a, cons(b, cons(a, cons(b, empty)))));
 }
