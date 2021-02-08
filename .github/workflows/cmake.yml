@@ -10,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [windows-latest]
 
     steps:
     - uses: actions/checkout@v2
@@ -39,3 +39,28 @@ jobs:
       working-directory: ${{github.workspace}}/build
       shell: bash
       run: ctest -C $BUILD_TYPE --verbose
+    
+    - uses: papeloto/action-zip@v1
+      with:
+        files: build
+        dest: allium-${{ matrix.os }}.zip
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: latest-prerelease
+        release_name: Latest Prerelease
+        prerelease: true
+    
+    - name: Archive Successful Build
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_name: allium-${{ matrix.os }}.zip
+        asset_path: ${{github.workspace}}/allium-${{ matrix.os }}.zip
+        asset_content_type: application/zip
