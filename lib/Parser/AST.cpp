@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "Parser/AST.h"
 #include "Parser/ASTPrinter.h"
 
@@ -143,52 +145,18 @@ std::ostream& operator<<(std::ostream &out, const Constructor &ctor) {
     return out;
 }
 
-bool operator==(const AnonymousVariable &lhs, const AnonymousVariable &rhs) {
-    return lhs.location == rhs.location;
+bool operator==(const Value &lhs, const Value &rhs) {
+    return lhs.location == rhs.location && lhs.isDefinition == rhs.isDefinition &&
+        lhs.name == rhs.name && lhs.arguments == rhs.arguments;
 }
 
-bool operator!=(const AnonymousVariable &lhs, const AnonymousVariable &rhs) {
+bool operator!=(const Value &lhs, const Value &rhs) {
     return !(lhs == rhs);
-}
-
-std::ostream& operator<<(std::ostream &out, const AnonymousVariable &av) {
-    ASTPrinter(out).visit(av);
-    return out;
-}
-
-bool operator==(const Variable &lhs, const Variable &rhs) {
-    return lhs.name == rhs.name && lhs.location == rhs.location;
-}
-
-bool operator!=(const Variable &lhs, const Variable &rhs) {
-    return !(lhs == rhs);
-}
-
-std::ostream& operator<<(std::ostream &out, const Variable &v) {
-    ASTPrinter(out).visit(v);
-    return out;
-}
-
-bool operator==(const ConstructorRef &lhs, const ConstructorRef &rhs) {
-    return lhs.name == rhs.name && lhs.location == rhs.location &&
-        lhs.arguments == rhs.arguments;
-}
-
-bool operator!=(const ConstructorRef &lhs, const ConstructorRef &rhs) {
-    return !(lhs == rhs);
-}
-
-std::ostream& operator<<(std::ostream &out, const ConstructorRef &cr) {
-    ASTPrinter(out).visit(cr);
-    return out;
 }
 
 std::ostream& operator<<(std::ostream &out, const Value &val) {
-    return val.match<std::ostream&>(
-    [&](AnonymousVariable av) -> std::ostream& { return out << av; },
-    [&](Variable x) -> std::ostream& { return out << x; },
-    [&](ConstructorRef cr) -> std::ostream& { return out << cr; }
-    );
+    ASTPrinter(out).visit(val);
+    return out;
 }
 
 bool operator==(const Type &lhs, const Type &rhs) {
@@ -209,6 +177,32 @@ std::ostream& operator<<(std::ostream &out, const Type &type) {
 
     out << "}";
     return out;
+}
+
+Optional<Type> AST::resolveTypeRef(const TypeRef &tr) const {
+    const auto &x = std::find_if(
+        types.begin(),
+        types.end(),
+        [&](const Type &type) { return type.declaration.name == tr.name; });
+    
+    if(x == types.end()) {
+        return Optional<Type>();
+    } else {
+        return *x;
+    }
+}
+
+Optional<Predicate> AST::resolvePredicateRef(const PredicateRef &pr) const {
+    const auto &x = std::find_if(
+        predicates.begin(),
+        predicates.end(),
+        [&](const Predicate &p) { return p.name.name == pr.name; });
+    
+    if(x == predicates.end()) {
+        return Optional<Predicate>();
+    } else {
+        return *x;
+    }
 }
 
 bool operator==(const AST &lhs, const AST &rhs) {

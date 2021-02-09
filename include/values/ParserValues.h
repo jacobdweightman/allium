@@ -1,6 +1,9 @@
 #ifndef SOURCE_LOCATION_H
 #define SOURCE_LOCATION_H
 
+#include <ostream>
+#include <string>
+
 /// A line and column within a source file.
 struct SourceLocation {
     int lineNumber;

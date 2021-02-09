@@ -19,15 +19,31 @@ bool operator!=(const Constructor &left, const Constructor &right) {
     return !(left == right);
 }
 
+PredicateRef::PredicateRef(std::string name, std::vector<Value> arguments):
+    name(name), arguments(arguments) {}
+
 Conjunction::Conjunction(Expression left, Expression right):
     _left(new auto(left)), _right(new auto(right)) {}
 
 Conjunction::Conjunction(const Conjunction &other):
     _left(new auto(*other._left)), _right(new auto(*other._right)) {}
 
+Conjunction Conjunction::operator=(Conjunction other) {
+    using std::swap;
+    swap(_left, other._right);
+    swap(_right, other._right);
+    return *this;
+}
+
 Expression &Conjunction::getLeft() const { return *_left; }
 
 Expression &Conjunction::getRight() const { return *_right; }
+
+ConstructorRef::ConstructorRef(std::string name, std::vector<Value> arguments):
+    name(name), arguments(arguments) {}
+
+ConstructorRef::ConstructorRef(const ConstructorRef &other):
+    name(other.name), arguments(other.arguments) {}
 
 bool operator==(const ConstructorRef &left, const ConstructorRef &right) {
     return left.name == right.name && left.arguments == right.arguments;

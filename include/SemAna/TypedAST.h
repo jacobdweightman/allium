@@ -17,18 +17,12 @@
 /// during SemAna while raising the parser's AST to the typed AST.
 namespace TypedAST {
 
+/*
+ * Types
+ */
+
 struct Type;
 typedef Name<Type> TypeRef;
-
-struct AnonymousVariable;
-struct Variable;
-struct ConstructorRef;
-
-typedef TaggedUnion<
-    AnonymousVariable,
-    Variable,
-    ConstructorRef
-> Value;
 
 struct TypeDecl {
     TypeDecl(std::string name): name(name) {}
@@ -50,17 +44,6 @@ struct Constructor {
 bool operator==(const Constructor &left, const Constructor &right);
 bool operator!=(const Constructor &left, const Constructor &right);
 
-struct ConstructorRef {
-    ConstructorRef(std::string name, std::vector<Value> arguments):
-        name(name), arguments(arguments) {}
-
-    Name<Constructor> name;
-    std::vector<Value> arguments;
-};
-
-bool operator==(const ConstructorRef &left, const ConstructorRef &right);
-bool operator!=(const ConstructorRef &left, const ConstructorRef &right);
-
 struct Type {
     Type(TypeDecl declaration, std::vector<Constructor> constructors):
         declaration(declaration), constructors(constructors) {}
@@ -71,6 +54,62 @@ struct Type {
 
 bool operator==(const Type &left, const Type &right);
 bool operator!=(const Type &left, const Type &right);
+
+
+/*
+ * Values
+ */
+
+struct AnonymousVariable;
+struct Variable;
+struct ConstructorRef;
+
+typedef TaggedUnion<
+    AnonymousVariable,
+    Variable,
+    ConstructorRef
+> ValueBase;
+struct Value;
+
+struct AnonymousVariable {
+    AnonymousVariable() {}
+
+    friend bool operator==(AnonymousVariable left, AnonymousVariable right) { return true; }
+    friend bool operator!=(AnonymousVariable left, AnonymousVariable right) { return false; }
+};
+
+struct Variable {
+    Variable(std::string name, TypeRef type, bool isDefinition):
+        name(name), type(type), isDefinition(isDefinition) {}
+
+    Name<Variable> name;
+    TypeRef type;
+    bool isDefinition;
+};
+
+bool operator==(Variable left, Variable right);
+bool operator!=(Variable left, Variable right);
+
+struct ConstructorRef {
+    ConstructorRef(std::string name, std::vector<Value> arguments);
+    ConstructorRef(const ConstructorRef &other);
+
+    Name<Constructor> name;
+    std::vector<Value> arguments;
+};
+
+bool operator==(const ConstructorRef &left, const ConstructorRef &right);
+bool operator!=(const ConstructorRef &left, const ConstructorRef &right);
+
+class Value : public ValueBase {
+public:
+    using ValueBase::ValueBase;
+};
+
+
+/*
+ * Predicates
+ */
 
 struct Predicate;
 
@@ -99,8 +138,7 @@ struct PredicateDecl {
 };
 
 struct PredicateRef {
-    PredicateRef(std::string name, std::vector<Value> arguments):
-        name(name), arguments(arguments) {}
+    PredicateRef(std::string name, std::vector<Value> arguments);
 
     Name<Predicate> name;
     std::vector<Value> arguments;
@@ -110,12 +148,7 @@ struct Conjunction {
     Conjunction(Expression left, Expression right);
     Conjunction(const Conjunction &other);
 
-    Conjunction operator=(Conjunction other) {
-        using std::swap;
-        swap(_left, other._right);
-        swap(_right, other._right);
-        return *this;
-    }
+    Conjunction operator=(Conjunction other);
 
     Expression &getLeft() const;
     Expression &getRight() const;
@@ -139,25 +172,6 @@ struct Predicate {
     PredicateDecl declaration;
     std::vector<Implication> implications;
 };
-
-struct AnonymousVariable {
-    AnonymousVariable() {}
-
-    friend bool operator==(AnonymousVariable left, AnonymousVariable right) { return true; }
-    friend bool operator!=(AnonymousVariable left, AnonymousVariable right) { return false; }
-};
-
-struct Variable {
-    Variable(std::string name, TypeRef type, bool isDefinition):
-        name(name), type(type), isDefinition(isDefinition) {}
-
-    Name<Variable> name;
-    TypeRef type;
-    bool isDefinition;
-};
-
-bool operator==(Variable left, Variable right);
-bool operator!=(Variable left, Variable right);
 
 std::ostream& operator<<(std::ostream &out, const Value &val);
 std::ostream& operator<<(std::ostream &out, const PredicateRef &pr);
@@ -203,6 +217,9 @@ public:
     std::vector<Type> types;
     std::vector<Predicate> predicates;
 };
+
+/// Represents the variables and their types defined in a scope.
+typedef std::map<Name<Variable>, Type> Scope;
 
 };
 

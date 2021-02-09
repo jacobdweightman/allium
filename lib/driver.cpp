@@ -6,6 +6,8 @@
 #include "Parser/ASTPrinter.h"
 #include "Parser/lexer.h"
 #include "Parser/parser.h"
+#include "SemAna/StaticError.h"
+#include "SemAna/Predicates.h"
 
 int main(int argc, char *argv[]) {
     if(argc != 2) {
@@ -25,15 +27,14 @@ int main(int argc, char *argv[]) {
     }
 
     ErrorEmitter errorEmitter(std::cout);
-    Program semAna(ast.types, ast.predicates, errorEmitter);
-    semAna.checkAll();
+    TypedAST::AST typedAST = checkAll(ast, errorEmitter);
     unsigned errors = errorEmitter.getErrors();
     if(errors > 0) {
         std::cout << "Compilation failed with " << errors << " errors.\n";
         return 1;
     }
 
-    interpreter::Program interpreter = lower(semAna);
+    interpreter::Program interpreter = lower(typedAST);
     return interpreter.getEntryPoint().switchOver<int>(
         [&](interpreter::PredicateReference main) {
             return !interpreter.prove(interpreter::Expression(main));

@@ -1,4 +1,4 @@
-#include "SemAna/Predicates.h"
+#include "SemAna/TypedAST.h"
 #include "program.h"
 
-interpreter::Program lower(const Program &prog);
+interpreter::Program lower(const TypedAST::AST &prog);

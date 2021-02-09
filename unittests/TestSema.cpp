@@ -5,6 +5,7 @@
 #include <iostream>
 
 using ::testing::_;
+using ::testing::StrictMock;
 
 class MockErrorEmitter : public ErrorEmitter {
 public:
@@ -35,8 +36,12 @@ TEST(TestStaticError, emit_varargs) {
     );
 }
 
-TEST(TestSemAnaPredicates, undefined_predicate) {
-    MockErrorEmitter error;
+class TestSemAnaPredicates : public ::testing::Test {
+protected:
+    StrictMock<MockErrorEmitter> error;
+};
+
+TEST_F(TestSemAnaPredicates, undefined_predicate) {
     SourceLocation errorLocation(2, 10);
     std::vector<Predicate> ps = {
         Predicate(
@@ -49,15 +54,13 @@ TEST(TestSemAnaPredicates, undefined_predicate) {
             }
         )
     };
-    Program prog({}, ps, error);
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::undefined_predicate, "b"));
 
-    prog.checkAll();
+    checkAll(AST({}, ps), error);
 }
 
-TEST(TestSemAnaPredicates, implication_head_mismatch) {
-    MockErrorEmitter error;
+TEST_F(TestSemAnaPredicates, implication_head_mismatch) {
     SourceLocation errorLocation(2, 4);    
     std::vector<Predicate> ps = {
         Predicate(
@@ -74,18 +77,16 @@ TEST(TestSemAnaPredicates, implication_head_mismatch) {
             {}
         )
     };
-    Program prog({}, ps, error);
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::impl_head_mismatches_predicate, "a"));
 
-    prog.checkAll();
+    checkAll(AST({}, ps), error);
 }
 
-TEST(TestSemAnaPredicates, predicate_argument_count_mismatch) {
+TEST_F(TestSemAnaPredicates, predicate_argument_count_mismatch) {
     // type Foo { ctor foo; }
     // pred p(Foo) { p(foo, foo) <- true; }
 
-    MockErrorEmitter error;
     SourceLocation errorLocation(2, 14);
     std::vector<Type> ts = {
         Type(
@@ -101,8 +102,8 @@ TEST(TestSemAnaPredicates, predicate_argument_count_mismatch) {
                     PredicateRef(
                         "p",
                         {
-                            Value(ConstructorRef("foo", SourceLocation(2, 16))),
-                            Value(ConstructorRef("foo", SourceLocation(2, 20)))
+                            Value(Value("foo", {}, SourceLocation(2, 16))),
+                            Value(Value("foo", {}, SourceLocation(2, 20)))
                         },
                         errorLocation
                     ),
@@ -111,18 +112,16 @@ TEST(TestSemAnaPredicates, predicate_argument_count_mismatch) {
             }
         )
     };
-    Program prog(ts, ps, error);
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::predicate_argument_count, "p", "1"));
 
-    prog.checkAll();
+    checkAll(AST(ts, ps), error);
 }
 
-TEST(TestSemAnaPredicates, constructor_argument_count_mismatch) {
+TEST_F(TestSemAnaPredicates, constructor_argument_count_mismatch) {
     // type Nat { ctor zero; ctor s(Nat); }
     // pred p(Nat) { p(s(zero, zero)) <- true; }
 
-    MockErrorEmitter error;
     SourceLocation errorLocation(2, 16);
     std::vector<Type> ts = {
         Type(
@@ -141,14 +140,14 @@ TEST(TestSemAnaPredicates, constructor_argument_count_mismatch) {
                     PredicateRef(
                         "p",
                         {
-                            Value(ConstructorRef(
+                            Value(
                                 "s",
                                 {
-                                    Value(ConstructorRef("zero", SourceLocation(2, 18))),
-                                    Value(ConstructorRef("zero", SourceLocation(2, 24)))
+                                    Value("zero", {}, SourceLocation(2, 18)),
+                                    Value("zero", {}, SourceLocation(2, 24))
                                 },
                                 errorLocation
-                            ))
+                            )
                         },
                         SourceLocation(2, 14)
                     ),
@@ -157,18 +156,16 @@ TEST(TestSemAnaPredicates, constructor_argument_count_mismatch) {
             }
         )
     };
-    Program prog(ts, ps, error);
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::constructor_argument_count, "s", "1"));
 
-    prog.checkAll();
+    checkAll(AST(ts, ps), error);
 }
 
-TEST(TestSemAnaPredicates, predicate_argument_with_arguments_type_mismatch) {
+TEST_F(TestSemAnaPredicates, predicate_argument_with_arguments_type_mismatch) {
     // Constructors with parameters can be distinguished from variables, so we can give
     // a clearer diagnostic which singles out constructor mismatches.
 
-    MockErrorEmitter error;
     SourceLocation errorLocation(2, 4);
     std::vector<Type> ts = {
         Type(
@@ -184,11 +181,11 @@ TEST(TestSemAnaPredicates, predicate_argument_with_arguments_type_mismatch) {
                     PredicateRef(
                         "a",
                         {
-                            Value(ConstructorRef(
+                            Value(
                                 "baz",
-                                { Value(ConstructorRef("bar", SourceLocation())) },
+                                { Value("bar", {}, SourceLocation()) },
                                 errorLocation
-                            ))
+                            )
                         },
                         SourceLocation()
                     ),
@@ -197,15 +194,13 @@ TEST(TestSemAnaPredicates, predicate_argument_with_arguments_type_mismatch) {
             }
         )
     };
-    Program prog(ts, ps, error);
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::unknown_constructor, "baz", "foo"));
 
-    prog.checkAll();
+    checkAll(AST(ts, ps), error);
 }
 
-TEST(TestSemAnaPredicates, predicate_argument_type_mismatch) {
-    MockErrorEmitter error;
+TEST_F(TestSemAnaPredicates, predicate_argument_type_mismatch) {
     SourceLocation errorLocation(2, 4);
     std::vector<Type> ts = {
         Type(
@@ -220,7 +215,7 @@ TEST(TestSemAnaPredicates, predicate_argument_type_mismatch) {
                 Implication(
                     PredicateRef(
                         "a",
-                        { Value(ConstructorRef("baz", errorLocation)) },
+                        { Value("baz", {}, errorLocation) },
                         SourceLocation()
                     ),
                     Expression(TruthLiteral(true, SourceLocation(2, 8)))
@@ -228,15 +223,13 @@ TEST(TestSemAnaPredicates, predicate_argument_type_mismatch) {
             }
         )
     };
-    Program prog(ts, ps, error);
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::unknown_constructor_or_variable, "baz", "Foo"));
 
-    prog.checkAll();
+    checkAll(AST(ts, ps), error);
 }
 
-TEST(TestSemAnaPredicates, undefined_type) {
-    MockErrorEmitter error;
+TEST_F(TestSemAnaPredicates, undefined_type) {
     SourceLocation errorLocation(1, 5);
     std::vector<Predicate> ps = {
         Predicate(
@@ -244,16 +237,13 @@ TEST(TestSemAnaPredicates, undefined_type) {
             {}
         )
     };
-    Program prog({}, ps, error);
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::undefined_type, "Foo"));
 
-    prog.checkAll();
+    checkAll(AST({}, ps), error);
 }
 
-TEST(TestSemAnaPredicates, variable_redefinition) {
-    MockErrorEmitter error;
-
+TEST_F(TestSemAnaPredicates, variable_redefinition) {
     // type Foo {}
     // pred p(Foo, Foo) {
     //     p(let x, let x) <- true;
@@ -272,8 +262,8 @@ TEST(TestSemAnaPredicates, variable_redefinition) {
                 PredicateRef(
                     "p",
                     {
-                        Value(Variable("x", true, SourceLocation(3, 10))),
-                        Value(Variable("x", true, errorLocation)),
+                        Value("x", true, SourceLocation(3, 10)),
+                        Value("x", true, errorLocation),
                     },
                     SourceLocation(3, 4)
                 ),
@@ -281,16 +271,13 @@ TEST(TestSemAnaPredicates, variable_redefinition) {
             )
         })
     };
-    Program prog(ts, ps, error);
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::variable_redefined, "x"));
 
-    prog.checkAll();
+    checkAll(AST(ts, ps), error);
 }
 
-TEST(TestSemAnaPredicates, variable_type_mismatch) {
-    MockErrorEmitter error;
-
+TEST_F(TestSemAnaPredicates, variable_type_mismatch) {
     // type Foo {}
     // type Bar {}
     // 
@@ -313,15 +300,14 @@ TEST(TestSemAnaPredicates, variable_type_mismatch) {
             PredicateDecl("q", { TypeRef("Bar", SourceLocation(5, 7)) }, SourceLocation(5, 5)),
             {
                 Implication(
-                    PredicateRef("q", { Value(Variable("x", true, SourceLocation(6, 10))) }, SourceLocation(6, 4)),
-                    Expression(PredicateRef("p", { Value(Variable("x", false, errorLocation)) }, SourceLocation(6, 16)))
+                    PredicateRef("q", { Value("x", true, SourceLocation(6, 10)) }, SourceLocation(6, 4)),
+                    Expression(PredicateRef("p", { Value("x", false, errorLocation) }, SourceLocation(6, 16)))
                 )
             }
         )
     };
-    Program prog(ts, ps, error);
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::variable_type_mismatch, "x", "Bar", "Foo"));
 
-    prog.checkAll();
+    checkAll(AST(ts, ps), error);
 }

@@ -10,7 +10,6 @@ std::ostream& operator<<(std::ostream& out, const Token value) {
 
 std::ostream& operator<<(std::ostream& out, const Token::Type value) {
     switch(value) {
-    case Token::Type::anonymous: return out << "Type::anonymous";
     case Token::Type::brace_l: return out << "Type::brace_l";
     case Token::Type::brace_r: return out << "Type::brace_r";
     case Token::Type::comma: return out << "Type::comma";
@@ -89,7 +88,6 @@ Token Lexer::take_next() {
     else if(word == "}") return makeToken(Token::Type::brace_r, word);
     else if(word == "(") return makeToken(Token::Type::paren_l, word);
     else if(word == ")") return makeToken(Token::Type::paren_r, word);
-    else if(word == "_") return makeToken(Token::Type::anonymous, word);
     else if(!word.empty()) return makeToken(Token::Type::identifier, takeIdentifier(word));
     else {
         return makeToken(Token::Type::end_of_file, word);

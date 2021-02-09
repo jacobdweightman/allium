@@ -81,7 +81,7 @@ TEST(TestParser, parse_predicate_with_parameters) {
         parsePredicateRef(lexer),
         PredicateRef(
             "tall",
-            { Value(ConstructorRef("redwood", SourceLocation(1, 5))) },
+            { Value("redwood", {}, SourceLocation(1, 5)) },
             SourceLocation(1, 0)
         )
     );
@@ -97,7 +97,7 @@ TEST(TestParser, parse_predicate_with_variable_definition) {
         actual,
         PredicateRef(
             "tall",
-            { Value(Variable("x", true, SourceLocation(1, 9))) },
+            { Value("x", true, SourceLocation(1, 9)) },
             SourceLocation(1, 0)
         )
     );
@@ -116,7 +116,7 @@ TEST(TestParser, parse_predicate_with_variable_use) {
         actual,
         PredicateRef(
             "tall",
-            { Value(ConstructorRef("x", {}, SourceLocation(1, 5))) },
+            { Value("x", {}, SourceLocation(1, 5)) },
             SourceLocation(1, 0)
         )
     );
@@ -338,8 +338,8 @@ TEST(TestParser, parse_simple_constructor_ref) {
     Lexer lexer(f);
 
     EXPECT_EQ(
-        parseConstructorRef(lexer),
-        ConstructorRef("vinaigrette", {}, SourceLocation(1, 0))
+        parseValue(lexer),
+        Value("vinaigrette", {}, SourceLocation(1, 0))
     );
 }
 
@@ -348,10 +348,10 @@ TEST(TestParser, parse_constructor_ref_with_argument) {
     Lexer lexer(f);
 
     EXPECT_EQ(
-        parseConstructorRef(lexer),
-        ConstructorRef(
+        parseValue(lexer),
+        Value(
             "s",
-            { Value(ConstructorRef("zero", {}, SourceLocation(1, 2))) },
+            { Value("zero", {}, SourceLocation(1, 2)) },
             SourceLocation(1, 0)
         )
     );

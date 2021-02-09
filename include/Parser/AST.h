@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 
+#include "values/Optional.h"
 #include "values/TaggedUnion.h"
 #include "values/ParserValues.h"
 
@@ -22,7 +23,6 @@ typedef TaggedUnion<
 class Expression;
 
 struct Predicate;
-struct ConstructorRef;
 struct Value;
 struct TypeRef;
 struct Type;
@@ -117,7 +117,7 @@ public:
     Expression &getRight() const {
         assert(_right && "right subexpression must not be null.");
         return *_right;
-        }
+    }
 
 protected:
     // This is the underlying storage of the subexpressions of the conjunction.
@@ -226,69 +226,25 @@ bool operator==(const Constructor &lhs, const Constructor &rhs);
 bool operator!=(const Constructor &lhs, const Constructor &rhs);
 std::ostream& operator<<(std::ostream &out, const Constructor &ctor);
 
-struct AnonymousVariable {
-    AnonymousVariable() {}
-    AnonymousVariable(SourceLocation location): location(location) {}
-
-    SourceLocation location;
-};
-
-bool operator==(const AnonymousVariable &lhs, const AnonymousVariable &rhs);
-bool operator!=(const AnonymousVariable &lhs, const AnonymousVariable &rhs);
-std::ostream& operator<<(std::ostream &out, const AnonymousVariable &av);
-
-struct Variable {
-    Variable() {}
-    Variable(std::string name, bool isDefinition, SourceLocation location):
+/// Represents a value in the AST. Semantically, this can be an anonymous
+/// variable, variable, or a constructor reference. Syntactically, these cannot
+/// be reliably distinguished by a context free grammar. Differentiating these
+/// nodes is performed by SemAna.
+struct Value {
+    Value(std::string name, bool isDefinition, SourceLocation location):
         name(name), isDefinition(isDefinition), location(location) {}
 
-    Name<Variable> name;
+    Value(std::string name, std::vector<Value> arguments, SourceLocation location):
+        name(name), isDefinition(false), arguments(arguments), location(location) {}
+
+    Name<Value> name;
     bool isDefinition;
-    SourceLocation location;
-};
-
-bool operator==(const Variable &lhs, const Variable &rhs);
-bool operator!=(const Variable &lhs, const Variable &rhs);
-std::ostream& operator<<(std::ostream &out, const Variable &v);
-
-struct ConstructorRef {
-    ConstructorRef() {}
-    ConstructorRef(std::string name, SourceLocation location):
-        name(name), location(location) {}
-    ConstructorRef(
-        std::string name,
-        std::vector<Value> arguments,
-        SourceLocation location
-    ): name(name), arguments(arguments), location(location) {}
-
-    ConstructorRef operator=(ConstructorRef other) {
-        using std::swap;
-        swap(name, other.name);
-        swap(arguments, other.arguments);
-        swap(location, other.location);
-        return *this;
-    }
-
-    Name<Constructor> name;
     std::vector<Value> arguments;
     SourceLocation location;
 };
 
-bool operator==(const ConstructorRef &lhs, const ConstructorRef &rhs);
-bool operator!=(const ConstructorRef &lhs, const ConstructorRef &rhs);
-std::ostream& operator<<(std::ostream &out, const ConstructorRef &ctor);
-
-typedef TaggedUnion<
-    AnonymousVariable,
-    Variable,
-    ConstructorRef
-> ValueBase;
-
-struct Value : public ValueBase {
-    using ValueBase::ValueBase;
-    Value(): Value(AnonymousVariable()) {}
-};
-
+bool operator==(const Value &lhs, const Value &rhs);
+bool operator!=(const Value &lhs, const Value &rhs);
 std::ostream& operator<<(std::ostream &out, const Value &val);
 
 /// Represents the complete definition of a type in the AST.
@@ -310,6 +266,9 @@ struct AST {
     AST() {}
     AST(std::vector<Type> types, std::vector<Predicate> predicates):
         types(types), predicates(predicates) {}
+
+    Optional<Type> resolveTypeRef(const TypeRef &tr) const;
+    Optional<Predicate> resolvePredicateRef(const PredicateRef &pr) const;
 
     std::vector<Type> types;
     std::vector<Predicate> predicates;
@@ -348,9 +307,6 @@ constexpr bool has_all_visitors() {
     static_assert(has_visit<Subclass, TypeDecl>::value);
     static_assert(has_visit<Subclass, TypeRef>::value);
     static_assert(has_visit<Subclass, Constructor>::value);
-    static_assert(has_visit<Subclass, AnonymousVariable>::value);
-    static_assert(has_visit<Subclass, Variable>::value);
-    static_assert(has_visit<Subclass, ConstructorRef>::value);
     static_assert(has_visit<Subclass, Value>::value);
     static_assert(has_visit<Subclass, Type>::value);
 
@@ -364,9 +320,6 @@ constexpr bool has_all_visitors() {
         has_visit<Subclass, TypeDecl>::value &&
         has_visit<Subclass, TypeRef>::value &&
         has_visit<Subclass, Constructor>::value &&
-        has_visit<Subclass, AnonymousVariable>::value &&
-        has_visit<Subclass, Variable>::value &&
-        has_visit<Subclass, ConstructorRef>::value &&
         has_visit<Subclass, Value>::value &&
         has_visit<Subclass, Type>::value;
 }

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <functional>
 #include <iostream>
+#include <memory>
 
 /// Represents a value which may or may not have a value, and may be accessed
 /// in a type-safe way.
@@ -60,6 +61,12 @@ public:
             }
         }
         std::swap(lhs.has_value, rhs.has_value);
+    }
+
+    void map(std::function<void(T)> transform) const {
+        if(has_value) {
+            return transform(value.wrapped);
+        }
     }
 
     /// Aplies a transformation to the value of this optional if it exists.
@@ -142,6 +149,20 @@ public:
     /// See also: `unwrapInto(T&)`
     bool unwrapGuard(T &x) const {
         if(has_value) x = value.wrapped;
+        return !has_value;
+    }
+
+    /// A version of `unwrapGuard` which borrows the value from the optional
+    /// rather than making an owned copy.
+    bool unwrapGuard(T *&x) {
+        if(has_value) x = &value.wrapped;
+        return !has_value;
+    }
+
+    /// A version of `unwrapGuard` which makes an owned copy of the value from
+    /// the optional.
+    bool unwrapGuard(std::unique_ptr<T> &x) {
+        if(has_value) x = std::make_unique<T>(value.wrapped);
         return !has_value;
     }
 

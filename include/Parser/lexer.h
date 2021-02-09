@@ -9,7 +9,6 @@
 
 struct Token {
     enum class Type {
-        anonymous,
         brace_l,
         brace_r,
         comma,

@@ -63,51 +63,45 @@ Optional<PredicateDecl> parsePredicateDecl(Lexer &lexer) {
     }
 }
 
-Optional<AnonymousVariable> parseAnonymousVariable(Lexer &lexer) {
-    Token token;
-    if(lexer.take_token(Token::Type::anonymous).unwrapInto(token)) {
-        return AnonymousVariable(token.location);
-    }
-    return Optional<AnonymousVariable>();
-}
-
-Optional<Variable> parseVariable(Lexer &lexer) {
-    Token next = lexer.take_next();
-
-    if(next.type == Token::Type::kw_let) {
-        Token identifier;
-        if(lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
-            return Variable(identifier.text, true, identifier.location);
-        }
-    } else if(next.type == Token::Type::identifier) {
-        return Variable(next.text, false, next.location);
-    }
-
-    return Optional<Variable>();
-}
-
 Optional<Value> parseValue(Lexer &lexer) {
     Token next = lexer.peek_next();
+    Token identifier;
 
-    AnonymousVariable av;
-    if(parseAnonymousVariable(lexer).unwrapInto(av)) {
-        return Value(av);
+    // <value> := "let" <identifier>
+    if( lexer.take(Token::Type::kw_let) &&
+        lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
+            return Value(identifier.text, true, identifier.location);
     }
 
+    // <value> := <identifier> "(" <list of values> ")"
+    // <value> := <identifier>
     lexer.rewind(next);
-    ConstructorRef cr;
-    if(parseConstructorRef(lexer).unwrapInto(cr)) {
-        return Value(cr);
+    if(lexer.take_token(Token::Type::identifier).unwrapGuard(identifier)) {
+        lexer.rewind(next);
+        return Optional<Value>();
     }
 
-    lexer.rewind(next);
-    Variable v;
-    if(parseVariable(lexer).unwrapInto(v)) {
-        return Value(v);
-    }
+    if(lexer.take(Token::Type::paren_l)) {
+        std::vector<Value> arguments;
+        do {
+            parseValue(lexer).map([&](Value arg) {
+                arguments.push_back(arg);
+            });
+        } while(lexer.take(Token::Type::comma));
 
-    lexer.rewind(next);
-    return Optional<Value>();
+        if(lexer.take(Token::Type::paren_r)) {
+            return Value(
+                identifier.text,
+                arguments,
+                identifier.location);
+        } else {
+            // expected ")"
+            lexer.rewind(next);
+            return Optional<Value>();
+        }
+    } else {
+        return Value(identifier.text, {}, identifier.location);
+    }
 }
 
 /// Consumes an identifier from the lexer, and produces an AST node to match.
@@ -121,16 +115,11 @@ Optional<PredicateRef> parsePredicateRef(Lexer &lexer) {
         // <predicate-name> := identifier "(" <comma-separated-arguments> ")"
         if(lexer.take(Token::Type::paren_l)) {
             std::vector<Value> arguments;
-            Value val;
 
             do {
-                if(parseValue(lexer).unwrapInto(val)) {
+                parseValue(lexer).map([&](Value val) {
                     arguments.push_back(val);
-                } else {
-                    // requires an argument
-                    lexer.rewind(next);
-                    return Optional<PredicateRef>();
-                }
+                });
             } while(lexer.take(Token::Type::comma));
 
             if(lexer.take(Token::Type::paren_r)) {
@@ -312,43 +301,6 @@ Optional<Constructor> parseConstructor(Lexer &lexer) {
 
     lexer.rewind(next);
     return Optional<Constructor>();
-}
-
-Optional<ConstructorRef> parseConstructorRef(Lexer &lexer) {
-    Token next = lexer.peek_next();
-
-    // <constructor-ref> := <identifier> "(" <comma-separated-arguments> ")"
-    Token identifier;
-    if( lexer.take_token(Token::Type::identifier).unwrapInto(identifier) &&
-        lexer.take(Token::Type::paren_l)) {
-            std::vector<Value> arguments;
-            Value arg;
-
-            do {
-                if(parseValue(lexer).unwrapInto(arg)) {
-                    arguments.push_back(arg);
-                }
-            } while(lexer.take(Token::Type::comma));
-
-            if(lexer.take(Token::Type::paren_r)) {
-                return ConstructorRef(
-                    identifier.text,
-                    arguments,
-                    identifier.location);
-            } else {
-                // expected ")"
-                lexer.rewind(next);
-                return Optional<ConstructorRef>();
-            }
-    }
-
-    // <constructor-ref> := <identifier>
-    if(identifier.type == Token::Type::identifier) {
-        return ConstructorRef(identifier.text, identifier.location);
-    }
-
-    lexer.rewind(next);
-    return Optional<ConstructorRef>();
 }
 
 Optional<Type> parseType(Lexer &lexer) {

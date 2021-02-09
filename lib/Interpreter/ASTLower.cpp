@@ -1,8 +1,11 @@
 #include <algorithm>
 #include <limits>
 
-#include "Parser/AST.h"
+#include "SemAna/TypedAST.h"
+#include "SemAna/VariableAnalysis.h"
 #include "Interpreter/ASTLower.h"
+
+using namespace TypedAST;
 
 /// Traverses the AST and lowers it to interpreter primitives using
 /// the visitor pattern.
@@ -11,18 +14,18 @@ class ASTLowerer {
     Optional<Implication> enclosingImplication;
 
 public:
-    ASTLowerer(const Program &semanaProgram): semanaProgram(semanaProgram) {}
+    ASTLowerer(const AST &ast): ast(ast) {}
 
     interpreter::VariableRef visit(const AnonymousVariable &av) {
         return interpreter::VariableRef();
     }
 
     interpreter::VariableRef visit(const Variable &v) {
-        Implication impl;
+        std::unique_ptr<Implication> impl;
         if(enclosingImplication.unwrapGuard(impl)) {
             assert(false && "implication not set!");
         }
-        size_t index = getVariableIndex(impl, v);
+        size_t index = getVariableIndex(*impl, v);
         return interpreter::VariableRef(index, v.isDefinition);
     }
 
@@ -30,7 +33,7 @@ public:
     /// context information of the type. 
     interpreter::ConstructorRef visit(const ConstructorRef &cr, const TypeRef &tr) {
         size_t index = getConstructorIndex(tr, cr);
-        const Constructor &ctor = semanaProgram.resolveConstructorRef(tr, cr);
+        const Constructor &ctor = ast.resolveConstructorRef(tr, cr);
 
         std::vector<interpreter::Value> arguments;
         for(int i=0; i<cr.arguments.size(); ++i) {
@@ -44,15 +47,7 @@ public:
         return val.match<interpreter::Value>(
             [&](AnonymousVariable av) { return interpreter::Value(visit(av)); },
             [&](Variable v) { return interpreter::Value(visit(v)); },
-            [&](ConstructorRef cr) -> interpreter::Value {
-                // disambiguate constructors without arguments from variables
-                if(getConstructorIndex(tr, cr) == std::numeric_limits<size_t>::max()) {
-                    Variable v(cr.name.string(), false, cr.location);
-                    return interpreter::Value(visit(v));
-                } else {
-                    return interpreter::Value(visit(cr, tr));
-                }
-            }
+            [&](ConstructorRef cr) { return interpreter::Value(visit(cr, tr)); }
         );
     }
 
@@ -64,9 +59,9 @@ public:
         size_t predicateIndex = getPredicateIndex(pr.name);
 
         std::vector<interpreter::Value> arguments;
-        const Predicate &p = semanaProgram.resolvePredicateRef(pr);
-        for(int i=0; i<p.name.parameters.size(); ++i) {
-            auto loweredCtorRef = visit(pr.arguments[i], p.name.parameters[i]);
+        const Predicate &p = ast.resolvePredicateRef(pr);
+        for(int i=0; i<p.declaration.parameters.size(); ++i) {
+            auto loweredCtorRef = visit(pr.arguments[i], p.declaration.parameters[i]);
             arguments.push_back(loweredCtorRef);
         }
         
@@ -90,11 +85,11 @@ public:
 
     interpreter::Implication visit(const Implication &impl) {
         enclosingImplication = impl;
-        auto head = visit(impl.lhs);
-        auto body = visit(impl.rhs);
+        auto head = visit(impl.head);
+        auto body = visit(impl.body);
         enclosingImplication = Optional<Implication>();
 
-        size_t numVariables = semanaProgram.scopes[impl].size();
+        size_t numVariables = getVariables(ast, impl).size();
         return interpreter::Implication(head, body, numVariables);
     }
 
@@ -125,59 +120,62 @@ private:
     size_t getPredicateIndex(const Name<Predicate> &pn) {
         // TODO: it should be possible to do this in logarithmic time,
         // but the current implementation is linear.
-        auto x = semanaProgram.predicates.find(pn);
-        assert(x != semanaProgram.predicates.end());
-        size_t i = 0;
-        for(; x != semanaProgram.predicates.begin(); --x) ++i;
-        return i;
+        auto x = std::find_if(
+            ast.predicates.begin(),
+            ast.predicates.end(),
+            [&](const Predicate &p) { return p.declaration.name == pn; });
+
+        assert(x != ast.predicates.end());
+        return x - ast.predicates.begin();
     }
 
     size_t getConstructorIndex(const TypeRef &tr, const ConstructorRef &cr) {
-        const auto typeIter = semanaProgram.types.find(tr.name);
-        assert(typeIter != semanaProgram.types.end());
-        const auto &type = typeIter->second;
+        auto type = std::find_if(
+            ast.types.begin(),
+            ast.types.end(),
+            [&](const Type &type) { return type.declaration.name == tr; });
+        
+        assert(type != ast.types.end());
+        
+        auto ctor = std::find_if(
+            type->constructors.begin(),
+            type->constructors.end(),
+            [&](const Constructor &ctor) { return ctor.name == cr.name; });
 
-        size_t i = 0;
-        for(const Constructor &ctor : type.constructors) {
-            if(ctor.name == cr.name) return i;
-            ++i;
-        }
-        // the "constructor reference" is actually a variable.
-        return std::numeric_limits<size_t>::max(); 
+        assert(ctor != type->constructors.end());
+        return ctor - type->constructors.begin();
     }
 
     /// Computes the implication's variable list and returns the variable's
     /// index within it.
     size_t getVariableIndex(const Implication &impl, const Variable &v) {
-        auto scopeIter = semanaProgram.scopes.find(impl);
-        assert(scopeIter != semanaProgram.scopes.end());
-        auto scope = scopeIter->second;
-
+        Scope scope = getVariables(ast, impl);
         size_t index = 0;
         auto vIter = scope.find(v.name);
         for(; vIter != scope.begin(); --vIter) ++index;
         return index;
     }
 
-    const Program &semanaProgram;
+    const AST &ast;
 };
 
-static_assert(has_all_visitors<ASTLowerer>());
+// TODO: new assert for TypedAST
+//static_assert(has_all_visitors<ASTLowerer>());
 
-interpreter::Program lower(const Program &semanaProgram) {
-    ASTLowerer lowerer(semanaProgram);
+interpreter::Program lower(const AST &ast) {
+    ASTLowerer lowerer(ast);
     
     std::vector<interpreter::Predicate> loweredPredicates;
-    loweredPredicates.reserve(semanaProgram.predicates.size());
+    loweredPredicates.reserve(ast.predicates.size());
 
     Optional<interpreter::PredicateReference> main;
 
     size_t i = 0;
-    for(const auto &p : semanaProgram.predicates) {
-        interpreter::Predicate lowered = lowerer.visit(p.second);
+    for(const auto &p : ast.predicates) {
+        interpreter::Predicate lowered = lowerer.visit(p);
         loweredPredicates.push_back(lowered);
 
-        if(p.second.name.name == Name<Predicate>("main"))
+        if(p.declaration.name == Name<Predicate>("main"))
             // If main did take arguments, this would be the place to
             // pass them to the program!
             main = interpreter::PredicateReference(i, {});

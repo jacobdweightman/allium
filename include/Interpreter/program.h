@@ -189,6 +189,8 @@ struct Implication {
     mutable std::vector<ConstructorRef> variables;
 };
 
+bool operator==(const Implication &, const Implication &);
+bool operator!=(const Implication &, const Implication &);
 std::ostream& operator<<(std::ostream &out, const Implication &impl);
 
 struct Predicate {
@@ -203,12 +205,17 @@ struct Predicate {
     std::vector<Implication> implications;
 };
 
+bool operator==(const Predicate &, const Predicate &);
+bool operator!=(const Predicate &, const Predicate &);
 std::ostream& operator<<(std::ostream &out, const Predicate &p);
 
 class Program {
 public:
     Program(std::vector<Predicate> ps, Optional<PredicateReference> main):
         predicates(ps), entryPoint(main) {}
+    
+    friend bool operator==(const Program &, const Program &);
+    friend bool operator!=(const Program &, const Program &);
 
     bool prove(const Expression&);
 

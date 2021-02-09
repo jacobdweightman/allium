@@ -65,6 +65,7 @@ public:
         out << "<Predicate \"" << p.name.name << "\" line:" <<
             p.name.location << ">\n";
         ++depth;
+        visit(p.name);
         for(const auto &impl : p.implications) {
             visit(impl);
         }
@@ -94,33 +95,18 @@ public:
         --depth;
     }
 
-    void visit(const AnonymousVariable &av) {
-        indent();
-        out << "<AnonymousVariable line:" << av.location << ">\n";
-    }
-
-    void visit(const Variable &v) {
-        indent();
-        out << "<Variable \"" << v.name << "\" line:" << v.location << ">\n";
-    }
-
-    void visit(const ConstructorRef &ctor) {
-        indent();
-        out << "<ConstructorRef \"" << ctor.name << "\" line:" <<
-            ctor.location << ">\n";
-        ++depth;
-        for(const auto &arg : ctor.arguments) {
-            visit(arg);
-        }
-        --depth;
-    }
-
     void visit(const Value &val) {
-        val.switchOver(
-        [&](AnonymousVariable av) { visit(av); },
-        [&](Variable v) { visit(v); },
-        [&](ConstructorRef cr) { visit(cr); }
-        );
+        indent();
+        if(val.isDefinition) {
+            out << "<Value definition \"" << val.name << "\" line:" << val.location << ">\n";
+        } else {
+            out << "<Value \"" << val.name << "\" line:" << val.location << ">\n";
+            ++depth;
+            for(const auto &arg : val.arguments) {
+                visit(arg);
+            }
+            --depth;
+        }
     }
 
     void visit(const Type &type) {
@@ -130,6 +116,15 @@ public:
         for(const auto &ctor : type.constructors) {
             visit(ctor);
         }
+        --depth;
+    }
+
+    void visit(const AST &ast) {
+        indent();
+        out << "<AST>\n";
+        ++depth;
+        for(const auto &type : ast.types) visit(type);
+        for(const auto &predicate : ast.predicates) visit(predicate);
         --depth;
     }
 

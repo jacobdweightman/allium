@@ -1,8 +1,6 @@
 #include <iostream>
 #include "Interpreter/program.h"
 
-// looks like hasA(c(a)) is represented as hasA(c(b))...
-
 bool interpreter::Program::prove(const Expression &expr) {
     return expr.match<bool>(
         [](TruthValue tv) -> bool { std::cout << "prove TV: " << tv.value << "\n"; return tv.value; },
@@ -24,6 +22,31 @@ bool interpreter::Program::prove(const Expression &expr) {
 }
  
 namespace interpreter {
+
+bool operator==(const Implication &left, const Implication &right) {
+    return left.head == right.head && left.body == right.body;
+}
+
+bool operator!=(const Implication &left, const Implication &right) {
+    return !(left == right);
+}
+
+bool operator==(const Predicate &left, const Predicate &right) {
+    return left.implications == right.implications;
+}
+
+bool operator!=(const Predicate &left, const Predicate &right) {
+    return !(left == right);
+}
+
+bool operator==(const Program &left, const Program &right) {
+    return left.predicates == right.predicates &&
+        left.entryPoint == right.entryPoint;
+}
+
+bool operator!=(const Program &left, const Program &right) {
+    return !(left == right);
+}
 
 static ConstructorRef instantiate(
     ConstructorRef cr,

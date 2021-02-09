@@ -8,6 +8,8 @@ namespace TypedAST {
 
 class ASTPrinter {
 public:
+    ASTPrinter(std::ostream &out): out(out) {}
+
     void visit(const TypeDecl &td) {
         indent();
         out << "<TypeDecl \"" << td.name << "\">\n";
@@ -123,7 +125,7 @@ public:
 
     void visit(const AST &ast) {
         indent();
-        out << "<AST>\n";
+        out << "<TypedAST>\n";
         depth++;
         for(const auto &x : ast.types) visit(x);
         for(const auto &x : ast.predicates) visit(x);
