@@ -43,6 +43,8 @@ public:
     }
 
     /// An optional is truthy iff it has a value.
+    ///
+    /// Note that `Optional<int>(0)` converts to `true`.
     explicit operator bool () const { return has_value; }
 
     friend void swap(Optional &lhs, Optional &rhs) {
@@ -88,6 +90,38 @@ public:
         } else {
             return Optional<U>();
         }
+    }
+
+    /// Calls the given observer with the value of this optional if there is one,
+    /// and returns this optional again by reference for use in a chain.
+    ///
+    /// Example:
+    /// ```
+    /// Optional(5)
+    ///     .then([](int x) { std::cout << x; })
+    ///     .switchOver(...);
+    /// ```
+    const Optional &then(std::function<void(const T&)> observer) const {
+        if(has_value) {
+            observer(value.wrapped);
+        }
+        return *this;
+    }
+
+    /// Calls the given observer if there is no value in this observer, and
+    /// returns this optional again by reference for use in a chain.
+    ///
+    /// Example:
+    /// ```
+    /// Optional<int>()
+    ///     .error([]() { std::cout << "no value!"; })
+    ///     .switchOver(...);
+    /// ```
+    const Optional &error(std::function<void(void)> observer) const {
+        if(!has_value) {
+            observer();
+        }
+        return *this;
     }
 
     template <typename U>

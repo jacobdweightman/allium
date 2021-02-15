@@ -75,39 +75,44 @@ int main(int argc, char *argv[]) {
     // change someday to support multi-file programs.
     std::ifstream file(arguments.filePaths.front());
     parser::Lexer lexer(file);
-    
-    parser::AST ast;
-    if(parseAST(lexer).unwrapGuard(ast)) {
-        std::cout << "Syntax error.\n";
-        return 1;
-    }
-
-    if(arguments.printAST == Arguments::PrintASTMode::SYNTACTIC) {
-        parser::ASTPrinter(std::cout).visit(ast);
-        return 0;
-    }
 
     ErrorEmitter errorEmitter(std::cout);
-    TypedAST::AST typedAST = checkAll(ast, errorEmitter);
-    unsigned errors = errorEmitter.getErrors();
-    if(errors > 0) {
-        std::cout << "Compilation failed with " << errors << " errors.\n";
-        return 1;
-    }
+    
+    parseAST(lexer).then([&](const parser::AST &ast) {
+        if(arguments.printAST == Arguments::PrintASTMode::SYNTACTIC) {
+            parser::ASTPrinter(std::cout).visit(ast);
+            exit(0);
+        }
+    }).error([]() {
+        std::cout << "Syntax error.\n";
+        exit(1);
+    })
 
-    if(arguments.printAST == Arguments::PrintASTMode::SEMANTIC) {
-        TypedAST::ASTPrinter(std::cout).visit(typedAST);
-        return 0;
-    }
+    .flatMap<TypedAST::AST>([&](parser::AST ast) {
+        return checkAll(ast, errorEmitter);
+    }).then([&](TypedAST::AST ast) {
+        if(arguments.printAST == Arguments::PrintASTMode::SEMANTIC) {
+            TypedAST::ASTPrinter(std::cout).visit(ast);
+            exit(0);
+        }
+    }).error([&]() {
+        unsigned errors = errorEmitter.getErrors();
+        if(errors > 0) {
+            std::cout << "Compilation failed with " << errors << " errors.\n";
+            exit(1);
+        }
+    })
 
-    interpreter::Program interpreter = lower(typedAST);
-    return interpreter.getEntryPoint().switchOver<int>(
+    .map([](TypedAST::AST ast) {
+        using namespace interpreter;
+        auto program = lower(ast);
+        return program.getEntryPoint().switchOver<void>(
         [&](interpreter::PredicateReference main) {
-            return !interpreter.prove(interpreter::Expression(main));
+            exit(!program.prove(interpreter::Expression(main)));
         },
         [] {
             std::cout << "Invoked program with no predicate named main.\n";
-            return 1;
-        }
-    );
+            exit(1);
+        });
+    });
 }
