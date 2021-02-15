@@ -4,6 +4,8 @@
 
 namespace TypedAST {
 
-Scope getVariables(const AST &ast, const Implication impl);
+Scope getVariables(const AST &ast, const PredicateRef pr);
+
+Scope getVariables(const AST &ast, const Expression expr);
 
 }

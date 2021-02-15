@@ -11,15 +11,17 @@ private:
         value.switchOver(
         [](AnonymousVariable av) {},
         [&](Variable v) {
-            const Type &type = ast.resolveTypeRef(v.type);
-            scope.insert({ v.name, type });
+            if(v.isDefinition) {
+                const Type &type = ast.resolveTypeRef(v.type);
+                scope.insert({ v.name, type });
+            }
         },
         [&](ConstructorRef cr) {
             for(const auto &arg : cr.arguments) getVariables(arg);
         });
     }
 
-    void getVariables(const PredicateRef &pr) {
+    void getVariables_(const PredicateRef &pr) {
         for(const auto &arg : pr.arguments) getVariables(arg);
     }
 
@@ -28,29 +30,42 @@ private:
         getVariables(conj.getRight());
     }
 
-    void getVariables(const Expression &expr) {
-        expr.switchOver(
-        [](TruthLiteral) {},
-        [&](PredicateRef pr) { getVariables(pr); },
-        [&](Conjunction conj) { getVariables(conj); }
-        );
-    }
-
 public:
     VariableAnalysis(const AST &ast): ast(ast) {}
 
-    Scope getVariables(const Implication impl) {
+    Scope getVariables(const PredicateRef &pr) {
         scope = Scope();
-        getVariables(impl.head);
-        getVariables(impl.body);
+        for(const auto &arg : pr.arguments) getVariables(arg);
+        return scope;
+    }
+
+    Scope getVariables(const Expression &expr) {
+        scope = Scope();
+        expr.switchOver(
+        [](TruthLiteral) {},
+        [&](PredicateRef pr) { getVariables_(pr); },
+        [&](Conjunction conj) { getVariables(conj); }
+        );
         return scope;
     }
 };
 
-/// Returns the variables and their types which are defined in the
-/// lexical scope of the given implication.
-Scope getVariables(const AST &ast, const Implication impl) {
-    return VariableAnalysis(ast).getVariables(impl);
+/// Returns the variables and their types which are defined inside of the given
+/// predicate reference.
+///
+/// This is primarily used to find possibly universally quantified variables
+/// from an implication by traversing its head.
+Scope getVariables(const AST &ast, const PredicateRef pr) {
+    return VariableAnalysis(ast).getVariables(pr);
+}
+
+/// Returns the variables and their types which are defined inside of the given
+/// expression.
+///
+/// This is primarily used to get the existentially quantified variables from an
+/// implication by traversing its body.
+Scope getVariables(const AST &ast, const Expression expr) {
+    return VariableAnalysis(ast).getVariables(expr);
 }
 
 }

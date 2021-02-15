@@ -44,7 +44,8 @@ GENERATE_EXPORT_HEADER(AlliumSemAna)
 
 add_library(AlliumInterpreter SHARED
   lib/Interpreter/ASTLower.cpp
-  lib/Interpreter/program.cpp)
+  lib/Interpreter/program.cpp
+  lib/Interpreter/WitnessProducer.cpp)
 
 target_include_directories(AlliumInterpreter PUBLIC include)
 target_link_libraries(AlliumInterpreter PUBLIC AlliumSemAna)

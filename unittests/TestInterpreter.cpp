@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "Interpreter/program.h"
+#include "Interpreter/WitnessProducer.h"
 
 using namespace interpreter;
 
@@ -64,31 +65,35 @@ class TestMatching : public testing::Test {
 public:
     void SetUp() override {}
 
-    PredicateReference pr = PredicateReference(0, {});
     // p(zero) <- true;
     Implication impl = Implication(
         PredicateReference(0, { ConstructorRef(0, {}) }),
-        Expression(pr),
-        2
+        Expression(TruthValue(true)),
+        0
     );
     // p(s(let x)) <- p(x);
     Implication impl2 = Implication(
         PredicateReference(0, { ConstructorRef(1, { Value(VariableRef(0, true)) }) }),
-        Expression(PredicateReference(0, { Value(VariableRef(0, true)) })),
+        Expression(PredicateReference(0, { Value(VariableRef(0, false)) })),
         1
+    );
+
+    PredicateRefWitnessProducer wp = PredicateRefWitnessProducer(
+        Program({ Predicate({impl, impl2}) }, Optional<PredicateReference>()),
+        PredicateReference(0, {})
     );
 };
 
 TEST_F(TestMatching, match_base_constructor) {
     EXPECT_TRUE(
-        impl.matches(
+        wp.match(
             ConstructorRef(0, {}),
             ConstructorRef(0, {})
         )
     );
 
     EXPECT_FALSE(
-        impl.matches(
+        wp.match(
             ConstructorRef(0, {}),
             ConstructorRef(1, {})
         )
@@ -97,14 +102,14 @@ TEST_F(TestMatching, match_base_constructor) {
 
 TEST_F(TestMatching, match_constructor_with_parameter) {
     EXPECT_TRUE(
-        impl.matches(
-            ConstructorRef(0, { ConstructorRef(0, {}) }),
-            ConstructorRef(0, { ConstructorRef(0, {}) })
+        wp.match(
+            ConstructorRef(1, { ConstructorRef(0, {}) }),
+            ConstructorRef(1, { ConstructorRef(0, {}) })
         )
     );
 
     EXPECT_FALSE(
-        impl.matches(
+        wp.match(
             ConstructorRef(0, { ConstructorRef(0, {}) }),
             ConstructorRef(0, { ConstructorRef(1, {}) })
         )
@@ -113,14 +118,14 @@ TEST_F(TestMatching, match_constructor_with_parameter) {
 
 TEST_F(TestMatching, match_constructor_with_multiple_parameters) {
     EXPECT_TRUE(
-        impl.matches(
+        wp.match(
             ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(1, {}) }),
             ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(1, {}) })
         )
     );
 
     EXPECT_FALSE(
-        impl.matches(
+        wp.match(
             ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(1, {}) }),
             ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(0, {}) })
         )
@@ -128,28 +133,30 @@ TEST_F(TestMatching, match_constructor_with_multiple_parameters) {
 }
 
 TEST_F(TestMatching, matching_variable_definition_sets_its_value) {
+    wp.universalVariables.resize(1);
     EXPECT_TRUE(
-        impl.matches(
+        wp.match(
             VariableRef(0, true),
             ConstructorRef(1, {})
         )
     );
 
-    EXPECT_EQ(impl.variables[0], ConstructorRef(1, {}));
+    EXPECT_EQ(wp.universalVariables[0], ConstructorRef(1, {}));
 }
 
 TEST_F(TestMatching, matching_variable_use_matches_its_value) {
-    impl.variables[0] = ConstructorRef(1, {});
+    wp.universalVariables.resize(1);
+    wp.universalVariables[0] = ConstructorRef(1, {});
 
     EXPECT_TRUE(
-        impl.matches(
+        wp.match(
             VariableRef(0, false),
             ConstructorRef(1, {})
         )
     );
 
     EXPECT_FALSE(
-        impl.matches(
+        wp.match(
             VariableRef(0, false),
             ConstructorRef(2, {})
         )
@@ -157,10 +164,30 @@ TEST_F(TestMatching, matching_variable_use_matches_its_value) {
 }
 
 TEST_F(TestMatching, instantiation) {
-    impl2.variables[0] = ConstructorRef(0, {});
+    wp.universalVariables.resize(1);
+    wp.universalVariables[0] = ConstructorRef(0, {});
 
     EXPECT_EQ(
-        impl2.instantiateBody(),
+        wp.instantiate(impl2.body),
         Expression(PredicateReference(0, { Value(ConstructorRef(0, {})) }))
+    );
+}
+
+TEST_F(TestMatching, instantiate_variable_in_constructor) {
+    wp.universalVariables.resize(1);
+    wp.universalVariables[0] = ConstructorRef(0, {});
+    EXPECT_EQ(
+        wp.instantiate(Expression(
+            PredicateReference(
+                0,
+                { ConstructorRef(1, { Value(VariableRef(0, false)) }) }
+            )
+        )),
+        Expression(
+            PredicateReference(
+                0,
+                { ConstructorRef(1, { ConstructorRef(0, {}) }) }
+            )
+        )
     );
 }

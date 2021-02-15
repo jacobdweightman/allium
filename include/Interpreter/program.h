@@ -158,35 +158,21 @@ std::ostream& operator<<(std::ostream &out, const Conjunction &conj);
 
 struct Implication {
     Implication(
-        PredicateReference head, Expression body, size_t numVars
-    ):head(head), body(body) {
-        variables.resize(numVars);
-    }
+        PredicateReference head, Expression body,
+        size_t headVariableCount
+    ): head(head), body(body), headVariableCount(headVariableCount) {}
 
     Implication operator=(Implication other) {
         using std::swap;
         swap(head, other.head);
         swap(body, other.body);
-        swap(variables, other.variables);
+        swap(headVariableCount, other.headVariableCount);
         return *this;
     }
 
-    /// Returns a copy of the body, but with all variables defined in the head
-    /// instantiated.
-    Expression instantiateBody() const;
-
-    bool matches(const PredicateReference &left, const PredicateReference &right) const;
-    bool matches(const VariableRef &left, const VariableRef &right) const;
-    bool matches(const ConstructorRef &left, const ConstructorRef &right) const;
-    bool matches(const VariableRef &left, const ConstructorRef &right) const;
-    bool matches(const Value &left, const Value &right) const;
-
     PredicateReference head;
     Expression body;
-
-    /// Store the values of the variables scoped to this implication. Indexed
-    /// with a VariableRef.
-    mutable std::vector<ConstructorRef> variables;
+    size_t headVariableCount;
 };
 
 bool operator==(const Implication &, const Implication &);
@@ -221,6 +207,10 @@ public:
 
     const Optional<PredicateReference> &getEntryPoint() {
         return entryPoint;
+    }
+
+    const Predicate &getPredicate(size_t index) const {
+        return predicates.at(index);
     }
 
 protected:
