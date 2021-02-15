@@ -7,6 +7,8 @@
 using ::testing::_;
 using ::testing::StrictMock;
 
+using namespace parser;
+
 class MockErrorEmitter : public ErrorEmitter {
 public:
     MockErrorEmitter(): ErrorEmitter(std::cout) {}

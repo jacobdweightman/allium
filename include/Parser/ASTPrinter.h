@@ -3,6 +3,8 @@
 
 #include "Parser/AST.h"
 
+namespace parser {
+
 class ASTPrinter {
 public:
     ASTPrinter(std::ostream &out): out(out) {}
@@ -138,5 +140,7 @@ private:
 };
 
 static_assert(has_all_visitors<ASTPrinter>());
+
+} // namespace parser
 
 #endif // AST_PRINTER_H

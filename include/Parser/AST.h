@@ -10,6 +10,8 @@
 #include "values/TaggedUnion.h"
 #include "values/ParserValues.h"
 
+namespace parser {
+
 struct TruthLiteral;
 struct PredicateRef;
 struct Conjunction;
@@ -323,5 +325,7 @@ constexpr bool has_all_visitors() {
         has_visit<Subclass, Value>::value &&
         has_visit<Subclass, Type>::value;
 }
+
+} // namespace parser
 
 #endif // AST_H

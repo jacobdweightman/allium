@@ -6,6 +6,8 @@
 #include "SemAna/TypedAST.h"
 #include "values/VectorUtils.h"
 
+using namespace parser;
+
 class SemAna {
     const AST &ast;
     const ErrorEmitter &error;

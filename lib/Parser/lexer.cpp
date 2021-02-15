@@ -4,6 +4,8 @@
 
 #include "Parser/lexer.h"
 
+namespace parser {
+
 std::ostream& operator<<(std::ostream& out, const Token value) {
     return out << "Token(" << value.type << ", " << value.text << ")\n";
 }
@@ -142,3 +144,5 @@ std::string Lexer::takeIdentifier(const std::string str) {
     line.seekg(i - str.length(), std::ios_base::cur);
     return str.substr(0, i);
 }
+
+} // namespace parser

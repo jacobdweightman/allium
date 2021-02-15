@@ -74,16 +74,16 @@ int main(int argc, char *argv[]) {
     // Note: we currently only support single-file programs. This will need to
     // change someday to support multi-file programs.
     std::ifstream file(arguments.filePaths.front());
-    Lexer lexer(file);
+    parser::Lexer lexer(file);
     
-    AST ast;
+    parser::AST ast;
     if(parseAST(lexer).unwrapGuard(ast)) {
         std::cout << "Syntax error.\n";
         return 1;
     }
 
     if(arguments.printAST == Arguments::PrintASTMode::SYNTACTIC) {
-        ASTPrinter(std::cout).visit(ast);
+        parser::ASTPrinter(std::cout).visit(ast);
         return 0;
     }
 

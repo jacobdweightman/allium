@@ -3,6 +3,8 @@
 #include "gtest/gtest.h"
 #include "Parser/parser.h"
 
+using namespace parser;
+
 TEST(TestParser, parse_true_as_truth_literal) {
     std::istringstream f("true");
     Lexer lexer(f);

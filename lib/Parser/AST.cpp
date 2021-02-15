@@ -3,6 +3,8 @@
 #include "Parser/AST.h"
 #include "Parser/ASTPrinter.h"
 
+namespace parser {
+
 std::ostream& operator<<(std::ostream &out, const Expression &e) {
     return e.match<std::ostream&>(
         [&](TruthLiteral tl) -> std::ostream& { out << tl; return out; },
@@ -224,3 +226,5 @@ std::ostream& operator<<(std::ostream &out, const AST &ast) {
 
     return out;
 }
+
+} // namespace parser

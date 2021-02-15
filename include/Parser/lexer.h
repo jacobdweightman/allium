@@ -7,6 +7,8 @@
 #include "values/Optional.h"
 #include "values/ParserValues.h"
 
+namespace parser {
+
 struct Token {
     enum class Type {
         brace_l,
@@ -110,5 +112,7 @@ protected:
     /// The column number of the start of the next token to be lexed.
     int columnNumber;
 };
+
+} // namespace parser
 
 #endif // LEXER_H

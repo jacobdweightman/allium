@@ -1,6 +1,8 @@
 #include "values/Optional.h"
 #include "Parser/parser.h"
 
+namespace parser {
+
 /// Consumes a truth literal token from the lexer, and produces an AST node to
 /// match.
 ///
@@ -354,3 +356,5 @@ Optional<AST> parseAST(Lexer &lexer) {
 
     return AST(types, predicates);
 }
+
+} // namespace parser

@@ -8,6 +8,8 @@
 #include "Parser/AST.h"
 #include "Parser/lexer.h"
 
+namespace parser {
+
 Optional<Implication> parseImplication(Lexer &lexer);
 Optional<Predicate> parsePredicate(Lexer &lexer);
 Optional<Type> parseType(Lexer &lexer);
@@ -23,5 +25,7 @@ Optional<TypeDecl> parseTypeDecl(Lexer &lexer);
 Optional<TypeRef> parseTypeRef(Lexer &lexer);
 Optional<Constructor> parseConstructor(Lexer &lexer);
 Optional<Value> parseValue(Lexer &lexer);
+
+}
 
 #endif // PARSER_H
