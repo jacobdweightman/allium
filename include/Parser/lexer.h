@@ -65,10 +65,7 @@ std::ostream& operator<<(std::ostream& out, const Token::Type value);
 
 class Lexer {
 public:
-    Lexer(std::istream &f) : file(f), lineNumber(0), columnNumber(0) {
-        readNextLine();
-        while(isspace(line.peek())) line.get();
-    }
+    Lexer(std::istream &f) : file(f), lineNumber(1), columnNumber(0) {}
 
     /// Identify and return the next token in the stream without consuming it.
     Token peek_next();
@@ -89,8 +86,6 @@ public:
     void rewind(Token tok);
 
 protected:
-    void readNextLine();
-
     /// After the lexer has taken a word `str`, read over it and peel off the
     /// longest possible identifier from the beginning, and rewind the file to
     /// the end of that identifier. This may be used to separate an identifier
@@ -102,9 +97,6 @@ protected:
 
     /// The source code file which is lexed by this lexer.
     std::istream &file;
-
-    /// The remainder of the current line being lexed.
-    std::stringstream line;
 
     /// The number of the line in the source code of the next token to be lexed.
     int lineNumber;

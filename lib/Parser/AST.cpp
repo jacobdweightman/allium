@@ -25,7 +25,8 @@ bool operator!=(const TruthLiteral &lhs, const TruthLiteral &rhs) {
 }
 
 std::ostream& operator<<(std::ostream &out, const TruthLiteral &tl) {
-    return out << "<TruthLiteral " << (tl.value ? "true" : "false") << ">";
+    ASTPrinter(out).visit(tl);
+    return out;
 }
 
 bool operator==(const PredicateDecl &lhs, const PredicateDecl &rhs) {

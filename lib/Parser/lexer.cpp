@@ -7,7 +7,8 @@
 namespace parser {
 
 std::ostream& operator<<(std::ostream& out, const Token value) {
-    return out << "Token(" << value.type << ", " << value.text << ")\n";
+    return out << "Token(" << value.type << ", " << value.text << ", " <<
+        value.location << ")\n";
 }
 
 std::ostream& operator<<(std::ostream& out, const Token::Type value) {
@@ -41,17 +42,17 @@ Token Lexer::peek_next() {
 }
 
 Token Lexer::take_next() {
-    std::streampos fileStartPos = file.tellg();
-    std::streampos lineStartPos = line.tellg();
-    while(line.eof() && !file.eof()) {
-        readNextLine();
-        while(isspace(line.peek())) line.get();
+    while(isspace(file.peek())) {
+        ++columnNumber;
+        if(file.get() == '\n') {
+            ++lineNumber;
+            columnNumber = 0;
+        }
     }
+    std::streampos startPos = file.tellg();
 
-    while(isspace(line.peek())) line.get();
-    int columnNumber = (int) line.tellg();
     std::string word;
-    line >> word;
+    file >> word;
 
     // peel off tokens from the front of the word that might not be
     // separated by whitespace.
@@ -59,22 +60,25 @@ Token Lexer::take_next() {
         (word.front() == '{' || word.front() == '}' ||
          word.front() == '(' || word.front() == ')' ||
          word.front() == '_')) {
-            line.seekg(lineStartPos);
-            line.ignore(std::numeric_limits<std::streamsize>::max(), word.front());
+            file.seekg(startPos);
+            file.ignore(std::numeric_limits<std::streamsize>::max(), word.front());
             word = word.substr(0, 1);
     }
 
     // peel off tokens that "stick" to the back of the word.
     while(word.size() > 1 &&
-        (word.back() == ';' || word.back() == ',' || word.back() == '}')) {
-            line.unget();
+        (word.back() == ';' || word.back() == ',' ||
+         word.back() == '{' || word.back() == '}' ||
+         word.back() == '(' || word.back() == ')')) {
+            file.unget();
             word.pop_back();
     }
 
     // For brevity, partially apply common arguments in the Token constructor.
-    auto makeToken = [=](Token::Type type, std::string text) {
+    auto makeToken = [&](Token::Type type, std::string text) {
         SourceLocation location(lineNumber, columnNumber);
-        return Token(type, text, location, fileStartPos);
+        columnNumber += text.size();
+        return Token(type, text, location, startPos);
     };
 
     if(word == "let") return makeToken(Token::Type::kw_let, word);
@@ -117,19 +121,10 @@ Optional<Token> Lexer::take_token(Token::Type type) {
 }
 
 void Lexer::rewind(Token tok) {
-    if(tok.location.lineNumber != lineNumber)
-        file.seekg(tok.sourceLocation);
-    line.seekg(tok.location.columnNumber, std::ios_base::beg);
+    file.clear();
+    file.seekg(tok.sourceLocation);
     lineNumber = tok.location.lineNumber;
-}
-
-void Lexer::readNextLine() {
-    std::string lineStr;
-    std::stringstream tmp;
-    line.swap(tmp);
-    std::getline(file, lineStr);
-    line << lineStr;
-    ++lineNumber;
+    columnNumber = tok.location.columnNumber;
 }
 
 std::string Lexer::takeIdentifier(const std::string str) {
@@ -140,8 +135,8 @@ std::string Lexer::takeIdentifier(const std::string str) {
     }
     // if the string doesn't start with an identifier, we probably should have
     // peeled off a different token.
-    //assert(i > 0);
-    line.seekg(i - str.length(), std::ios_base::cur);
+    assert(i > 0);
+    file.seekg(i - str.length(), std::ios_base::cur);
     return str.substr(0, i);
 }
 
