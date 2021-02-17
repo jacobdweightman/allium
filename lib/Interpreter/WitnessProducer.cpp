@@ -33,6 +33,7 @@ bool PredicateRefWitnessProducer::nextWitness() {
         if(currentWitnessProducer->nextWitness()) {
             return true;
         } else {
+            ++currentImpl;
             setUpNextMatchingImplication();
         }
     }

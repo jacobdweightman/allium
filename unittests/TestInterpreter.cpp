@@ -54,11 +54,26 @@ TEST_F(TestInterpreter, prove_predicate_with_arguments) {
     ))));
 }
 
-TEST_F(TestInterpreter, prove_conjunction) {
+TEST_F(TestInterpreter, prove_conjunction_of_truth_values) {
     EXPECT_TRUE(program.prove(Expression(Conjunction(TruthValue(true), TruthValue(true)))));
     EXPECT_FALSE(program.prove(Expression(Conjunction(TruthValue(true), TruthValue(false)))));
     EXPECT_FALSE(program.prove(Expression(Conjunction(TruthValue(false), TruthValue(true)))));
     EXPECT_FALSE(program.prove(Expression(Conjunction(TruthValue(false), TruthValue(false)))));
+}
+
+TEST_F(TestInterpreter, prove_conjunction_of_predicates) {
+    EXPECT_TRUE(program.prove(Expression(Conjunction(
+        Expression(PredicateReference(0, {})),
+        Expression(PredicateReference(0, {}))
+    ))));
+    EXPECT_FALSE(program.prove(Expression(Conjunction(
+        Expression(PredicateReference(0, {})),
+        Expression(PredicateReference(1, {}))
+    ))));
+    EXPECT_FALSE(program.prove(Expression(Conjunction(
+        Expression(PredicateReference(1, {})),
+        Expression(PredicateReference(0, {}))
+    ))));
 }
 
 class TestMatching : public testing::Test {
