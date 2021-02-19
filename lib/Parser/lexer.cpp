@@ -56,6 +56,12 @@ Token Lexer::take_next() {
 
     // peel off tokens from the front of the word that might not be
     // separated by whitespace.
+    if( word.size() > 2 && !word.compare(0, 2, "<-")) {
+        file.seekg(startPos);
+        file.ignore(std::numeric_limits<std::streamsize>::max(), word.at(1));
+        word = word.substr(0, 2);
+    }
+
     if( word.size() > 1 && 
         (word.front() == '{' || word.front() == '}' ||
          word.front() == '(' || word.front() == ')' ||

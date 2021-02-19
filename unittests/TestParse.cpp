@@ -191,7 +191,20 @@ TEST(TestParser, parse_implication) {
         parseImplication(lexer),
         Implication(
             PredicateRef("main", SourceLocation(1, 0)),
-            Expression(TruthLiteral(true, SourceLocation(1, 8))) // returning 7 and not 8... need to skip whitespace for count?
+            Expression(TruthLiteral(true, SourceLocation(1, 8)))
+        )
+    );
+}
+
+TEST(TestParser, parse_implication_without_whitespace) {
+    std::istringstream f("main<-somePredicate;");
+    Lexer lexer(f);
+
+    EXPECT_EQ(
+        parseImplication(lexer),
+        Implication(
+            PredicateRef("main", SourceLocation(1, 0)),
+            Expression(PredicateRef("somePredicate", SourceLocation(1, 6)))
         )
     );
 }
