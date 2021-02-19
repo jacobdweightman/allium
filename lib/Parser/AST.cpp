@@ -208,6 +208,49 @@ Optional<Predicate> AST::resolvePredicateRef(const PredicateRef &pr) const {
     }
 }
 
+bool operator==(const EffectDecl &lhs, const EffectDecl &rhs) {
+    return lhs.location == rhs.location && lhs.name == rhs.name;
+}
+
+bool operator!=(const EffectDecl &lhs, const EffectDecl &rhs) {
+    return !(lhs == rhs);
+}
+
+std::ostream& operator<<(std::ostream &out, const EffectDecl &decl) {
+    return out << decl.name;
+}
+
+bool operator==(const EffectConstructor &lhs, const EffectConstructor &rhs) {
+    return lhs.location == rhs.location && lhs.name == rhs.name &&
+        lhs.parameters == rhs.parameters;
+}
+
+bool operator!=(const EffectConstructor &lhs, const EffectConstructor &rhs) {
+    return !(lhs == rhs);
+}
+
+std::ostream& operator<<(std::ostream &out, const EffectConstructor &ctor) {
+    out << "ctor " << ctor.name << "(";
+    for(const auto &param : ctor.parameters) {
+        out << param << ", ";
+    }
+    return out << ")";
+}
+
+bool operator==(const Effect &lhs, const Effect &rhs) {
+    return lhs.declaration == rhs.declaration &&
+        lhs.constructors == rhs.constructors;
+}
+
+bool operator!=(const Effect &lhs, const Effect &rhs) {
+    return !(lhs == rhs);
+}
+
+std::ostream& operator<<(std::ostream &out, const Effect &effect) {
+    ASTPrinter(out).visit(effect);
+    return out;
+}
+
 bool operator==(const AST &lhs, const AST &rhs) {
     return lhs.types == rhs.types && lhs.predicates == rhs.predicates;
 }

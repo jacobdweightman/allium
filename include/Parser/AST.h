@@ -263,16 +263,65 @@ bool operator==(const Type &lhs, const Type &rhs);
 bool operator!=(const Type &lhs, const Type &rhs);
 std::ostream& operator<<(std::ostream &out, const Type &type);
 
+struct Effect;
+
+/// Represents the declaration of an effect at the begining of its definition.
+struct EffectDecl {
+    EffectDecl() {}
+    EffectDecl(std::string name, SourceLocation location):
+        name(name), location(location) {}
+    
+    Name<Effect> name;
+    SourceLocation location;
+};
+
+bool operator==(const EffectDecl &lhs, const EffectDecl &rhs);
+bool operator!=(const EffectDecl &lhs, const EffectDecl &rhs);
+std::ostream& operator<<(std::ostream &out, const EffectDecl &type);
+
+struct EffectConstructor {
+    EffectConstructor() {}
+    EffectConstructor(
+        std::string name,
+        std::vector<TypeRef> parameters,
+        SourceLocation location
+    ): name(name), parameters(parameters), location(location) {}
+
+    Name<EffectConstructor> name;
+    std::vector<TypeRef> parameters;
+    SourceLocation location;
+};
+
+bool operator==(const EffectConstructor &lhs, const EffectConstructor &rhs);
+bool operator!=(const EffectConstructor &lhs, const EffectConstructor &rhs);
+std::ostream& operator<<(std::ostream &out, const EffectConstructor &type);
+
+/// Represents the complete definition of a type in the AST.
+struct Effect {
+    Effect() {}
+    Effect(EffectDecl declaration, std::vector<EffectConstructor> ctors):
+        declaration(declaration), constructors(ctors) {}
+
+    EffectDecl declaration;
+    std::vector<EffectConstructor> constructors;
+};
+
+bool operator==(const Effect &lhs, const Effect &rhs);
+bool operator!=(const Effect &lhs, const Effect &rhs);
+std::ostream& operator<<(std::ostream &out, const Effect &type);
+
 /// An AST representing a complete source file.
 struct AST {
     AST() {}
-    AST(std::vector<Type> types, std::vector<Predicate> predicates):
-        types(types), predicates(predicates) {}
+    AST(std::vector<Type> types, std::vector<Effect> effects, 
+        std::vector<Predicate> predicates
+    ): types(types), effects(effects), predicates(predicates) {}
 
     Optional<Type> resolveTypeRef(const TypeRef &tr) const;
     Optional<Predicate> resolvePredicateRef(const PredicateRef &pr) const;
 
     std::vector<Type> types;
+    std::vector<Effect> effects;
     std::vector<Predicate> predicates;
 };
 
@@ -311,6 +360,9 @@ constexpr bool has_all_visitors() {
     static_assert(has_visit<Subclass, Constructor>::value);
     static_assert(has_visit<Subclass, Value>::value);
     static_assert(has_visit<Subclass, Type>::value);
+    static_assert(has_visit<Subclass, EffectDecl>::value);
+    static_assert(has_visit<Subclass, EffectConstructor>::value);
+    static_assert(has_visit<Subclass, Effect>::value);
 
     return has_visit<Subclass, TruthLiteral>::value &&
         has_visit<Subclass, PredicateDecl>::value &&
@@ -323,7 +375,10 @@ constexpr bool has_all_visitors() {
         has_visit<Subclass, TypeRef>::value &&
         has_visit<Subclass, Constructor>::value &&
         has_visit<Subclass, Value>::value &&
-        has_visit<Subclass, Type>::value;
+        has_visit<Subclass, Type>::value &&
+        has_visit<Subclass, EffectDecl>::value &&
+        has_visit<Subclass, EffectConstructor>::value &&
+        has_visit<Subclass, Effect>::value;
 }
 
 } // namespace parser

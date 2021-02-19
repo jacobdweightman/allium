@@ -20,6 +20,7 @@ struct Token {
         identifier,
         implied_by,
         kw_ctor,
+        kw_effect,
         kw_let,
         kw_pred,
         kw_type,

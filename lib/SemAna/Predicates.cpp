@@ -309,11 +309,27 @@ public:
         return TypedAST::Type(raisedDeclaration, raisedCtors);
     }
 
+    void visit(const EffectDecl &decl) {
+        assert(false && "Effects are not supported yet!");
+    }
+
+    void visit(const EffectConstructor &ctor) {
+        assert(false && "Effects are not supported yet!");
+    }
+
+    void visit(const Effect &effect) {
+        assert(false && "Effects are not supported yet!");
+    }
+
     TypedAST::AST visit(const AST &ast) {
         raisedTypes = compactMap<Type, TypedAST::Type>(
             ast.types,
             [&](Type type) { return visit(type); }
         );
+
+        for(const auto &effect : ast.effects) {
+            visit(effect);
+        }
 
         auto raisedPredicates = compactMap<Predicate, TypedAST::Predicate>(
             ast.predicates,

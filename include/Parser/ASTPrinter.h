@@ -64,8 +64,7 @@ public:
     }
     void visit(const Predicate &p) {
         indent();
-        out << "<Predicate \"" << p.name.name << "\" line:" <<
-            p.name.location << ">\n";
+        out << "<Predicate>\n";
         ++depth;
         visit(p.name);
         for(const auto &impl : p.implications) {
@@ -112,10 +111,39 @@ public:
     }
 
     void visit(const Type &type) {
-        out << "<Type \"" << type.declaration.name << "\" line:" <<
-            type.declaration.location << ">\n";
+        indent();
+        out << "<Type>\n";
         ++depth;
+        visit(type.declaration);
         for(const auto &ctor : type.constructors) {
+            visit(ctor);
+        }
+        --depth;
+    }
+
+    void visit(const EffectDecl &decl) {
+        indent();
+        out << "<EffectDecl \"" << decl.name << "\" line:" <<
+            decl.location << ">\n";
+    }
+
+    void visit(const EffectConstructor &ctor) {
+        indent();
+        out << "<EffectConstructor \"" << ctor.name << "\" line:" <<
+            ctor.location << ">\n";
+        ++depth;
+        for(const auto &param : ctor.parameters) {
+            visit(param);
+        }
+        --depth;
+    }
+
+    void visit(const Effect &effect) {
+        indent();
+        out << "<Effect>\n";
+        ++depth;
+        visit(effect.declaration);
+        for(const auto &ctor : effect.constructors) {
             visit(ctor);
         }
         --depth;
@@ -126,6 +154,7 @@ public:
         out << "<AST>\n";
         ++depth;
         for(const auto &type : ast.types) visit(type);
+        for(const auto &effect : ast.effects) visit(effect);
         for(const auto &predicate : ast.predicates) visit(predicate);
         --depth;
     }

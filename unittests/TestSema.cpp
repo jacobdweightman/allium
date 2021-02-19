@@ -59,7 +59,7 @@ TEST_F(TestSemAnaPredicates, undefined_predicate) {
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::undefined_predicate, "b"));
 
-    checkAll(AST({}, ps), error);
+    checkAll(AST({}, {}, ps), error);
 }
 
 TEST_F(TestSemAnaPredicates, implication_head_mismatch) {
@@ -82,7 +82,7 @@ TEST_F(TestSemAnaPredicates, implication_head_mismatch) {
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::impl_head_mismatches_predicate, "a"));
 
-    checkAll(AST({}, ps), error);
+    checkAll(AST({}, {}, ps), error);
 }
 
 TEST_F(TestSemAnaPredicates, predicate_argument_count_mismatch) {
@@ -117,7 +117,7 @@ TEST_F(TestSemAnaPredicates, predicate_argument_count_mismatch) {
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::predicate_argument_count, "p", "1"));
 
-    checkAll(AST(ts, ps), error);
+    checkAll(AST(ts, {}, ps), error);
 }
 
 TEST_F(TestSemAnaPredicates, constructor_argument_count_mismatch) {
@@ -161,7 +161,7 @@ TEST_F(TestSemAnaPredicates, constructor_argument_count_mismatch) {
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::constructor_argument_count, "s", "1"));
 
-    checkAll(AST(ts, ps), error);
+    checkAll(AST(ts, {}, ps), error);
 }
 
 TEST_F(TestSemAnaPredicates, predicate_argument_with_arguments_type_mismatch) {
@@ -199,7 +199,7 @@ TEST_F(TestSemAnaPredicates, predicate_argument_with_arguments_type_mismatch) {
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::unknown_constructor, "baz", "foo"));
 
-    checkAll(AST(ts, ps), error);
+    checkAll(AST(ts, {}, ps), error);
 }
 
 TEST_F(TestSemAnaPredicates, predicate_argument_type_mismatch) {
@@ -228,7 +228,7 @@ TEST_F(TestSemAnaPredicates, predicate_argument_type_mismatch) {
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::unknown_constructor_or_variable, "baz", "Foo"));
 
-    checkAll(AST(ts, ps), error);
+    checkAll(AST(ts, {}, ps), error);
 }
 
 TEST_F(TestSemAnaPredicates, undefined_type) {
@@ -242,7 +242,7 @@ TEST_F(TestSemAnaPredicates, undefined_type) {
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::undefined_type, "Foo"));
 
-    checkAll(AST({}, ps), error);
+    checkAll(AST({}, {}, ps), error);
 }
 
 TEST_F(TestSemAnaPredicates, variable_redefinition) {
@@ -276,7 +276,7 @@ TEST_F(TestSemAnaPredicates, variable_redefinition) {
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::variable_redefined, "x"));
 
-    checkAll(AST(ts, ps), error);
+    checkAll(AST(ts, {}, ps), error);
 }
 
 TEST_F(TestSemAnaPredicates, variable_type_mismatch) {
@@ -311,5 +311,5 @@ TEST_F(TestSemAnaPredicates, variable_type_mismatch) {
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::variable_type_mismatch, "x", "Bar", "Foo"));
 
-    checkAll(AST(ts, ps), error);
+    checkAll(AST(ts, {}, ps), error);
 }

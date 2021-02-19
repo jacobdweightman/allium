@@ -334,11 +334,100 @@ Optional<Type> parseType(Lexer &lexer) {
     }
 }
 
+Optional<EffectDecl> parseEffectDecl(Lexer &lexer) {
+    Token next = lexer.take_next();
+    if(next.type == Token::Type::identifier) {
+        return EffectDecl(next.text, next.location);
+    } else {
+        lexer.rewind(next);
+        return Optional<EffectDecl>();
+    }
+}
+
+Optional<EffectConstructor> parseEffectConstructor(Lexer &lexer) {
+    Token next = lexer.peek_next();
+
+    Token identifier;
+
+    // <effect-constructor> :=
+    //     "ctor" <identifier> ";"
+    if( lexer.take(Token::Type::kw_ctor) &&
+        lexer.take_token(Token::Type::identifier).unwrapInto(identifier) &&
+        lexer.take(Token::Type::end_of_statement)) {
+            return EffectConstructor(identifier.text, {}, identifier.location);
+    }
+
+    // <effect-constructor> :=
+    //     "ctor" <identifier> "(" <comma-separated-types> ")" ";"
+    lexer.rewind(next);
+    if( lexer.take(Token::Type::kw_ctor) &&
+        lexer.take_token(Token::Type::identifier).unwrapInto(identifier) &&
+        lexer.take(Token::Type::paren_l)) {
+
+        std::vector<TypeRef> parameters;
+        TypeRef type;
+        do {
+            if(parseTypeRef(lexer).unwrapInto(type)) {
+                parameters.push_back(type);
+            } else {
+                // requires a parameter
+                lexer.rewind(next);
+                return Optional<EffectConstructor>();
+            }
+        } while(lexer.take(Token::Type::comma));
+
+        if( lexer.take(Token::Type::paren_r) &&
+            lexer.take(Token::Type::end_of_statement)) {
+                return EffectConstructor(
+                    identifier.text,
+                    parameters,
+                    identifier.location);
+        } else {
+            // requires a ")"
+            lexer.rewind(next);
+            return Optional<EffectConstructor>();
+        }
+    }
+
+    lexer.rewind(next);
+    return Optional<EffectConstructor>();
+}
+
+Optional<Effect> parseEffect(Lexer &lexer) {
+    Token first = lexer.peek_next();
+
+    EffectDecl declaration;
+
+    // <effect> := "type" <type-name> "{" "}"
+    if( lexer.take(Token::Type::kw_effect) &&
+        parseEffectDecl(lexer).unwrapInto(declaration) &&
+        lexer.take(Token::Type::brace_l)) {
+
+            std::vector<EffectConstructor> ctors;
+            EffectConstructor ctor;
+            while(parseEffectConstructor(lexer).unwrapInto(ctor)) {
+                ctors.push_back(ctor);
+            }
+
+            if(lexer.take(Token::Type::brace_r)) {
+                return Effect(declaration, ctors);
+            } else {
+                lexer.rewind(first);
+                return Optional<Effect>();
+            }
+    } else {
+        lexer.rewind(first);
+        return Optional<Effect>();
+    }
+}
+
 Optional<AST> parseAST(Lexer &lexer) {
     std::vector<Predicate> predicates;
     std::vector<Type> types;
+    std::vector<Effect> effects;
     Predicate p;
     Type t;
+    Effect e;
 
     bool changed;
     do {
@@ -352,9 +441,14 @@ Optional<AST> parseAST(Lexer &lexer) {
             types.push_back(t);
             changed = true;
         }
+
+        if(parseEffect(lexer).unwrapInto(e)) {
+            effects.push_back(e);
+            changed = true;
+        }
     } while(changed);
 
-    return AST(types, predicates);
+    return AST(types, effects, predicates);
 }
 
 } // namespace parser

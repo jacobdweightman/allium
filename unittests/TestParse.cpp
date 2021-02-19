@@ -419,3 +419,62 @@ TEST(TestParser, parse_recursive_type) {
         )
     );
 }
+
+TEST(TestParser, parse_uninhabited_effect) {
+    std::istringstream f("effect Never {}\n");
+    Lexer lexer(f);
+
+    EXPECT_EQ(
+        parseEffect(lexer),
+        Effect(EffectDecl("Never", SourceLocation(1, 7)), {})
+    );
+}
+
+TEST(TestParser, parse_effect_with_constructor) {
+    std::istringstream f(
+        "effect Exception {\n"
+        "    ctor Raise;"
+        "}\n");
+    Lexer lexer(f);
+
+    EXPECT_EQ(
+        parseEffect(lexer),
+        Effect(
+            EffectDecl("Exception", SourceLocation(1, 7)),
+            {
+                EffectConstructor("Raise", {}, SourceLocation(2, 9))
+            }
+        )
+    );
+}
+
+TEST(TestParser, parse_effect_with_constructors_and_arguments) {
+    std::istringstream f(
+        "effect IO {\n"
+        "    ctor Open(String, File);\n"
+        "    ctor Close(File);\n"
+        "}\n");
+    Lexer lexer(f);
+
+    EXPECT_EQ(
+        parseEffect(lexer),
+        Effect(
+            EffectDecl("IO", SourceLocation(1, 7)),
+            {
+                EffectConstructor(
+                    "Open",
+                    {
+                        TypeRef("String", SourceLocation(2, 14)),
+                        TypeRef("File", SourceLocation(2, 22))
+                    },
+                    SourceLocation(2, 9)
+                ),
+                EffectConstructor(
+                    "Close",
+                    { TypeRef("File", SourceLocation(3, 15)) },
+                    SourceLocation(3, 9)
+                )
+            }
+        )
+    );
+}

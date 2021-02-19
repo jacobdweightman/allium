@@ -13,6 +13,7 @@ namespace parser {
 Optional<Implication> parseImplication(Lexer &lexer);
 Optional<Predicate> parsePredicate(Lexer &lexer);
 Optional<Type> parseType(Lexer &lexer);
+Optional<Effect> parseEffect(Lexer &lexer);
 Optional<AST> parseAST(Lexer &lexer);
 
 // Exposed for test
