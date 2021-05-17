@@ -5,15 +5,23 @@ project(allium VERSION 0.0.1)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 enable_testing()
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options("-fcoroutines-ts")
+  add_compile_options("-stdlib=libc++")
+  add_link_options("-stdlib=libc++")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  add_compile_options("-fcoroutines")
+endif()
+
 add_executable(allium lib/driver.cpp)
 
 target_include_directories(allium PUBLIC include)
 target_link_libraries(allium PUBLIC AlliumParse)
 target_link_libraries(allium PUBLIC AlliumSemAna)
 target_link_libraries(allium PUBLIC AlliumInterpreter)
-
-set_property(TARGET allium PROPERTY CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #############################
 # libraries
@@ -27,7 +35,6 @@ add_library(AlliumParse SHARED
   lib/Parser/parser.cpp)
 
 target_include_directories(AlliumParse PUBLIC include)
-set_property(TARGET AlliumParse PROPERTY CXX_STANDARD 17)
 GENERATE_EXPORT_HEADER(AlliumParse)
 
 
@@ -39,7 +46,6 @@ add_library(AlliumSemAna SHARED
 
 target_include_directories(AlliumSemAna PUBLIC include)
 target_link_libraries(AlliumSemAna PUBLIC AlliumParse)
-set_property(TARGET AlliumSemAna PROPERTY CXX_STANDARD 17)
 GENERATE_EXPORT_HEADER(AlliumSemAna)
 
 add_library(AlliumInterpreter SHARED
@@ -49,7 +55,6 @@ add_library(AlliumInterpreter SHARED
 
 target_include_directories(AlliumInterpreter PUBLIC include)
 target_link_libraries(AlliumInterpreter PUBLIC AlliumSemAna)
-set_property(TARGET AlliumInterpreter PROPERTY CXX_STANDARD 17)
 GENERATE_EXPORT_HEADER(AlliumInterpreter)
 
 #############################
@@ -65,7 +70,6 @@ add_executable(unittests
 add_test(unittests unittests)
 
 set_target_properties(unittests PROPERTIES
-  CXX_STANDARD 17
   EXCLUDE_FROM_ALL TRUE)
 target_include_directories(unittests PUBLIC include)
 target_link_libraries(unittests gtest_main)

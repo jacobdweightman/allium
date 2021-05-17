@@ -14,6 +14,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    # The Linux runners default to GCC 9, which doesn't support coroutines. They
+    # also have GCC 11, which has a bug which breaks recursive coroutines. For
+    # now, we use Clang on Linux.
+    # TODO: support building with GCC once it supports coroutines.
+    - name: Install general compiler
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 12
+        sudo apt-get install libc++-12-dev libc++abi-12-dev
+        clang++-12 --version
+        echo "CXX=clang++-12" >> $GITHUB_ENV
+      if: matrix.os == 'ubuntu-latest'
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{github.workspace}}/build
