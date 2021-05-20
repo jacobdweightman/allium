@@ -5,6 +5,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <optional>
 
 /// Represents a value which may or may not have a value, and may be accessed
 /// in a type-safe way.
@@ -15,27 +16,11 @@ class Optional {
     static_assert(std::is_copy_constructible<T>::value, "T must be copy-constructible");
     static_assert(std::is_copy_assignable<T>::value, "T must be copy-assignable");
 public:
-    Optional(T t): has_value(true), value(t) {}
-    Optional(): has_value(false), value() {}
-
-    Optional(const Optional &other): has_value(other.has_value) {
-        if(has_value) {
-            new (&value.wrapped) auto(other.value.wrapped);
-        }
-    }
-
-    ~Optional() {
-        if(has_value) value.wrapped.~T();
-    }
-
-    Optional<T> operator=(Optional<T> other) {
-        swap(*this, other);
-        return *this;
-    }
+    Optional(T t): wrapped(t) {}
+    Optional(): wrapped() {}
 
     friend bool operator==(const Optional<T> &lhs, const Optional<T> &rhs) {
-        return lhs.has_value == rhs.has_value &&
-            (!lhs.has_value || lhs.value.wrapped == rhs.value.wrapped);
+        return lhs.wrapped == rhs.wrapped;
     }
 
     friend inline bool operator!=(const Optional<T> &lhs, const Optional<T> &rhs) {
@@ -45,37 +30,19 @@ public:
     /// An optional is truthy iff it has a value.
     ///
     /// Note that `Optional<int>(0)` converts to `true`.
-    explicit operator bool () const { return has_value; }
-
-    friend void swap(Optional &lhs, Optional &rhs) {
-        if(lhs.has_value) {
-            auto tmp = lhs.value.wrapped;
-            lhs.value.wrapped.~T();
-            if(rhs.has_value) {
-                new (&lhs.value.wrapped) auto(rhs.value.wrapped);
-                rhs.value.wrapped.~T();
-            }
-            new (&rhs.value.wrapped) auto(tmp);
-        } else {
-            if(rhs.has_value) {
-                new (&lhs.value.wrapped) auto(rhs.value.wrapped);
-                rhs.value.wrapped.~T();
-            }
-        }
-        std::swap(lhs.has_value, rhs.has_value);
-    }
+    explicit operator bool () const { return wrapped.has_value(); }
 
     void map(std::function<void(T)> transform) const {
-        if(has_value) {
-            return transform(value.wrapped);
+        if(wrapped.has_value()) {
+            return transform(wrapped.value());
         }
     }
 
     /// Aplies a transformation to the value of this optional if it exists.
     template <typename U>
     Optional<U> map(std::function<U(T)> transform) const {
-        if(has_value) {
-            return Optional<U>(transform(value.wrapped));
+        if(wrapped.has_value()) {
+            return Optional<U>(transform(wrapped.value()));
         } else {
             return Optional<U>();
         }
@@ -85,8 +52,8 @@ public:
     /// collapsing optionals.
     template <typename U>
     Optional<U> flatMap(std::function< Optional<U> (T)> transform) const {
-        if(has_value) {
-            return transform(value.wrapped);
+        if(wrapped.has_value()) {
+            return transform(wrapped.value());
         } else {
             return Optional<U>();
         }
@@ -102,8 +69,8 @@ public:
     ///     .switchOver(...);
     /// ```
     const Optional &then(std::function<void(const T&)> observer) const {
-        if(has_value) {
-            observer(value.wrapped);
+        if(wrapped.has_value()) {
+            observer(wrapped.value());
         }
         return *this;
     }
@@ -118,7 +85,7 @@ public:
     ///     .switchOver(...);
     /// ```
     const Optional &error(std::function<void(void)> observer) const {
-        if(!has_value) {
+        if(!wrapped.has_value()) {
             observer();
         }
         return *this;
@@ -126,8 +93,8 @@ public:
 
     template <typename U>
     U switchOver(std::function<U(T)> handleValue, std::function<U(void)> handleNone) const {
-        if(has_value) {
-            return handleValue(value.wrapped);
+        if(wrapped.has_value()) {
+            return handleValue(wrapped.value());
         } else {
             return handleNone();
         }
@@ -136,11 +103,7 @@ public:
     /// Gives the value of the optional if there is one, or falls back to the
     /// given value if there isn't one.
     T coalesce(T fallback) const {
-        if(has_value) {
-            return value.wrapped;
-        } else {
-            return fallback;
-        }
+        return wrapped.value_or(fallback);
     }
 
     /// Writes the value of the optional into the given variable if there is one
@@ -159,8 +122,8 @@ public:
     /// }
     /// ```
     bool unwrapInto(T &x) const {
-        if(has_value) x = value.wrapped;
-        return has_value;
+        if(wrapped.has_value()) x = wrapped.value();
+        return wrapped.has_value();
     }
 
     
@@ -182,48 +145,34 @@ public:
     ///
     /// See also: `unwrapInto(T&)`
     bool unwrapGuard(T &x) const {
-        if(has_value) x = value.wrapped;
-        return !has_value;
+        if(wrapped.has_value()) x = wrapped.value();
+        return !wrapped.has_value();
     }
 
     /// A version of `unwrapGuard` which borrows the value from the optional
     /// rather than making an owned copy.
     bool unwrapGuard(T *&x) {
-        if(has_value) x = &value.wrapped;
-        return !has_value;
+        if(wrapped.has_value()) x = &wrapped.value();
+        return !wrapped.has_value();
     }
 
     /// A version of `unwrapGuard` which makes an owned copy of the value from
     /// the optional.
     bool unwrapGuard(std::unique_ptr<T> &x) {
-        if(has_value) x = std::make_unique<T>(value.wrapped);
-        return !has_value;
+        if(wrapped.has_value()) x = std::make_unique<T>(wrapped.value());
+        return !wrapped.has_value();
     }
 
     // TODO: this function should only be defined if T implements <<.
     friend std::ostream& operator<<(std::ostream& out, const Optional<T> o) {
-        if(o.has_value) {
-            return out << "some(" << o.value.wrapped << ")";
+        if(o.wrapped.has_value()) {
+            return out << "some(" << o.wrapped.value() << ")";
         } else {
             return out << "none";
         }
     }
 private:
-    /// This wrapper allows default construction of an optional without a
-    /// default constructor for the type of the value.
-    union Wrapper {
-        Wrapper(T t): wrapped(t) {}
-        Wrapper() {}
-        
-        // Give an explicit do-nothing destructor. Destruction of the wrapped
-        // value, if it exists, is handled in the Optional destructor.
-        ~Wrapper() {}
-
-        T wrapped;
-    };
-
-    bool has_value;
-    Wrapper value;
+    std::optional<T> wrapped;
 };
 
 #endif // OPTIONAL_H
