@@ -84,7 +84,7 @@ Token Lexer::take_next() {
     // For brevity, partially apply common arguments in the Token constructor.
     auto makeToken = [&](Token::Type type, std::string text) {
         SourceLocation location(lineNumber, columnNumber);
-        columnNumber += text.size();
+        columnNumber += (int) text.size();
         return Token(type, text, location, startPos);
     };
 

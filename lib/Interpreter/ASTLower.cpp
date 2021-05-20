@@ -160,7 +160,7 @@ private:
 };
 
 // TODO: new assert for TypedAST
-//static_assert(has_all_visitors<ASTLowerer>());
+//static_assert(has_all_visitors<ASTLowerer>(), "ASTLowerer missing visitor(s).");
 
 interpreter::Program lower(const AST &ast) {
     ASTLowerer lowerer(ast);

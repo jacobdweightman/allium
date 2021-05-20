@@ -348,21 +348,21 @@ struct has_visit {
 
 template <typename Subclass>
 constexpr bool has_all_visitors() {
-    static_assert(has_visit<Subclass, TruthLiteral>::value);
-    static_assert(has_visit<Subclass, PredicateDecl>::value);
-    static_assert(has_visit<Subclass, PredicateRef>::value);
-    static_assert(has_visit<Subclass, Conjunction>::value);
-    static_assert(has_visit<Subclass, Expression>::value);
-    static_assert(has_visit<Subclass, Implication>::value);
-    static_assert(has_visit<Subclass, Predicate>::value);
-    static_assert(has_visit<Subclass, TypeDecl>::value);
-    static_assert(has_visit<Subclass, TypeRef>::value);
-    static_assert(has_visit<Subclass, Constructor>::value);
-    static_assert(has_visit<Subclass, Value>::value);
-    static_assert(has_visit<Subclass, Type>::value);
-    static_assert(has_visit<Subclass, EffectDecl>::value);
-    static_assert(has_visit<Subclass, EffectConstructor>::value);
-    static_assert(has_visit<Subclass, Effect>::value);
+    static_assert(has_visit<Subclass, TruthLiteral>::value, "missing TruthLiteral visitor");
+    static_assert(has_visit<Subclass, PredicateDecl>::value, "missing PredicateDecl visitor");
+    static_assert(has_visit<Subclass, PredicateRef>::value, "missing PredicateRef visitor");
+    static_assert(has_visit<Subclass, Conjunction>::value, "missing Conjunction visitor");
+    static_assert(has_visit<Subclass, Expression>::value, "missing Expression visitor");
+    static_assert(has_visit<Subclass, Implication>::value, "missing Implication visitor");
+    static_assert(has_visit<Subclass, Predicate>::value, "missing Predicate visitor");
+    static_assert(has_visit<Subclass, TypeDecl>::value, "missing TypeDecl visitor");
+    static_assert(has_visit<Subclass, TypeRef>::value, "missing TypeRef visitor");
+    static_assert(has_visit<Subclass, Constructor>::value, "missing Constructor visitor");
+    static_assert(has_visit<Subclass, Value>::value, "missing Value visitor");
+    static_assert(has_visit<Subclass, Type>::value, "missing Type visitor");
+    static_assert(has_visit<Subclass, EffectDecl>::value, "missing EffectDecl visitor");
+    static_assert(has_visit<Subclass, EffectConstructor>::value, "missing EffectConstructor visitor");
+    static_assert(has_visit<Subclass, Effect>::value, "missing Effect visitor");
 
     return has_visit<Subclass, TruthLiteral>::value &&
         has_visit<Subclass, PredicateDecl>::value &&

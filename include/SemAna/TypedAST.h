@@ -69,7 +69,7 @@ typedef TaggedUnion<
     Variable,
     ConstructorRef
 > ValueBase;
-struct Value;
+class Value;
 
 struct AnonymousVariable {
     AnonymousVariable() {}

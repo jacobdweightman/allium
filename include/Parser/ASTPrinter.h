@@ -168,7 +168,7 @@ private:
     int depth = 0;
 };
 
-static_assert(has_all_visitors<ASTPrinter>());
+static_assert(has_all_visitors<ASTPrinter>(), "missing visitor(s).");
 
 } // namespace parser
 

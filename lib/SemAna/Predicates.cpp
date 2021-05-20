@@ -340,7 +340,7 @@ public:
     }
 };
 
-static_assert(has_all_visitors<SemAna>());
+static_assert(has_all_visitors<SemAna>(), "SemAna missing visitor(s).");
 
 TypedAST::AST checkAll(const AST &ast, ErrorEmitter &error) {
     return SemAna(ast, error).visit(ast);
