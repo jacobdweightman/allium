@@ -159,8 +159,9 @@ std::ostream& operator<<(std::ostream &out, const Conjunction &conj);
 struct Implication {
     Implication(
         PredicateReference head, Expression body,
-        size_t headVariableCount
-    ): head(head), body(body), headVariableCount(headVariableCount) {}
+        size_t headVariableCount, size_t bodyVariableCount
+    ): head(head), body(body), headVariableCount(headVariableCount),
+        bodyVariableCount(bodyVariableCount) {}
 
     Implication operator=(Implication other) {
         using std::swap;
@@ -173,6 +174,7 @@ struct Implication {
     PredicateReference head;
     Expression body;
     size_t headVariableCount;
+    size_t bodyVariableCount;
 };
 
 bool operator==(const Implication &, const Implication &);
@@ -210,7 +212,8 @@ public:
     }
 
     const Predicate &getPredicate(size_t index) const {
-        return predicates.at(index);
+        assert(index < predicates.size());
+        return predicates[index];
     }
 
 protected:

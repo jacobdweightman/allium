@@ -13,20 +13,32 @@ public:
         {
             // pred a { a <- true; }
             Predicate({
-                Implication(PredicateReference(0, {}), TruthValue(true), 0)
+                Implication(PredicateReference(0, {}), TruthValue(true), 0, 0)
             }),
             // pred b { }
             Predicate({}),
             // pred c(Nat) { 
             //     c(zero) <- true;
-            //     c(s(zero)) <- c(zero);
+            //     c(s(let x)) <- c(x);
             // }
             Predicate({
-                Implication(PredicateReference(2, { ConstructorRef(0, {}) }), TruthValue(true), 0),
+                Implication(PredicateReference(2, { ConstructorRef(0, {}) }), TruthValue(true), 0, 0),
                 Implication(
                     PredicateReference(2, { ConstructorRef(1, { Value(VariableRef(0, true)) }) }),
                     Expression(PredicateReference(2, { Value(VariableRef(0, false)) })),
-                    1
+                    1,
+                    0
+                )
+            }),
+            // pred d(Nat) {
+            //     d(s(zero)) <- true;
+            // }
+            Predicate({
+                Implication(
+                    PredicateReference(3, { ConstructorRef(1, { ConstructorRef(0, {}) }) }),
+                    TruthValue(true),
+                    0,
+                    0
                 )
             })
         },
@@ -52,6 +64,14 @@ TEST_F(TestInterpreter, prove_predicate_with_arguments) {
     EXPECT_TRUE(program.prove(Expression(PredicateReference(2,
         { ConstructorRef(1, { ConstructorRef(1, { ConstructorRef(0, {}) }) }) }
     ))));
+}
+
+TEST_F(TestInterpreter, cannot_prove_predicate_with_nonmatching_implication) {
+    EXPECT_FALSE(
+        program.prove(
+            Expression(PredicateReference(3, { ConstructorRef(0, {}) }))
+        )
+    );
 }
 
 TEST_F(TestInterpreter, prove_conjunction_of_truth_values) {
@@ -84,124 +104,145 @@ public:
     Implication impl = Implication(
         PredicateReference(0, { ConstructorRef(0, {}) }),
         Expression(TruthValue(true)),
+        0,
         0
     );
     // p(s(let x)) <- p(x);
     Implication impl2 = Implication(
         PredicateReference(0, { ConstructorRef(1, { Value(VariableRef(0, true)) }) }),
         Expression(PredicateReference(0, { Value(VariableRef(0, false)) })),
-        1
-    );
-
-    PredicateRefWitnessProducer wp = PredicateRefWitnessProducer(
-        Program({ Predicate({impl, impl2}) }, Optional<PredicateReference>()),
-        PredicateReference(0, {})
+        1,
+        0
     );
 };
 
 TEST_F(TestMatching, match_base_constructor) {
+    std::vector<ConstructorRef> variables = {};
+
     EXPECT_TRUE(
-        wp.match(
+        match(
             ConstructorRef(0, {}),
-            ConstructorRef(0, {})
+            ConstructorRef(0, {}),
+            variables
         )
     );
 
     EXPECT_FALSE(
-        wp.match(
+        match(
             ConstructorRef(0, {}),
-            ConstructorRef(1, {})
+            ConstructorRef(1, {}),
+            variables
         )
     );
 }
 
 TEST_F(TestMatching, match_constructor_with_parameter) {
+    std::vector<ConstructorRef> variables = {};
+
     EXPECT_TRUE(
-        wp.match(
+        match(
             ConstructorRef(1, { ConstructorRef(0, {}) }),
-            ConstructorRef(1, { ConstructorRef(0, {}) })
+            ConstructorRef(1, { ConstructorRef(0, {}) }),
+            variables
         )
     );
 
     EXPECT_FALSE(
-        wp.match(
+        match(
             ConstructorRef(0, { ConstructorRef(0, {}) }),
-            ConstructorRef(0, { ConstructorRef(1, {}) })
+            ConstructorRef(0, { ConstructorRef(1, {}) }),
+            variables
         )
     );
 }
 
 TEST_F(TestMatching, match_constructor_with_multiple_parameters) {
+    std::vector<ConstructorRef> variables = {};
+
     EXPECT_TRUE(
-        wp.match(
+        match(
             ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(1, {}) }),
-            ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(1, {}) })
+            ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(1, {}) }),
+            variables
         )
     );
 
     EXPECT_FALSE(
-        wp.match(
+        match(
             ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(1, {}) }),
-            ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(0, {}) })
+            ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(0, {}) }),
+            variables
         )
     );
 }
 
 TEST_F(TestMatching, matching_variable_definition_sets_its_value) {
-    wp.universalVariables.resize(1);
+    std::vector<ConstructorRef> variables;
+    variables.resize(1);
+
     EXPECT_TRUE(
-        wp.match(
+        match(
             VariableRef(0, true),
-            ConstructorRef(1, {})
+            ConstructorRef(1, {}),
+            variables
         )
     );
 
-    EXPECT_EQ(wp.universalVariables[0], ConstructorRef(1, {}));
+    EXPECT_EQ(variables[0], ConstructorRef(1, {}));
 }
 
 TEST_F(TestMatching, matching_variable_use_matches_its_value) {
-    wp.universalVariables.resize(1);
-    wp.universalVariables[0] = ConstructorRef(1, {});
+    std::vector<ConstructorRef> variables = {
+        ConstructorRef(1, {})
+    };
 
     EXPECT_TRUE(
-        wp.match(
+        match(
             VariableRef(0, false),
-            ConstructorRef(1, {})
+            ConstructorRef(1, {}),
+            variables
         )
     );
 
     EXPECT_FALSE(
-        wp.match(
+        match(
             VariableRef(0, false),
-            ConstructorRef(2, {})
+            ConstructorRef(2, {}),
+            variables
         )
     );
 }
 
 TEST_F(TestMatching, instantiation) {
-    wp.universalVariables.resize(1);
-    wp.universalVariables[0] = ConstructorRef(0, {});
+    std::vector<ConstructorRef> variables = {
+        ConstructorRef(5, {})
+    };
 
     EXPECT_EQ(
-        wp.instantiate(impl2.body),
-        Expression(PredicateReference(0, { Value(ConstructorRef(0, {})) }))
+        instantiate(impl2.body, variables),
+        Expression(PredicateReference(0, { Value(ConstructorRef(5, {})) }))
     );
 }
 
 TEST_F(TestMatching, instantiate_variable_in_constructor) {
-    wp.universalVariables.resize(1);
-    wp.universalVariables[0] = ConstructorRef(0, {});
+    std::vector<ConstructorRef> variables = {
+        ConstructorRef(4, {})
+    };
+
     EXPECT_EQ(
-        wp.instantiate(Expression(
-            PredicateReference(
-                0,
-                { ConstructorRef(1, { Value(VariableRef(0, false)) }) }
-            )
-        )),
+        instantiate(
+            Expression(
+                PredicateReference(
+                    0,
+                    { ConstructorRef(1, { Value(VariableRef(0, false)) }) }
+                )
+            ),
+            variables
+        ),
         Expression(
             PredicateReference(
                 0,
-                { ConstructorRef(1, { ConstructorRef(0, {}) }) }
+                { ConstructorRef(1, { ConstructorRef(4, {}) }) }
             )
         )
     );

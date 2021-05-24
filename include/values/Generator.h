@@ -1,3 +1,6 @@
+#ifndef GENERATOR_H
+#define GENERATOR_H
+
 #include <exception>
 #include <iostream>
 
@@ -62,3 +65,5 @@ struct Generator {
 private:
     coroutine_handle<promise_type> handle;
 };
+
+#endif // GENERATOR_H

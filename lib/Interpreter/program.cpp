@@ -6,7 +6,11 @@
 namespace interpreter {
 
 bool Program::prove(const Expression &expr) {
-    return createWitnessProducer(*this, expr)->nextWitness();
+    if(witnesses(*this, expr).next()) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool operator==(const Implication &left, const Implication &right) {

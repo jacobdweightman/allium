@@ -126,6 +126,19 @@ public:
         return wrapped.has_value();
     }
 
+    /// A version of `unwrapInto` which borrows the value from the optional
+    /// rather than making an owned copy.
+    bool unwrapInto(T *&x) {
+        if(wrapped.has_value()) x = &wrapped.value();
+        return wrapped.has_value();
+    }
+
+    /// A version of `unwrapInto` which makes an owned copy of the value from
+    /// the optional.
+    bool unwrapInto(std::unique_ptr<T> &x) {
+        if(wrapped.has_value()) x = std::make_unique<T>(wrapped.value());
+        return wrapped.has_value();
+    }
     
     /// Writes the value of the optional into the given variable if there is one
     /// and returns false on success.

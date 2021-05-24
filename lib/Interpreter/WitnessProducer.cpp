@@ -1,135 +1,164 @@
 #include "Interpreter/WitnessProducer.h"
 
+#include <vector>
+
 namespace interpreter {
 
-std::unique_ptr<WitnessProducer> createWitnessProducer(
-    const interpreter::Program &program,
-    interpreter::Expression expr
-) {
-    return expr.match<std::unique_ptr<WitnessProducer> >(
-    [](interpreter::TruthValue tv) {
-        return std::make_unique<TruthValueWitnessProducer>(TruthValueWitnessProducer(tv));
-    },
-    [&](interpreter::PredicateReference pr) {
-        return std::make_unique<PredicateRefWitnessProducer>(PredicateRefWitnessProducer(program, pr));
-    },
-    [&](interpreter::Conjunction conj) {
-        return std::make_unique<ConjunctionWitnessProducer>(ConjunctionWitnessProducer(program, conj));
-    });
+Generator<std::vector<ConstructorRef> > witnesses(const TruthValue &tv) {
+    if(tv.value)
+        co_yield {};
 }
+Generator<std::vector<ConstructorRef> > witnesses(const Program &prog, const PredicateReference &pr) {
+    std::cout << "prove: " << pr << "\n";
+    const auto &pd = prog.getPredicate(pr.index);
+    for(const auto &impl : pd.implications) {
+        std::vector<ConstructorRef> variables(
+            impl.headVariableCount + impl.bodyVariableCount
+        );
 
-WitnessProducer::~WitnessProducer() {}
-
-bool TruthValueWitnessProducer::nextWitness() {
-    bool tmpNext = nextValue;
-    nextValue = false;
-    return tmpNext;
+        if(match(pr, impl.head, variables)) {
+            Expression body = instantiate(impl.body, variables); // TODO: does this handle body variables appropriately?
+            auto w = witnesses(prog, body);
+            std::unique_ptr<std::vector<ConstructorRef> > bodyVariables;
+            while(w.next().unwrapInto(bodyVariables))
+                // TODO: bound head variables?
+                co_yield *bodyVariables;
+        }
+        
+    }
 }
+Generator<std::vector<ConstructorRef> > witnesses(const Program &prog, const Conjunction conj) {
+    auto leftW = witnesses(prog, conj.getLeft());
+    std::vector<ConstructorRef> leftWitness;
+    while(leftW.next().unwrapInto(leftWitness)) {
+        auto leftEnd = leftWitness.end();
+        auto rightW = witnesses(prog, conj.getRight());
+        std::vector<ConstructorRef> rightWitness;
 
-PredicateRefWitnessProducer::~PredicateRefWitnessProducer() {}
-
-bool PredicateRefWitnessProducer::nextWitness() {
-    while(currentImpl != predicate->implications.end()) {
-        if(currentWitnessProducer->nextWitness()) {
-            return true;
-        } else {
-            ++currentImpl;
-            setUpNextMatchingImplication();
+        while(rightW.next().unwrapInto(rightWitness)) {
+            // yield leftWitness concatenated with rightWitness
+            leftWitness.insert(leftWitness.end(), rightWitness.begin(), rightWitness.end());
+            co_yield leftWitness;
+            leftWitness.erase(leftEnd, leftWitness.end());
         }
     }
-    return false;
 }
 
-bool PredicateRefWitnessProducer::match(const PredicateReference &other) {
-    if(pr.index != other.index)
+Generator<std::vector<ConstructorRef> > witnesses(const Program &prog, const Expression expr) {
+    // TODO: generators and functions don't compose, and so we can't use
+    // Expression::switchOver here
+    std::unique_ptr<TruthValue> tv;
+    std::unique_ptr<PredicateReference> pr;
+    std::unique_ptr<Conjunction> conj;
+    std::vector<ConstructorRef> witness;
+    if(expr.as_a<TruthValue>().unwrapInto(tv)) {
+        auto w = witnesses(*tv);
+        while(w.next().unwrapInto(witness))
+            co_yield witness;
+    } else if(expr.as_a<PredicateReference>().unwrapInto(pr)) {
+        auto w = witnesses(prog, *pr);
+        while(w.next().unwrapInto(witness))
+            co_yield witness;
+    } else if(expr.as_a<Conjunction>().unwrapInto(conj)) {
+        auto w = witnesses(prog, *conj);
+        while(w.next().unwrapInto(witness))
+            co_yield witness;
+    } else {
+        // Unhandled expression type!
+        std::cout << expr << std::endl;
+        abort();
+    }
+}
+
+bool match(
+    const PredicateReference &pr,
+    const PredicateReference &matcher,
+    std::vector<ConstructorRef> &variables
+) {
+    if(pr.index != matcher.index)
         return false;
 
     for(int i=0; i<pr.arguments.size(); ++i) {
-        if(!match(pr.arguments[i], other.arguments[i]))
+        if(!match(pr.arguments[i], matcher.arguments[i], variables))
             return false;
     }
     return true;
 }
 
-bool PredicateRefWitnessProducer::match(const VariableRef &vl, const VariableRef &vr) {
-    if( vl.index == vr.index ||
-        vl.index == VariableRef::anonymousIndex ||
-        vr.index == VariableRef::anonymousIndex) return true;
+bool match(
+    const VariableRef &vr,
+    const VariableRef &matcher,
+    std::vector<ConstructorRef> &variables
+) {
+    if( vr.index == matcher.index ||
+        vr.index == VariableRef::anonymousIndex ||
+        matcher.index == VariableRef::anonymousIndex) return true;
 
-    if(vl.isDefinition) {
-        if(vr.isDefinition) {
+    if(vr.isDefinition) {
+        if(matcher.isDefinition) {
             assert(false && "attempted to define two un-bound variables as equal");
             return false;
         } else {
-            universalVariables[vl.index] = universalVariables[vr.index];
+            variables[vr.index] = variables[matcher.index];
             return true;
         }
     } else {
-        if(vr.isDefinition) {
-            universalVariables[vr.index] = universalVariables[vl.index];
+        if(matcher.isDefinition) {
+            variables[matcher.index] = variables[vr.index];
             return true;
         } else {
-            return match(universalVariables[vl.index], universalVariables[vr.index]);
+            return match(variables[vr.index], variables[matcher.index], variables);
         }
     }
 }
 
-bool PredicateRefWitnessProducer::match(const VariableRef &vr, const ConstructorRef &cr) {
+bool match(
+    const VariableRef &vr,
+    const ConstructorRef &cr,
+    std::vector<ConstructorRef> &variables
+) {
     if(vr.index == VariableRef::anonymousIndex) return true;
+    assert(vr.index < variables.size());
     if(vr.isDefinition) {
-        assert(vr.index < universalVariables.size());
-        universalVariables.at(vr.index) = cr;
+        variables[vr.index] = cr;
         return true;
     } else {
-        assert(vr.index < universalVariables.size());
-        return match(universalVariables.at(vr.index), cr);
+        return match(variables.at(vr.index), cr, variables);
     }
 }
 
-bool PredicateRefWitnessProducer::match(const ConstructorRef &cl, const ConstructorRef &cr) {
+bool match(
+    const ConstructorRef &cl,
+    const ConstructorRef &cr,
+    std::vector<ConstructorRef> &variables
+) {
     if(cl.index != cr.index) return false;
     assert(cl.arguments.size() == cr.arguments.size());
     for(int i=0; i<cl.arguments.size(); ++i) {
-        if(!match(cl.arguments[i], cr.arguments[i]))
+        if(!match(cl.arguments[i], cr.arguments[i], variables))
             return false;
     }
     return true;
 }
 
-bool PredicateRefWitnessProducer::match(const Value &left, const Value &right) {
+bool match(
+    const Value &left,
+    const Value &right,
+    std::vector<ConstructorRef> &variables
+) {
     return left.match<bool>(
     [&](ConstructorRef cl) {
         return right.match<bool>(
-        [&](ConstructorRef cr) { return match(cl, cr); },
-        [&](VariableRef vr) { return match(vr, cl); }
+        [&](ConstructorRef cr) { return match(cl, cr, variables); },
+        [&](VariableRef vr) { return match(vr, cl, variables); }
         );
     },
     [&](VariableRef vl) {
         return right.match<bool>(
-        [&](ConstructorRef cr) { return match(vl, cr); },
-        [&](VariableRef vr) { return match(vl, vr); }
+        [&](ConstructorRef cr) { return match(vl, cr, variables); },
+        [&](VariableRef vr) { return match(vl, vr, variables); }
         );
     });
-}
-
-bool ConjunctionWitnessProducer::nextWitness() {
-    // TODO: clean up this logic. With a resumable function, it would look like this:
-    // while(leftWitnessProducer->nextWitness()) {
-    //     while(rightWitnessProducer->nextWitness()) {
-    //         yield true;
-    //     }
-    // }
-    // yield false;
-
-    if(!foundLeftWitness) return false;
-
-    while(!rightWitnessProducer->nextWitness()) {
-        if((foundLeftWitness = leftWitnessProducer->nextWitness())) {
-        } else {
-            return false;
-        }
-    }
-    return true;
 }
 
 static ConstructorRef instantiate(
@@ -147,7 +176,7 @@ static ConstructorRef instantiate(
     return cr;
 }
 
-static Expression instantiate_(
+Expression instantiate(
     const Expression &expr,
     const std::vector<ConstructorRef> &variables
 ) {
@@ -171,14 +200,10 @@ static Expression instantiate_(
     },
     [&](Conjunction conj) {
         return interpreter::Expression(Conjunction(
-            instantiate_(conj.getLeft(), variables),
-            instantiate_(conj.getRight(), variables)
+            instantiate(conj.getLeft(), variables),
+            instantiate(conj.getRight(), variables)
         ));
     });
-}
-
-Expression WitnessProducer::instantiate(const Expression &expr) const {
-    return instantiate_(expr, universalVariables);
 }
 
 } // namespace interpreter
