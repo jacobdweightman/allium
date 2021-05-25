@@ -39,6 +39,7 @@ GENERATE_EXPORT_HEADER(AlliumParse)
 
 
 add_library(AlliumSemAna SHARED
+  lib/SemAna/ASTPrinter.cpp
   lib/SemAna/Predicates.cpp
   lib/SemAna/StaticError.cpp
   lib/SemAna/TypedAST.cpp
