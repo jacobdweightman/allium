@@ -21,8 +21,8 @@ class SemAna {
     /// The lexical scope enclosing the current AST node being analyzed.
     mutable Optional<TypedAST::Scope> enclosingScope;
 
-    /// Whether or not the current AST node being analyzed occurs in the body of an implication.
-    /// TODO: remove this when variables can be defined in implication bodies.
+    /// Whether or not the current AST node being analyzed occurs in the body of
+    /// an implication.
     mutable bool inBody = false;
 
     /// The type definition enclosing the current AST node being analyzed, if there is one.
@@ -191,51 +191,51 @@ public:
             assert(enclosingScope && "Scope not initialized!");
             return Optional<TypedAST::Variable>();
         }
-
+ 
+        // A variable is existential iff it is defined in the body of an
+        // implication. Record this information for each variable in the scope.
+        bool isExistential;
         if(v.isDefinition) {
-            if(inBody) {
-                error.emit(v.location, ErrorMessage::variable_defined_in_body, v.name.string());
-                return Optional<TypedAST::Variable>();
-            }
-
             auto name = Name<TypedAST::Variable>(v.name.string());
             if(scope->find(name) == scope->end()) {
-                scope->insert({ name, *raisedType });
+                scope->insert({
+                    name,
+                    TypedAST::VariableInfo(*raisedType, inBody)
+                });
+                isExistential = inBody;
             } else {
                 error.emit(v.location, ErrorMessage::variable_redefined, v.name.string());
                 return Optional<TypedAST::Variable>();
             }
         } else {
             auto name = Name<TypedAST::Variable>(v.name.string());
-            auto iterType = scope->find(name);
-            if(iterType == scope->end()) {
+            auto iterVariableInfo = scope->find(name);
+            if(iterVariableInfo == scope->end()) {
                 error.emit(
                     v.location,
                     ErrorMessage::unknown_constructor_or_variable,
                     v.name.string(),
                     type.declaration.name.string());
                 return Optional<TypedAST::Variable>();
-            } else {
-                TypedAST::Type &variableTypeAtDefinition = iterType->second;
-                if(*raisedType != variableTypeAtDefinition) {
-                    error.emit(
-                        v.location,
-                        ErrorMessage::variable_type_mismatch,
-                        v.name.string(),
-                        variableTypeAtDefinition.declaration.name.string(),
-                        type.declaration.name.string());
-                    return Optional<TypedAST::Variable>();
-                }
+            }
+            isExistential = iterVariableInfo->second.isExistential;
+            TypedAST::Type &variableTypeAtDefinition = iterVariableInfo->second.type;
+            if(*raisedType != variableTypeAtDefinition) {
+                error.emit(
+                    v.location,
+                    ErrorMessage::variable_type_mismatch,
+                    v.name.string(),
+                    variableTypeAtDefinition.declaration.name.string(),
+                    type.declaration.name.string());
+                return Optional<TypedAST::Variable>();
             }
         }
 
-        // TODO: when variables can be defined in an implication body, then
-        // isExistential might be true. Perhaps this could be added to scope?
         return TypedAST::Variable(
             v.name.string(),
             raisedType->declaration.name,
             v.isDefinition,
-            false);
+            isExistential);
     }
 
     Optional<TypedAST::ConstructorRef> visitValueAsConstructorRef(const Constructor &ctor, const Value &cr) {

@@ -1,0 +1,20 @@
+type Tree {
+    ctor redwood;
+    ctor spruse;
+    ctor apple;
+    ctor pear;
+}
+
+pred tall(Tree) {
+    tall(redwood) <- true;
+    tall(spruse) <- true;
+}
+
+pred smellsNice(Tree) {
+    smellsNice(spruse) <- true;
+    smellsNice(apple) <- true;
+}
+
+pred main {
+    main <- tall(let t), smellsNice(t);
+}

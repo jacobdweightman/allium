@@ -224,8 +224,18 @@ public:
     std::vector<Predicate> predicates;
 };
 
+struct VariableInfo {
+    VariableInfo(
+        Type type,
+        bool isExistential
+    ): type(type), isExistential(isExistential) {}
+
+    Type type;
+    bool isExistential;
+};
+
 /// Represents the variables and their types defined in a scope.
-typedef std::map<Name<Variable>, Type> Scope;
+typedef std::map<Name<Variable>, VariableInfo> Scope;
 
 };
 

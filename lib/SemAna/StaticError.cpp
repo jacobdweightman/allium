@@ -23,8 +23,6 @@ std::string formatString(ErrorMessage msg) {
         return "Re-definition of variable \"%s\"; variables may only be defined once.";
     case ErrorMessage::variable_type_mismatch:
         return "Variable \"%s\" of type \"%s\" used where value of type \"%s\" is required.";
-    case ErrorMessage::variable_defined_in_body:
-        return "Variables may not be defined in the body of an implication (yet), but \"%s\" was.";
     }
     // The preceding switch should be exhaustive. Add this to support VC++.
     printf("Error - unhandled case: %d\n", (int) msg);

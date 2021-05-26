@@ -15,7 +15,6 @@ enum class ErrorMessage {
     unknown_constructor_or_variable,
     variable_redefined,
     variable_type_mismatch,
-    variable_defined_in_body,
 };
 
 std::string formatString(ErrorMessage msg);
