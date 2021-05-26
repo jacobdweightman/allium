@@ -26,7 +26,7 @@ public:
             assert(false && "implication not set!");
         }
         size_t index = getVariableIndex(*impl, v);
-        return interpreter::VariableRef(index, v.isDefinition);
+        return interpreter::VariableRef(index, v.isDefinition, v.isExistential);
     }
 
     /// Note: To support type inference, this requires the additional

@@ -6,7 +6,10 @@
 namespace interpreter {
 
 bool Program::prove(const Expression &expr) {
-    if(witnesses(*this, expr).next()) {
+    // TODO: if `main` ever takes arguments, they need to be allocated here.
+    std::vector<ConstructorRef> mainArgs;
+
+    if(witnesses(*this, expr, mainArgs).next()) {
         return true;
     } else {
         return false;

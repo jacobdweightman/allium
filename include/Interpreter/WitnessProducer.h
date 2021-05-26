@@ -1,36 +1,42 @@
 #include "Interpreter/program.h"
 #include "values/Generator.h"
+#include "values/Unit.h"
 
 namespace interpreter {
 
 bool match(
     const PredicateReference &pr,
     const PredicateReference &matcher,
-    std::vector<ConstructorRef> &variables
+    std::vector<ConstructorRef> &existentialVariables,
+    std::vector<ConstructorRef> &universalVariables
 );
 
 bool match(
     const VariableRef &vr,
     const VariableRef &matcher,
-    std::vector<ConstructorRef> &variables
+    std::vector<ConstructorRef> &existentialVariables,
+    std::vector<ConstructorRef> &universalVariables
 );
 
 bool match(
     const VariableRef &vr,
     const ConstructorRef &cr,
-    std::vector<ConstructorRef> &variables
+    std::vector<ConstructorRef> &existentialVariables,
+    std::vector<ConstructorRef> &universalVariables
 );
 
 bool match(
     const ConstructorRef &cl,
     const ConstructorRef &cr,
-    std::vector<ConstructorRef> &variables
+    std::vector<ConstructorRef> &existentialVariables,
+    std::vector<ConstructorRef> &universalVariables
 );
 
 bool match(
     const Value &left,
     const Value &right,
-    std::vector<ConstructorRef> &variables
+    std::vector<ConstructorRef> &existentialVariables,
+    std::vector<ConstructorRef> &universalVariables
 );
 
 Expression instantiate(
@@ -38,21 +44,31 @@ Expression instantiate(
     const std::vector<ConstructorRef> &variables
 );
 
-Generator<std::vector<ConstructorRef> > witnesses(
+/**
+ * A generator which enumerates the witnesses of expr.
+ * 
+ * @param prog The enclosing program in which to resolve predicates.
+ * @param expr The expression to be proven.
+ * @param variables Enclosing scope in which to lookup variable values.
+ */
+Generator<Unit> witnesses(
     const Program &prog,
-    const Expression expr
+    const Expression expr,
+    std::vector<ConstructorRef> &variables
 );
 
-Generator<std::vector<ConstructorRef> > witnesses(const TruthValue &tv);
+Generator<Unit> witnesses(const TruthValue &tv);
 
-Generator<std::vector<ConstructorRef> > witnesses(
+Generator<Unit> witnesses(
     const Program &prog,
-    const PredicateReference &pr
+    const PredicateReference &pr,
+    std::vector<ConstructorRef> &enclosingVariables
 );
 
-Generator<std::vector<ConstructorRef> > witnesses(
+Generator<Unit> witnesses(
     const Program &prog,
-    const Conjunction conj
+    const Conjunction conj,
+    std::vector<ConstructorRef> &variables
 );
 
 } // namespace interpreter

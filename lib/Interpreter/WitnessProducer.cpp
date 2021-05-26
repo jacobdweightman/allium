@@ -4,65 +4,72 @@
 
 namespace interpreter {
 
-Generator<std::vector<ConstructorRef> > witnesses(const TruthValue &tv) {
+Generator<Unit> witnesses(const TruthValue &tv) {
     if(tv.value)
         co_yield {};
 }
-Generator<std::vector<ConstructorRef> > witnesses(const Program &prog, const PredicateReference &pr) {
+
+Generator<Unit> witnesses(
+    const Program &prog,
+    const PredicateReference &pr,
+    std::vector<ConstructorRef> &enclosingVariables
+) {
     std::cout << "prove: " << pr << "\n";
     const auto &pd = prog.getPredicate(pr.index);
     for(const auto &impl : pd.implications) {
-        std::vector<ConstructorRef> variables(
+        std::vector<ConstructorRef> localVariables(
             impl.headVariableCount + impl.bodyVariableCount
         );
 
-        if(match(pr, impl.head, variables)) {
-            Expression body = instantiate(impl.body, variables); // TODO: does this handle body variables appropriately?
-            auto w = witnesses(prog, body);
+        if(match(pr, impl.head, enclosingVariables, localVariables)) {
+            Expression body = instantiate(impl.body, localVariables);
+
+            auto w = witnesses(prog, body, localVariables);
             std::unique_ptr<std::vector<ConstructorRef> > bodyVariables;
-            while(w.next().unwrapInto(bodyVariables))
-                // TODO: bound head variables?
-                co_yield *bodyVariables;
+            while(w.next())
+                co_yield {};
         }
         
     }
 }
-Generator<std::vector<ConstructorRef> > witnesses(const Program &prog, const Conjunction conj) {
-    auto leftW = witnesses(prog, conj.getLeft());
-    std::vector<ConstructorRef> leftWitness;
-    while(leftW.next().unwrapInto(leftWitness)) {
-        auto leftEnd = leftWitness.end();
-        auto rightW = witnesses(prog, conj.getRight());
-        std::vector<ConstructorRef> rightWitness;
 
-        while(rightW.next().unwrapInto(rightWitness)) {
-            // yield leftWitness concatenated with rightWitness
-            leftWitness.insert(leftWitness.end(), rightWitness.begin(), rightWitness.end());
-            co_yield leftWitness;
-            leftWitness.erase(leftEnd, leftWitness.end());
+Generator<Unit> witnesses(
+    const Program &prog,
+    const Conjunction conj,
+    std::vector<ConstructorRef> &variables
+) {
+    auto leftW = witnesses(prog, conj.getLeft(), variables);
+    while(leftW.next()) {
+        auto rightW = witnesses(prog, conj.getRight(), variables);
+
+        while(rightW.next()) {
+            co_yield {};
         }
     }
 }
 
-Generator<std::vector<ConstructorRef> > witnesses(const Program &prog, const Expression expr) {
+Generator<Unit> witnesses(
+    const Program &prog,
+    const Expression expr,
+    std::vector<ConstructorRef> &variables
+) {
     // TODO: generators and functions don't compose, and so we can't use
     // Expression::switchOver here
     std::unique_ptr<TruthValue> tv;
     std::unique_ptr<PredicateReference> pr;
     std::unique_ptr<Conjunction> conj;
-    std::vector<ConstructorRef> witness;
     if(expr.as_a<TruthValue>().unwrapInto(tv)) {
         auto w = witnesses(*tv);
-        while(w.next().unwrapInto(witness))
-            co_yield witness;
+        while(w.next())
+            co_yield {};
     } else if(expr.as_a<PredicateReference>().unwrapInto(pr)) {
-        auto w = witnesses(prog, *pr);
-        while(w.next().unwrapInto(witness))
-            co_yield witness;
+        auto w = witnesses(prog, *pr, variables);
+        while(w.next())
+            co_yield {};
     } else if(expr.as_a<Conjunction>().unwrapInto(conj)) {
-        auto w = witnesses(prog, *conj);
-        while(w.next().unwrapInto(witness))
-            co_yield witness;
+        auto w = witnesses(prog, *conj, variables);
+        while(w.next())
+            co_yield {};
     } else {
         // Unhandled expression type!
         std::cout << expr << std::endl;
@@ -73,13 +80,14 @@ Generator<std::vector<ConstructorRef> > witnesses(const Program &prog, const Exp
 bool match(
     const PredicateReference &pr,
     const PredicateReference &matcher,
-    std::vector<ConstructorRef> &variables
+    std::vector<ConstructorRef> &existentialVariables,
+    std::vector<ConstructorRef> &universalVariables
 ) {
     if(pr.index != matcher.index)
         return false;
 
     for(int i=0; i<pr.arguments.size(); ++i) {
-        if(!match(pr.arguments[i], matcher.arguments[i], variables))
+        if(!match(pr.arguments[i], matcher.arguments[i], existentialVariables, universalVariables))
             return false;
     }
     return true;
@@ -88,8 +96,11 @@ bool match(
 bool match(
     const VariableRef &vr,
     const VariableRef &matcher,
-    std::vector<ConstructorRef> &variables
+    std::vector<ConstructorRef> &existentialVariables,
+    std::vector<ConstructorRef> &universalVariables
 ) {
+    assert(vr.isExistential);
+
     if( vr.index == matcher.index ||
         vr.index == VariableRef::anonymousIndex ||
         matcher.index == VariableRef::anonymousIndex) return true;
@@ -99,15 +110,19 @@ bool match(
             assert(false && "attempted to define two un-bound variables as equal");
             return false;
         } else {
-            variables[vr.index] = variables[matcher.index];
+            existentialVariables[vr.index] = universalVariables[matcher.index];
             return true;
         }
     } else {
         if(matcher.isDefinition) {
-            variables[matcher.index] = variables[vr.index];
+            universalVariables[matcher.index] = existentialVariables[vr.index];
             return true;
         } else {
-            return match(variables[vr.index], variables[matcher.index], variables);
+            return match(
+                existentialVariables[vr.index],
+                universalVariables[matcher.index],
+                existentialVariables,
+                universalVariables);
         }
     }
 }
@@ -115,27 +130,47 @@ bool match(
 bool match(
     const VariableRef &vr,
     const ConstructorRef &cr,
-    std::vector<ConstructorRef> &variables
+    std::vector<ConstructorRef> &existentialVariables,
+    std::vector<ConstructorRef> &universalVariables
 ) {
     if(vr.index == VariableRef::anonymousIndex) return true;
-    assert(vr.index < variables.size());
-    if(vr.isDefinition) {
-        variables[vr.index] = cr;
-        return true;
+    if(vr.isExistential) {
+        assert(vr.index < existentialVariables.size());
+        if(vr.isDefinition) {
+            existentialVariables[vr.index] = cr;
+            return true;
+        } else {
+            return match(
+                existentialVariables[vr.index],
+                cr,
+                existentialVariables,
+                universalVariables);
+        }
     } else {
-        return match(variables.at(vr.index), cr, variables);
+        assert(vr.index < universalVariables.size());
+        if(vr.isDefinition) {
+            universalVariables[vr.index] = cr;
+            return true;
+        } else {
+            return match(
+                universalVariables[vr.index],
+                cr,
+                existentialVariables,
+                universalVariables);
+        }
     }
 }
 
 bool match(
     const ConstructorRef &cl,
     const ConstructorRef &cr,
-    std::vector<ConstructorRef> &variables
+    std::vector<ConstructorRef> &existentialVariables,
+    std::vector<ConstructorRef> &universalVariables
 ) {
     if(cl.index != cr.index) return false;
     assert(cl.arguments.size() == cr.arguments.size());
     for(int i=0; i<cl.arguments.size(); ++i) {
-        if(!match(cl.arguments[i], cr.arguments[i], variables))
+        if(!match(cl.arguments[i], cr.arguments[i], existentialVariables, universalVariables))
             return false;
     }
     return true;
@@ -144,20 +179,27 @@ bool match(
 bool match(
     const Value &left,
     const Value &right,
-    std::vector<ConstructorRef> &variables
+    std::vector<ConstructorRef> &existentialVariables,
+    std::vector<ConstructorRef> &universalVariables
 ) {
     return left.match<bool>(
     [&](ConstructorRef cl) {
         return right.match<bool>(
-        [&](ConstructorRef cr) { return match(cl, cr, variables); },
-        [&](VariableRef vr) { return match(vr, cl, variables); }
-        );
+        [&](ConstructorRef cr) {
+            return match(cl, cr, existentialVariables, universalVariables);
+        },
+        [&](VariableRef vr) {
+            return match(vr, cl, existentialVariables, universalVariables);
+        });
     },
     [&](VariableRef vl) {
         return right.match<bool>(
-        [&](ConstructorRef cr) { return match(vl, cr, variables); },
-        [&](VariableRef vr) { return match(vl, vr, variables); }
-        );
+        [&](ConstructorRef cr) {
+            return match(vl, cr, existentialVariables, universalVariables);
+        },
+        [&](VariableRef vr) {
+            return match(vl, vr, existentialVariables, universalVariables);
+        });
     });
 }
 

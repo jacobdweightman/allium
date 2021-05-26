@@ -79,12 +79,18 @@ struct AnonymousVariable {
 };
 
 struct Variable {
-    Variable(std::string name, TypeRef type, bool isDefinition):
-        name(name), type(type), isDefinition(isDefinition) {}
+    Variable(
+        std::string name,
+        TypeRef type,
+        bool isDefinition,
+        bool isExistential
+    ): name(name), type(type), isDefinition(isDefinition),
+        isExistential(isExistential) {}
 
     Name<Variable> name;
     TypeRef type;
     bool isDefinition;
+    bool isExistential;
 };
 
 bool operator==(Variable left, Variable right);

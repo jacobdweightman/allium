@@ -214,7 +214,7 @@ public:
                     ErrorMessage::unknown_constructor_or_variable,
                     v.name.string(),
                     type.declaration.name.string());
-                Optional<TypedAST::Variable>();
+                return Optional<TypedAST::Variable>();
             } else {
                 TypedAST::Type &variableTypeAtDefinition = iterType->second;
                 if(*raisedType != variableTypeAtDefinition) {
@@ -228,10 +228,14 @@ public:
                 }
             }
         }
+
+        // TODO: when variables can be defined in an implication body, then
+        // isExistential might be true. Perhaps this could be added to scope?
         return TypedAST::Variable(
             v.name.string(),
             raisedType->declaration.name,
-            v.isDefinition);
+            v.isDefinition,
+            false);
     }
 
     Optional<TypedAST::ConstructorRef> visitValueAsConstructorRef(const Constructor &ctor, const Value &cr) {

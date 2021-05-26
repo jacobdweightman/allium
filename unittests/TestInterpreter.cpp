@@ -24,8 +24,8 @@ public:
             Predicate({
                 Implication(PredicateReference(2, { ConstructorRef(0, {}) }), TruthValue(true), 0, 0),
                 Implication(
-                    PredicateReference(2, { ConstructorRef(1, { Value(VariableRef(0, true)) }) }),
-                    Expression(PredicateReference(2, { Value(VariableRef(0, false)) })),
+                    PredicateReference(2, { ConstructorRef(1, { Value(VariableRef(0, true, false)) }) }),
+                    Expression(PredicateReference(2, { Value(VariableRef(0, false, false)) })),
                     1,
                     0
                 )
@@ -39,6 +39,17 @@ public:
                     TruthValue(true),
                     0,
                     0
+                )
+            }),
+            // pred e {
+            //     e <- c(let x);
+            // }
+            Predicate({
+                Implication(
+                    PredicateReference(4, {}),
+                    Expression(PredicateReference(2, { Value(VariableRef(0, true, true)) })),
+                    0,
+                    1
                 )
             })
         },
@@ -70,6 +81,17 @@ TEST_F(TestInterpreter, cannot_prove_predicate_with_nonmatching_implication) {
     EXPECT_FALSE(
         program.prove(
             Expression(PredicateReference(3, { ConstructorRef(0, {}) }))
+        )
+    );
+}
+
+TEST_F(TestInterpreter, prove_predicate_with_existentially_quantified_variable) {
+    // prove c(let x) using c(zero) <- true, so that the witness is x = zero
+    // Note: the predicate passed to `prove` must have an "empty" witness because
+    // main doesn't take arguments, so we add a layer of indirection.
+    EXPECT_TRUE(
+        program.prove(
+            Expression(PredicateReference(4, {}))
         )
     );
 }
@@ -109,21 +131,22 @@ public:
     );
     // p(s(let x)) <- p(x);
     Implication impl2 = Implication(
-        PredicateReference(0, { ConstructorRef(1, { Value(VariableRef(0, true)) }) }),
-        Expression(PredicateReference(0, { Value(VariableRef(0, false)) })),
+        PredicateReference(0, { ConstructorRef(1, { Value(VariableRef(0, true, false)) }) }),
+        Expression(PredicateReference(0, { Value(VariableRef(0, false, false)) })),
         1,
         0
     );
 };
 
 TEST_F(TestMatching, match_base_constructor) {
-    std::vector<ConstructorRef> variables = {};
+    std::vector<ConstructorRef> existentialVariables, universalVariables;
 
     EXPECT_TRUE(
         match(
             ConstructorRef(0, {}),
             ConstructorRef(0, {}),
-            variables
+            existentialVariables,
+            universalVariables
         )
     );
 
@@ -131,19 +154,21 @@ TEST_F(TestMatching, match_base_constructor) {
         match(
             ConstructorRef(0, {}),
             ConstructorRef(1, {}),
-            variables
+            existentialVariables,
+            universalVariables
         )
     );
 }
 
 TEST_F(TestMatching, match_constructor_with_parameter) {
-    std::vector<ConstructorRef> variables = {};
+    std::vector<ConstructorRef> existentialVariables, universalVariables;
 
     EXPECT_TRUE(
         match(
             ConstructorRef(1, { ConstructorRef(0, {}) }),
             ConstructorRef(1, { ConstructorRef(0, {}) }),
-            variables
+            existentialVariables,
+            universalVariables
         )
     );
 
@@ -151,19 +176,21 @@ TEST_F(TestMatching, match_constructor_with_parameter) {
         match(
             ConstructorRef(0, { ConstructorRef(0, {}) }),
             ConstructorRef(0, { ConstructorRef(1, {}) }),
-            variables
+            existentialVariables,
+            universalVariables
         )
     );
 }
 
 TEST_F(TestMatching, match_constructor_with_multiple_parameters) {
-    std::vector<ConstructorRef> variables = {};
+    std::vector<ConstructorRef> existentialVariables, universalVariables;
 
     EXPECT_TRUE(
         match(
             ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(1, {}) }),
             ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(1, {}) }),
-            variables
+            existentialVariables,
+            universalVariables
         )
     );
 
@@ -171,44 +198,88 @@ TEST_F(TestMatching, match_constructor_with_multiple_parameters) {
         match(
             ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(1, {}) }),
             ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(0, {}) }),
-            variables
+            existentialVariables,
+            universalVariables
         )
     );
 }
 
-TEST_F(TestMatching, matching_variable_definition_sets_its_value) {
-    std::vector<ConstructorRef> variables;
-    variables.resize(1);
+TEST_F(TestMatching, matching_universally_quantified_variable_definition_sets_its_value) {
+    std::vector<ConstructorRef> existentialVariables, universalVariables;
+    universalVariables.resize(1);
 
     EXPECT_TRUE(
         match(
-            VariableRef(0, true),
+            VariableRef(0, true, false),
             ConstructorRef(1, {}),
-            variables
+            existentialVariables,
+            universalVariables
         )
     );
 
-    EXPECT_EQ(variables[0], ConstructorRef(1, {}));
+    EXPECT_EQ(universalVariables[0], ConstructorRef(1, {}));
 }
 
-TEST_F(TestMatching, matching_variable_use_matches_its_value) {
-    std::vector<ConstructorRef> variables = {
+TEST_F(TestMatching, matching_existentially_quantified_variable_definition_sets_its_value) {
+    std::vector<ConstructorRef> existentialVariables, universalVariables;
+    existentialVariables.resize(1);
+
+    EXPECT_TRUE(
+        match(
+            VariableRef(0, true, true),
+            ConstructorRef(1, {}),
+            existentialVariables,
+            universalVariables
+        )
+    );
+
+    EXPECT_EQ(existentialVariables[0], ConstructorRef(1, {}));
+}
+
+TEST_F(TestMatching, matching_universally_quantified_variable_use_matches_its_value) {
+    std::vector<ConstructorRef> existentialVariables, universalVariables = {
         ConstructorRef(1, {})
     };
 
     EXPECT_TRUE(
         match(
-            VariableRef(0, false),
+            VariableRef(0, false, false),
             ConstructorRef(1, {}),
-            variables
+            existentialVariables,
+            universalVariables
         )
     );
 
     EXPECT_FALSE(
         match(
-            VariableRef(0, false),
+            VariableRef(0, false, false),
             ConstructorRef(2, {}),
-            variables
+            existentialVariables,
+            universalVariables
+        )
+    );
+}
+
+TEST_F(TestMatching, matching_existentially_quantified_variable_use_matches_its_value) {
+    std::vector<ConstructorRef> universalVariables, existentialVariables = {
+        ConstructorRef(1, {})
+    };
+
+    EXPECT_TRUE(
+        match(
+            VariableRef(0, false, true),
+            ConstructorRef(1, {}),
+            existentialVariables,
+            universalVariables
+        )
+    );
+
+    EXPECT_FALSE(
+        match(
+            VariableRef(0, false, true),
+            ConstructorRef(2, {}),
+            existentialVariables,
+            universalVariables
         )
     );
 }
@@ -234,7 +305,7 @@ TEST_F(TestMatching, instantiate_variable_in_constructor) {
             Expression(
                 PredicateReference(
                     0,
-                    { ConstructorRef(1, { Value(VariableRef(0, false)) }) }
+                    { ConstructorRef(1, { Value(VariableRef(0, false, false)) }) }
                 )
             ),
             variables

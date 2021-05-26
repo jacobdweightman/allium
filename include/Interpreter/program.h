@@ -58,8 +58,8 @@ std::ostream& operator<<(std::ostream &out, const ConstructorRef &ctor);
 
 struct VariableRef {
     VariableRef(): index(anonymousIndex) {}
-    VariableRef(size_t index, bool isDefinition):
-        index(index), isDefinition(isDefinition) {}
+    VariableRef(size_t index, bool isDefinition, bool isExistential):
+        index(index), isDefinition(isDefinition), isExistential(isExistential) {}
 
     friend bool operator==(const VariableRef &lhs, const VariableRef &rhs) {
         return lhs.index == rhs.index && lhs.isDefinition == rhs.isDefinition;
@@ -73,6 +73,7 @@ struct VariableRef {
 
     size_t index;
     bool isDefinition;
+    bool isExistential;
 };
 
 std::ostream& operator<<(std::ostream &out, const VariableRef &vr);
