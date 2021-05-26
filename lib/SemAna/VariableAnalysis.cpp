@@ -34,13 +34,11 @@ public:
     VariableAnalysis(const AST &ast): ast(ast) {}
 
     Scope getVariables(const PredicateRef &pr) {
-        scope = Scope();
-        for(const auto &arg : pr.arguments) getVariables(arg);
+        getVariables_(pr);
         return scope;
     }
 
     Scope getVariables(const Expression &expr) {
-        scope = Scope();
         expr.switchOver(
         [](TruthLiteral) {},
         [&](PredicateRef pr) { getVariables_(pr); },

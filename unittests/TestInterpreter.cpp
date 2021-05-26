@@ -295,7 +295,7 @@ TEST_F(TestMatching, instantiation) {
     );
 }
 
-TEST_F(TestMatching, instantiate_variable_in_constructor) {
+TEST_F(TestMatching, instantiate_universally_quantified_variable_in_constructor) {
     std::vector<ConstructorRef> variables = {
         ConstructorRef(4, {})
     };
@@ -314,6 +314,28 @@ TEST_F(TestMatching, instantiate_variable_in_constructor) {
             PredicateReference(
                 0,
                 { ConstructorRef(1, { ConstructorRef(4, {}) }) }
+            )
+        )
+    );
+}
+
+TEST_F(TestMatching, instantiate_ignores_existentially_quantified_variables) {
+    std::vector<ConstructorRef> variables;
+
+    EXPECT_EQ(
+        instantiate(
+            Expression(
+                PredicateReference(
+                    0,
+                    { Value(VariableRef(1, true, true)) }
+                )
+            ),
+            variables
+        ),
+        Expression(
+            PredicateReference(
+                0,
+                { Value(VariableRef(1, true, true)) }
             )
         )
     );

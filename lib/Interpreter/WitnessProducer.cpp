@@ -230,6 +230,7 @@ Expression instantiate(
             [&](ConstructorRef cr) { return instantiate(cr, variables); },
             [&](VariableRef vr) -> Value {
                 if( vr.index != VariableRef::anonymousIndex &&
+                    !vr.isExistential &&
                     (assert(vr.index < variables.size()),
                      variables[vr.index] != ConstructorRef())) {
                         return interpreter::Value(variables[vr.index]);
