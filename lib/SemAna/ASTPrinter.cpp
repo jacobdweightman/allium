@@ -62,7 +62,7 @@ void ASTPrinter::visit(const PredicateDecl &pd) {
 
 void ASTPrinter::visit(const PredicateRef &pr) {
     indent();
-    out << "<PredicateRef \"" << pr.name << ">\n";
+    out << "<PredicateRef \"" << pr.name << "\">\n";
     depth++;
     for(const auto &x : pr.arguments) visit(x);
     depth--;
@@ -101,11 +101,12 @@ void ASTPrinter::visit(const AnonymousVariable &av) {
 
 void ASTPrinter::visit(const Variable &var) {
     indent();
-    if(var.isDefinition) {
-            out << "<Variable \"" << var.name << "\" definition>\n";
-    } else {
-        out << "<Variable \"" << var.name << "\">\n";
-    }
+    out << "<Variable \"" << var.name << "\"";
+    if(var.isDefinition)
+        out << " definition";
+    if(var.isExistential)
+        out << " existential";
+    out << ">\n";
 }
 
 void ASTPrinter::visit(const Value &val) {
