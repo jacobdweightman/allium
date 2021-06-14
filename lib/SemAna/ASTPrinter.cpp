@@ -70,7 +70,7 @@ void ASTPrinter::visit(const PredicateRef &pr) {
 
 void ASTPrinter::visit(const Conjunction &conj) {
     indent();
-    out << "Conjunction>\n";
+    out << "<Conjunction>\n";
     depth++;
     visit(conj.getLeft());
     visit(conj.getRight());

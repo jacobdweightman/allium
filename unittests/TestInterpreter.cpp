@@ -139,7 +139,7 @@ public:
 };
 
 TEST_F(TestMatching, match_base_constructor) {
-    std::vector<ConstructorRef> existentialVariables, universalVariables;
+    std::vector<Value> existentialVariables, universalVariables;
 
     EXPECT_TRUE(
         match(
@@ -161,7 +161,7 @@ TEST_F(TestMatching, match_base_constructor) {
 }
 
 TEST_F(TestMatching, match_constructor_with_parameter) {
-    std::vector<ConstructorRef> existentialVariables, universalVariables;
+    std::vector<Value> existentialVariables, universalVariables;
 
     EXPECT_TRUE(
         match(
@@ -183,7 +183,7 @@ TEST_F(TestMatching, match_constructor_with_parameter) {
 }
 
 TEST_F(TestMatching, match_constructor_with_multiple_parameters) {
-    std::vector<ConstructorRef> existentialVariables, universalVariables;
+    std::vector<Value> existentialVariables, universalVariables;
 
     EXPECT_TRUE(
         match(
@@ -205,7 +205,7 @@ TEST_F(TestMatching, match_constructor_with_multiple_parameters) {
 }
 
 TEST_F(TestMatching, matching_universally_quantified_variable_definition_sets_its_value) {
-    std::vector<ConstructorRef> existentialVariables, universalVariables;
+    std::vector<Value> existentialVariables, universalVariables;
     universalVariables.resize(1);
 
     EXPECT_TRUE(
@@ -221,7 +221,7 @@ TEST_F(TestMatching, matching_universally_quantified_variable_definition_sets_it
 }
 
 TEST_F(TestMatching, matching_existentially_quantified_variable_definition_sets_its_value) {
-    std::vector<ConstructorRef> existentialVariables, universalVariables;
+    std::vector<Value> existentialVariables, universalVariables;
     existentialVariables.resize(1);
 
     EXPECT_TRUE(
@@ -237,7 +237,7 @@ TEST_F(TestMatching, matching_existentially_quantified_variable_definition_sets_
 }
 
 TEST_F(TestMatching, matching_universally_quantified_variable_use_matches_its_value) {
-    std::vector<ConstructorRef> existentialVariables, universalVariables = {
+    std::vector<Value> existentialVariables, universalVariables = {
         ConstructorRef(1, {})
     };
 
@@ -261,7 +261,7 @@ TEST_F(TestMatching, matching_universally_quantified_variable_use_matches_its_va
 }
 
 TEST_F(TestMatching, matching_existentially_quantified_variable_use_matches_its_value) {
-    std::vector<ConstructorRef> universalVariables, existentialVariables = {
+    std::vector<Value> universalVariables, existentialVariables = {
         ConstructorRef(1, {})
     };
 
@@ -284,8 +284,23 @@ TEST_F(TestMatching, matching_existentially_quantified_variable_use_matches_its_
     );
 }
 
+TEST_F(TestMatching, matching_unbound_existentially_and_universally_quantified_variables_sets_latter_to_former) {
+    std::vector<Value> universalVariables(1), existentialVariables(1);
+
+    EXPECT_TRUE(
+        match(
+            VariableRef(0, true, true),
+            VariableRef(0, true, false),
+            existentialVariables,
+            universalVariables
+        )
+    );
+
+    EXPECT_EQ(universalVariables[0], Value(VariableRef(0, true, true)));
+}
+
 TEST_F(TestMatching, instantiation) {
-    std::vector<ConstructorRef> variables = {
+    std::vector<Value> variables = {
         ConstructorRef(5, {})
     };
 
@@ -296,7 +311,7 @@ TEST_F(TestMatching, instantiation) {
 }
 
 TEST_F(TestMatching, instantiate_universally_quantified_variable_in_constructor) {
-    std::vector<ConstructorRef> variables = {
+    std::vector<Value> variables = {
         ConstructorRef(4, {})
     };
 
@@ -320,7 +335,7 @@ TEST_F(TestMatching, instantiate_universally_quantified_variable_in_constructor)
 }
 
 TEST_F(TestMatching, instantiate_ignores_existentially_quantified_variables) {
-    std::vector<ConstructorRef> variables;
+    std::vector<Value> variables;
 
     EXPECT_EQ(
         instantiate(

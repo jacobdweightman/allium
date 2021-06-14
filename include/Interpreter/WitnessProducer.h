@@ -7,41 +7,41 @@ namespace interpreter {
 bool match(
     const PredicateReference &pr,
     const PredicateReference &matcher,
-    std::vector<ConstructorRef> &existentialVariables,
-    std::vector<ConstructorRef> &universalVariables
+    std::vector<Value> &existentialVariables,
+    std::vector<Value> &universalVariables
 );
 
 bool match(
     const VariableRef &vr,
     const VariableRef &matcher,
-    std::vector<ConstructorRef> &existentialVariables,
-    std::vector<ConstructorRef> &universalVariables
+    std::vector<Value> &existentialVariables,
+    std::vector<Value> &universalVariables
 );
 
 bool match(
     const VariableRef &vr,
     const ConstructorRef &cr,
-    std::vector<ConstructorRef> &existentialVariables,
-    std::vector<ConstructorRef> &universalVariables
+    std::vector<Value> &existentialVariables,
+    std::vector<Value> &universalVariables
 );
 
 bool match(
     const ConstructorRef &cl,
     const ConstructorRef &cr,
-    std::vector<ConstructorRef> &existentialVariables,
-    std::vector<ConstructorRef> &universalVariables
+    std::vector<Value> &existentialVariables,
+    std::vector<Value> &universalVariables
 );
 
 bool match(
     const Value &left,
     const Value &right,
-    std::vector<ConstructorRef> &existentialVariables,
-    std::vector<ConstructorRef> &universalVariables
+    std::vector<Value> &existentialVariables,
+    std::vector<Value> &universalVariables
 );
 
 Expression instantiate(
     const Expression &expr,
-    const std::vector<ConstructorRef> &variables
+    const std::vector<Value> &variables
 );
 
 /**
@@ -54,7 +54,7 @@ Expression instantiate(
 Generator<Unit> witnesses(
     const Program &prog,
     const Expression expr,
-    std::vector<ConstructorRef> &variables
+    std::vector<Value> &variables
 );
 
 Generator<Unit> witnesses(const TruthValue &tv);
@@ -62,13 +62,13 @@ Generator<Unit> witnesses(const TruthValue &tv);
 Generator<Unit> witnesses(
     const Program &prog,
     const PredicateReference &pr,
-    std::vector<ConstructorRef> &enclosingVariables
+    std::vector<Value> &enclosingVariables
 );
 
 Generator<Unit> witnesses(
     const Program &prog,
     const Conjunction conj,
-    std::vector<ConstructorRef> &variables
+    std::vector<Value> &variables
 );
 
 } // namespace interpreter

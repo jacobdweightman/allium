@@ -14,13 +14,8 @@ pred add(Nat, Nat, Nat) {
 }
 
 pred mul(Nat, Nat, Nat) {
-    mul(let x, let y, let z) <- mulHelper(x, y, x, zero, z);
-}
-
-pred mulHelper(Nat, Nat, Nat, Nat, Nat) {
-    mulHelper(_, _, zero, zero, _) <- true;
-    mulHelper(let x, let y, s(let ix), zero, let acc) <- mulHelper(x, y, ix, y, acc);
-    mulHelper(let x, let y, let ix, s(let iy), s(let acc)) <- mulHelper(x, y, ix, iy, acc);
+    mul(_, zero, zero) <- true;
+    mul(let x, s(let y), let z) <- mul(x, y, let w), add(w, x, z);
 }
 
 pred main {

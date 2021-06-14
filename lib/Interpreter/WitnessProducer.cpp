@@ -12,12 +12,13 @@ Generator<Unit> witnesses(const TruthValue &tv) {
 Generator<Unit> witnesses(
     const Program &prog,
     const PredicateReference &pr,
-    std::vector<ConstructorRef> &enclosingVariables
+    std::vector<Value> &enclosingVariables
 ) {
     std::cout << "prove: " << pr << "\n";
     const auto &pd = prog.getPredicate(pr.index);
     for(const auto &impl : pd.implications) {
-        std::vector<ConstructorRef> localVariables(
+        std::cout << "  try implication: " << impl << std::endl;
+        std::vector<Value> localVariables(
             impl.headVariableCount + impl.bodyVariableCount
         );
 
@@ -36,7 +37,7 @@ Generator<Unit> witnesses(
 Generator<Unit> witnesses(
     const Program &prog,
     const Conjunction conj,
-    std::vector<ConstructorRef> &variables
+    std::vector<Value> &variables
 ) {
     auto leftW = witnesses(prog, conj.getLeft(), variables);
     while(leftW.next()) {
@@ -51,7 +52,7 @@ Generator<Unit> witnesses(
 Generator<Unit> witnesses(
     const Program &prog,
     const Expression expr,
-    std::vector<ConstructorRef> &variables
+    std::vector<Value> &variables
 ) {
     // TODO: generators and functions don't compose, and so we can't use
     // Expression::switchOver here
@@ -80,8 +81,8 @@ Generator<Unit> witnesses(
 bool match(
     const PredicateReference &pr,
     const PredicateReference &matcher,
-    std::vector<ConstructorRef> &existentialVariables,
-    std::vector<ConstructorRef> &universalVariables
+    std::vector<Value> &existentialVariables,
+    std::vector<Value> &universalVariables
 ) {
     if(pr.index != matcher.index)
         return false;
@@ -96,19 +97,24 @@ bool match(
 bool match(
     const VariableRef &vr,
     const VariableRef &matcher,
-    std::vector<ConstructorRef> &existentialVariables,
-    std::vector<ConstructorRef> &universalVariables
+    std::vector<Value> &existentialVariables,
+    std::vector<Value> &universalVariables
 ) {
+    assert(vr.index != VariableRef::anonymousIndex);
     assert(vr.isExistential);
 
-    if( vr.index == matcher.index ||
-        vr.index == VariableRef::anonymousIndex ||
-        matcher.index == VariableRef::anonymousIndex) return true;
+    if( matcher.index == VariableRef::anonymousIndex ||
+        (vr.index == matcher.index &&
+         vr.isExistential == matcher.isExistential))
+        return true;
 
     if(vr.isDefinition) {
         if(matcher.isDefinition) {
-            assert(false && "attempted to define two un-bound variables as equal");
-            return false;
+            VariableRef u = matcher;
+            u.isExistential = true;
+            universalVariables[matcher.index] = Value(u);
+            existentialVariables[vr.index] = Value(&universalVariables[matcher.index]);
+            return true;
         } else {
             existentialVariables[vr.index] = universalVariables[matcher.index];
             return true;
@@ -127,17 +133,41 @@ bool match(
     }
 }
 
+// TODO: passing cr by value does a lot of unnecessary copying in deep structures.
+/// Replaces each remaining variable ref in the given constructor value with a pointer
+/// to the universally quantified (local) variable it represents. The result of this
+/// function should never be stored back into `universalVariables`, as these variables
+/// will point to themselves.
+static Value replaceUnboundVariableRefsWithPointers(
+    ConstructorRef cr,
+    std::vector<Value> &universalVariables
+) {
+    for(Value &arg : cr.arguments) {
+        arg = arg.match<Value>(
+        [&](ConstructorRef cr2) {
+            return replaceUnboundVariableRefsWithPointers(cr2, universalVariables);
+        },
+        [](Value *vp) { return Value(vp); },
+        [&](VariableRef vr) {
+            assert(!vr.isExistential);
+            universalVariables[vr.index] = Value(VariableRef(vr.index, true, true));
+            return Value(&universalVariables[vr.index]);
+        });
+    }
+    return cr;
+}
+
 bool match(
     const VariableRef &vr,
     const ConstructorRef &cr,
-    std::vector<ConstructorRef> &existentialVariables,
-    std::vector<ConstructorRef> &universalVariables
+    std::vector<Value> &existentialVariables,
+    std::vector<Value> &universalVariables
 ) {
     if(vr.index == VariableRef::anonymousIndex) return true;
     if(vr.isExistential) {
         assert(vr.index < existentialVariables.size());
         if(vr.isDefinition) {
-            existentialVariables[vr.index] = cr;
+            existentialVariables[vr.index] = replaceUnboundVariableRefsWithPointers(cr, universalVariables);
             return true;
         } else {
             return match(
@@ -164,8 +194,8 @@ bool match(
 bool match(
     const ConstructorRef &cl,
     const ConstructorRef &cr,
-    std::vector<ConstructorRef> &existentialVariables,
-    std::vector<ConstructorRef> &universalVariables
+    std::vector<Value> &existentialVariables,
+    std::vector<Value> &universalVariables
 ) {
     if(cl.index != cr.index) return false;
     assert(cl.arguments.size() == cr.arguments.size());
@@ -179,8 +209,8 @@ bool match(
 bool match(
     const Value &left,
     const Value &right,
-    std::vector<ConstructorRef> &existentialVariables,
-    std::vector<ConstructorRef> &universalVariables
+    std::vector<Value> &existentialVariables,
+    std::vector<Value> &universalVariables
 ) {
     return left.match<bool>(
     [&](ConstructorRef cl) {
@@ -188,14 +218,23 @@ bool match(
         [&](ConstructorRef cr) {
             return match(cl, cr, existentialVariables, universalVariables);
         },
+        [&](Value *v) {
+            return match(left, *v, existentialVariables, universalVariables);
+        },
         [&](VariableRef vr) {
             return match(vr, cl, existentialVariables, universalVariables);
         });
+    },
+    [&](Value *v) {
+        return match(*v, right, existentialVariables, universalVariables);
     },
     [&](VariableRef vl) {
         return right.match<bool>(
         [&](ConstructorRef cr) {
             return match(vl, cr, existentialVariables, universalVariables);
+        },
+        [&](Value *v) {
+            return match(left, *v, existentialVariables, universalVariables);
         },
         [&](VariableRef vr) {
             return match(vl, vr, existentialVariables, universalVariables);
@@ -205,7 +244,7 @@ bool match(
 
 static ConstructorRef instantiate(
     ConstructorRef cr,
-    const std::vector<ConstructorRef> &variables
+    const std::vector<Value> &variables
 ) {
     for(Value &arg : cr.arguments) {
         VariableRef vr;
@@ -218,26 +257,38 @@ static ConstructorRef instantiate(
     return cr;
 }
 
+static Value instantiate(
+    Value v,
+    const std::vector<Value> &variables
+) {
+    return v.match<Value>(
+    [&](ConstructorRef cr) { return instantiate(cr, variables); },
+    [&](Value *vp) {
+        // vp should always point to a variable in an enclosed scope, and
+        // therefore can never contain references to variables in the current
+        // scope.
+        return v;
+    },
+    [&](VariableRef vr) {
+        if( vr.index != VariableRef::anonymousIndex &&
+            !vr.isExistential &&
+            variables[vr.index] != Value()) {
+                return interpreter::Value(variables[vr.index]);
+        } else {
+            return interpreter::Value(vr);
+        }
+    });
+}
+
 Expression instantiate(
     const Expression &expr,
-    const std::vector<ConstructorRef> &variables
+    const std::vector<Value> &variables
 ) {
     return expr.match<Expression>(
     [](TruthValue tv) { return interpreter::Expression(tv); },
     [&](PredicateReference pr) {
         for(Value &arg : pr.arguments) {
-            arg = arg.match<Value>(
-            [&](ConstructorRef cr) { return instantiate(cr, variables); },
-            [&](VariableRef vr) -> Value {
-                if( vr.index != VariableRef::anonymousIndex &&
-                    !vr.isExistential &&
-                    (assert(vr.index < variables.size()),
-                     variables[vr.index] != ConstructorRef())) {
-                        return interpreter::Value(variables[vr.index]);
-                } else {
-                    return interpreter::Value(vr);
-                }
-            });
+            arg = instantiate(arg, variables);
         }
         return interpreter::Expression(pr);
     },

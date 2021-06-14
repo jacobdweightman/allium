@@ -62,7 +62,8 @@ struct VariableRef {
         index(index), isDefinition(isDefinition), isExistential(isExistential) {}
 
     friend bool operator==(const VariableRef &lhs, const VariableRef &rhs) {
-        return lhs.index == rhs.index && lhs.isDefinition == rhs.isDefinition;
+        return lhs.index == rhs.index && lhs.isDefinition == rhs.isDefinition &&
+            lhs.isExistential == rhs.isExistential;
     }
 
     friend bool operator!=(const VariableRef &lhs, const VariableRef &rhs) {
@@ -78,13 +79,13 @@ struct VariableRef {
 
 std::ostream& operator<<(std::ostream &out, const VariableRef &vr);
 
-typedef TaggedUnion<
-    ConstructorRef,
-    VariableRef
-> ValueBase;
-
-class Value : public ValueBase {
+class Value : public TaggedUnion<ConstructorRef, Value *, VariableRef> {
 public:
+    using ValueBase = TaggedUnion<
+        ConstructorRef,
+        Value *,
+        VariableRef
+    >;
     using ValueBase::ValueBase;
     Value(): ValueBase(VariableRef()) {}
 };

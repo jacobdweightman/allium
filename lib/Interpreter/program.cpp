@@ -7,7 +7,7 @@ namespace interpreter {
 
 bool Program::prove(const Expression &expr) {
     // TODO: if `main` ever takes arguments, they need to be allocated here.
-    std::vector<ConstructorRef> mainArgs;
+    std::vector<Value> mainArgs;
 
     if(witnesses(*this, expr, mainArgs).next()) {
         return true;
@@ -57,14 +57,18 @@ std::ostream& operator<<(std::ostream &out, const ConstructorRef &ctor) {
 
 std::ostream& operator<<(std::ostream &out, const VariableRef &vr) {
     if(vr.index == VariableRef::anonymousIndex)
-        return out << "var _";
+        out << "var _";
     else
-        return out << "var " << vr.index;
+        out << "var " << vr.index;
+    if(vr.isDefinition)
+        out << " def";
+    return out;
 }
 
 std::ostream& operator<<(std::ostream &out, const Value &val) {
     return val.match<std::ostream&>(
     [&](ConstructorRef cr) -> std::ostream& { return out << cr; },
+    [&](Value *v) -> std::ostream& { return out << "ptr " << *v; },
     [&](VariableRef vr) -> std::ostream& { return out << vr; });
 }
 
