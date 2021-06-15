@@ -96,7 +96,7 @@ public:
         --depth;
     }
 
-    void visit(const Value &val) {
+    void visit(const NamedValue &val) {
         indent();
         if(val.isDefinition) {
             out << "<Value definition \"" << val.name << "\" line:" << val.location << ">\n";
@@ -108,6 +108,18 @@ public:
             }
             --depth;
         }
+    }
+
+    void visit(const StringLiteral &str) {
+        indent();
+        out << "<StringLiteral \"" << str.text << "\" line:" << str.location << ">\n";
+    }
+
+    void visit(const Value &val) {
+        val.switchOver(
+        [&](NamedValue nv) { visit(nv); },
+        [&](StringLiteral str) { visit(str); }
+        );
     }
 
     void visit(const Type &type) {

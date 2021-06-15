@@ -83,7 +83,7 @@ TEST(TestParser, parse_predicate_with_parameters) {
         parsePredicateRef(lexer),
         PredicateRef(
             "tall",
-            { Value("redwood", {}, SourceLocation(1, 5)) },
+            { NamedValue("redwood", {}, SourceLocation(1, 5)) },
             SourceLocation(1, 0)
         )
     );
@@ -99,7 +99,7 @@ TEST(TestParser, parse_predicate_with_variable_definition) {
         actual,
         PredicateRef(
             "tall",
-            { Value("x", true, SourceLocation(1, 9)) },
+            { NamedValue("x", true, SourceLocation(1, 9)) },
             SourceLocation(1, 0)
         )
     );
@@ -118,7 +118,7 @@ TEST(TestParser, parse_predicate_with_variable_use) {
         actual,
         PredicateRef(
             "tall",
-            { Value("x", {}, SourceLocation(1, 5)) },
+            { NamedValue("x", {}, SourceLocation(1, 5)) },
             SourceLocation(1, 0)
         )
     );
@@ -354,7 +354,7 @@ TEST(TestParser, parse_simple_constructor_ref) {
 
     EXPECT_EQ(
         parseValue(lexer),
-        Value("vinaigrette", {}, SourceLocation(1, 0))
+        Value(NamedValue("vinaigrette", {}, SourceLocation(1, 0)))
     );
 }
 
@@ -364,11 +364,41 @@ TEST(TestParser, parse_constructor_ref_with_argument) {
 
     EXPECT_EQ(
         parseValue(lexer),
-        Value(
+        Value(NamedValue(
             "s",
-            { Value("zero", {}, SourceLocation(1, 2)) },
+            { NamedValue("zero", {}, SourceLocation(1, 2)) },
             SourceLocation(1, 0)
-        )
+        ))
+    );
+}
+
+TEST(TestParser, parse_string_literal) {
+    std::istringstream f("\"hello world\"");
+    Lexer lexer(f);
+
+    EXPECT_EQ(
+        parseValue(lexer),
+        Value(StringLiteral("hello world", SourceLocation(1, 0)))
+    );
+}
+
+TEST(TestParser, parse_string_literal_mismatched_quotes) {
+    std::istringstream f("\"hello world");
+    Lexer lexer(f);
+
+    EXPECT_EQ(
+        parseValue(lexer),
+        Optional<Value>()
+    );
+}
+
+TEST(TestParser, parse_string_literal_cannot_contain_newline) {
+    std::istringstream f("\"hello\nworld\"");
+    Lexer lexer(f);
+
+    EXPECT_EQ(
+        parseValue(lexer),
+        Optional<Value>()
     );
 }
 

@@ -104,8 +104,8 @@ TEST_F(TestSemAnaPredicates, predicate_argument_count_mismatch) {
                     PredicateRef(
                         "p",
                         {
-                            Value(Value("foo", {}, SourceLocation(2, 16))),
-                            Value(Value("foo", {}, SourceLocation(2, 20)))
+                            NamedValue("foo", {}, SourceLocation(2, 16)),
+                            NamedValue("foo", {}, SourceLocation(2, 20))
                         },
                         errorLocation
                     ),
@@ -142,11 +142,11 @@ TEST_F(TestSemAnaPredicates, constructor_argument_count_mismatch) {
                     PredicateRef(
                         "p",
                         {
-                            Value(
+                            NamedValue(
                                 "s",
                                 {
-                                    Value("zero", {}, SourceLocation(2, 18)),
-                                    Value("zero", {}, SourceLocation(2, 24))
+                                    NamedValue("zero", {}, SourceLocation(2, 18)),
+                                    NamedValue("zero", {}, SourceLocation(2, 24))
                                 },
                                 errorLocation
                             )
@@ -183,9 +183,9 @@ TEST_F(TestSemAnaPredicates, predicate_argument_with_arguments_type_mismatch) {
                     PredicateRef(
                         "a",
                         {
-                            Value(
+                            NamedValue(
                                 "baz",
-                                { Value("bar", {}, SourceLocation()) },
+                                { NamedValue("bar", {}, SourceLocation()) },
                                 errorLocation
                             )
                         },
@@ -217,7 +217,7 @@ TEST_F(TestSemAnaPredicates, predicate_argument_type_mismatch) {
                 Implication(
                     PredicateRef(
                         "a",
-                        { Value("baz", {}, errorLocation) },
+                        { NamedValue("baz", {}, errorLocation) },
                         SourceLocation()
                     ),
                     Expression(TruthLiteral(true, SourceLocation(2, 8)))
@@ -264,8 +264,8 @@ TEST_F(TestSemAnaPredicates, variable_redefinition) {
                 PredicateRef(
                     "p",
                     {
-                        Value("x", true, SourceLocation(3, 10)),
-                        Value("x", true, errorLocation),
+                        NamedValue("x", true, SourceLocation(3, 10)),
+                        NamedValue("x", true, errorLocation),
                     },
                     SourceLocation(3, 4)
                 ),
@@ -302,8 +302,8 @@ TEST_F(TestSemAnaPredicates, variable_type_mismatch) {
             PredicateDecl("q", { TypeRef("Bar", SourceLocation(5, 7)) }, SourceLocation(5, 5)),
             {
                 Implication(
-                    PredicateRef("q", { Value("x", true, SourceLocation(6, 10)) }, SourceLocation(6, 4)),
-                    Expression(PredicateRef("p", { Value("x", false, errorLocation) }, SourceLocation(6, 16)))
+                    PredicateRef("q", { NamedValue("x", true, SourceLocation(6, 10)) }, SourceLocation(6, 4)),
+                    Expression(PredicateRef("p", { NamedValue("x", false, errorLocation) }, SourceLocation(6, 16)))
                 )
             }
         )

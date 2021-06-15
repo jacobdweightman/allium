@@ -25,6 +25,8 @@ Optional<Expression> parseExpression(Lexer &lexer);
 Optional<TypeDecl> parseTypeDecl(Lexer &lexer);
 Optional<TypeRef> parseTypeRef(Lexer &lexer);
 Optional<Constructor> parseConstructor(Lexer &lexer);
+Optional<NamedValue> parseNamedValue(Lexer &lexer);
+Optional<StringLiteral> parseStringLiteral(Lexer &lexer);
 Optional<Value> parseValue(Lexer &lexer);
 
 }

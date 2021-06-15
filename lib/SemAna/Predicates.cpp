@@ -174,7 +174,7 @@ public:
         );
     }
 
-    Optional<TypedAST::Variable> visitValueAsVariable(const Value &v) {
+    Optional<TypedAST::Variable> visitNamedValueAsVariable(const NamedValue &v) {
         Type type;
         if(inferredType.unwrapGuard(type)) {
             assert(inferredType && "inferred type not set!");
@@ -238,7 +238,7 @@ public:
             isExistential);
     }
 
-    Optional<TypedAST::ConstructorRef> visitValueAsConstructorRef(const Constructor &ctor, const Value &cr) {
+    Optional<TypedAST::ConstructorRef> visitNamedValueAsConstructorRef(const Constructor &ctor, const NamedValue &cr) {
         if(ctor.parameters.size() != cr.arguments.size()) {
             error.emit(
                 cr.location,
@@ -263,7 +263,7 @@ public:
         return TypedAST::ConstructorRef(cr.name.string(), raisedArguments);
     }
 
-    Optional<TypedAST::Value> visit(const Value &val) {
+    Optional<TypedAST::Value> visit(const NamedValue &val) {
         if(val.name.string() == "_") {
             return TypedAST::Value(TypedAST::AnonymousVariable());
         }
@@ -288,15 +288,27 @@ public:
                     type.declaration.name.string());
                 return Optional<TypedAST::Value>();
             } else {
-                return visitValueAsVariable(val).map<TypedAST::Value>([](TypedAST::Variable var) {
+                return visitNamedValueAsVariable(val).map<TypedAST::Value>([](TypedAST::Variable var) {
                     return TypedAST::Value(var);
                 });
             }
         } else {
-            return visitValueAsConstructorRef(*ctor, val).map<TypedAST::Value>([](TypedAST::ConstructorRef cr) {
+            return visitNamedValueAsConstructorRef(*ctor, val).map<TypedAST::Value>([](TypedAST::ConstructorRef cr) {
                 return TypedAST::Value(cr);
             });
         }
+    }
+
+    Optional<TypedAST::Value> visit(const StringLiteral &str) {
+        assert(false && "String literals are not supported yet!");
+        return Optional<TypedAST::Value>();
+    }
+
+    Optional<TypedAST::Value> visit(const Value &val) {
+        return val.match<Optional<TypedAST::Value>>(
+        [&](NamedValue nv) { return visit(nv); },
+        [&](StringLiteral str) { return visit(str); }
+        );
     }
 
     TypedAST::Type visit(const Type &type) {

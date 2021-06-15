@@ -1,0 +1,7 @@
+pred saysHello(String) {
+    saysHello("Hello world!") <- true;
+}
+
+pred main {
+    main <- saysHello("Hello world!");
+}

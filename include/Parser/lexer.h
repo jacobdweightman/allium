@@ -26,6 +26,7 @@ struct Token {
         kw_type,
         paren_l,
         paren_r,
+        string_literal,
         true_literal,
     };
 
@@ -79,14 +80,17 @@ public:
     bool take(Token::Type type);
 
     /// If the next token from the lexer is of the given type then consume it and
-    /// return true. Otherwise, has no effect on the lexer and returns false.
+    /// return true. Otherwise, has no effect on the lexer and returns no value.
     Optional<Token> take_token(Token::Type type);
 
     /// Moves back within the file being lexed to the beginning of the indicated
     /// token, such that the given token becomes the next token to be lexed.
     void rewind(Token tok);
 
-protected:
+private:
+    /// Advances the lexer to the next non-whitespace character.
+    void skipWhitespace();
+
     /// After the lexer has taken a word `str`, read over it and peel off the
     /// longest possible identifier from the beginning, and rewind the file to
     /// the end of that identifier. This may be used to separate an identifier
@@ -95,6 +99,9 @@ protected:
     /// For example, if the lexer takes "name{name<-true;}", then the result
     /// will be "name" and the stream will be rewound to before the "{".
     std::string takeIdentifier(const std::string str);
+
+    /// Consumes any text up to the next double quote.
+    Token take_string_literal();
 
     /// The source code file which is lexed by this lexer.
     std::istream &file;

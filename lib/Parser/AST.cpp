@@ -16,6 +16,13 @@ std::ostream& operator<<(std::ostream &out, const Expression &e) {
     );
 }
 
+std::ostream& operator<<(std::ostream &out, const Value &val) {
+    return val.match<std::ostream&>(
+    [&](NamedValue nv) -> std::ostream& { out << nv; return out; },
+    [&](StringLiteral str) -> std::ostream& { out << str; return out; }
+    );
+}
+
 bool operator==(const TruthLiteral &lhs, const TruthLiteral &rhs) {
     return lhs.value == rhs.value && lhs.location == rhs.location;
 }
@@ -148,17 +155,30 @@ std::ostream& operator<<(std::ostream &out, const Constructor &ctor) {
     return out;
 }
 
-bool operator==(const Value &lhs, const Value &rhs) {
+bool operator==(const NamedValue &lhs, const NamedValue &rhs) {
     return lhs.location == rhs.location && lhs.isDefinition == rhs.isDefinition &&
         lhs.name == rhs.name && lhs.arguments == rhs.arguments;
 }
 
-bool operator!=(const Value &lhs, const Value &rhs) {
+bool operator!=(const NamedValue &lhs, const NamedValue &rhs) {
     return !(lhs == rhs);
 }
 
-std::ostream& operator<<(std::ostream &out, const Value &val) {
+std::ostream& operator<<(std::ostream &out, const NamedValue &val) {
     ASTPrinter(out).visit(val);
+    return out;
+}
+
+bool operator==(const StringLiteral &lhs, const StringLiteral &rhs) {
+    return lhs.location == rhs.location && lhs.text == rhs.text;
+}
+
+bool operator!=(const StringLiteral &lhs, const StringLiteral &rhs) {
+    return !(lhs == rhs);
+}
+
+std::ostream& operator<<(std::ostream &out, const StringLiteral &str) {
+    ASTPrinter(out).visit(str);
     return out;
 }
 

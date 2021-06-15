@@ -65,14 +65,14 @@ Optional<PredicateDecl> parsePredicateDecl(Lexer &lexer) {
     }
 }
 
-Optional<Value> parseValue(Lexer &lexer) {
+Optional<NamedValue> parseNamedValue(Lexer &lexer) {
     Token next = lexer.peek_next();
     Token identifier;
 
     // <value> := "let" <identifier>
     if( lexer.take(Token::Type::kw_let) &&
         lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
-            return Value(identifier.text, true, identifier.location);
+            return NamedValue(identifier.text, true, identifier.location);
     }
 
     // <value> := <identifier> "(" <list of values> ")"
@@ -80,7 +80,7 @@ Optional<Value> parseValue(Lexer &lexer) {
     lexer.rewind(next);
     if(lexer.take_token(Token::Type::identifier).unwrapGuard(identifier)) {
         lexer.rewind(next);
-        return Optional<Value>();
+        return Optional<NamedValue>();
     }
 
     if(lexer.take(Token::Type::paren_l)) {
@@ -92,17 +92,45 @@ Optional<Value> parseValue(Lexer &lexer) {
         } while(lexer.take(Token::Type::comma));
 
         if(lexer.take(Token::Type::paren_r)) {
-            return Value(
+            return NamedValue(
                 identifier.text,
                 arguments,
                 identifier.location);
         } else {
             // expected ")"
             lexer.rewind(next);
-            return Optional<Value>();
+            return Optional<NamedValue>();
         }
     } else {
-        return Value(identifier.text, {}, identifier.location);
+        return NamedValue(identifier.text, {}, identifier.location);
+    }
+}
+
+Optional<StringLiteral> parseStringLiteral(Lexer &lexer) {
+    Token token;
+
+    // <string-literal> := '"' + any text + '"' (greedy)
+    if(lexer.take_token(Token::Type::string_literal).unwrapInto(token)) {
+        return StringLiteral(token.text, token.location);
+    } else {
+        return Optional<StringLiteral>();
+    }
+}
+
+Optional<Value> parseValue(Lexer &lexer) {
+    NamedValue nv;
+    StringLiteral str;
+
+    // <value> := <named-value>
+    if(parseNamedValue(lexer).unwrapInto(nv)) {
+        return Value(nv);
+
+    // <value> := <string-literal>
+    } else if(parseStringLiteral(lexer).unwrapInto(str)) {
+        return Value(str);
+
+    } else {
+        return Optional<Value>();
     }
 }
 

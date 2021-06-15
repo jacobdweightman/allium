@@ -24,12 +24,21 @@ typedef TaggedUnion<
 > ExpressionBase;
 class Expression;
 
+std::ostream& operator<<(std::ostream &out, const Expression &e);
+
+struct NamedValue;
+struct StringLiteral;
+
+typedef TaggedUnion<
+    NamedValue,
+    StringLiteral
+> Value;
+
+std::ostream& operator<<(std::ostream &out, const Value &val);
+
 struct Predicate;
-struct Value;
 struct TypeRef;
 struct Type;
-
-std::ostream& operator<<(std::ostream &out, const Expression &e);
 
 /// Represents a truth value literal in the AST.
 struct TruthLiteral {
@@ -228,26 +237,46 @@ bool operator==(const Constructor &lhs, const Constructor &rhs);
 bool operator!=(const Constructor &lhs, const Constructor &rhs);
 std::ostream& operator<<(std::ostream &out, const Constructor &ctor);
 
-/// Represents a value in the AST. Semantically, this can be an anonymous
-/// variable, variable, or a constructor reference. Syntactically, these cannot
-/// be reliably distinguished by a context free grammar. Differentiating these
-/// nodes is performed by SemAna.
-struct Value {
-    Value(std::string name, bool isDefinition, SourceLocation location):
+
+/// Represents values with a name and possibly arguments in the AST.
+/// Semantically, this can be an anonymous variable, variable, or a constructor
+/// reference. Syntactically, these cannot be reliably distinguished by a
+/// context free grammar. Differentiating these nodes is performed by SemAna.
+struct NamedValue {
+    NamedValue() {}
+
+    NamedValue(std::string name, bool isDefinition, SourceLocation location):
         name(name), isDefinition(isDefinition), location(location) {}
 
-    Value(std::string name, std::vector<Value> arguments, SourceLocation location):
-        name(name), isDefinition(false), arguments(arguments), location(location) {}
+    NamedValue(
+        std::string name,
+        std::vector<Value> arguments,
+        SourceLocation location
+    ): name(name), isDefinition(false), arguments(arguments),
+        location(location) {}
 
-    Name<Value> name;
+    Name<NamedValue> name;
     bool isDefinition;
     std::vector<Value> arguments;
     SourceLocation location;
 };
 
-bool operator==(const Value &lhs, const Value &rhs);
-bool operator!=(const Value &lhs, const Value &rhs);
-std::ostream& operator<<(std::ostream &out, const Value &val);
+bool operator==(const NamedValue &lhs, const NamedValue &rhs);
+bool operator!=(const NamedValue &lhs, const NamedValue &rhs);
+std::ostream& operator<<(std::ostream &out, const NamedValue &val);
+
+struct StringLiteral {
+    StringLiteral() {}
+    StringLiteral(std::string text, SourceLocation location):
+        text(text), location(location) {}
+
+    std::string text;
+    SourceLocation location;
+};
+
+bool operator==(const StringLiteral &lhs, const StringLiteral &rhs);
+bool operator!=(const StringLiteral &lhs, const StringLiteral &rhs);
+std::ostream& operator<<(std::ostream &out, const StringLiteral &str);
 
 /// Represents the complete definition of a type in the AST.
 struct Type {
@@ -358,6 +387,8 @@ constexpr bool has_all_visitors() {
     static_assert(has_visit<Subclass, TypeDecl>::value, "missing TypeDecl visitor");
     static_assert(has_visit<Subclass, TypeRef>::value, "missing TypeRef visitor");
     static_assert(has_visit<Subclass, Constructor>::value, "missing Constructor visitor");
+    static_assert(has_visit<Subclass, NamedValue>::value, "missing NamedValue visitor");
+    static_assert(has_visit<Subclass, StringLiteral>::value, "missing StringLiteral visitor");
     static_assert(has_visit<Subclass, Value>::value, "missing Value visitor");
     static_assert(has_visit<Subclass, Type>::value, "missing Type visitor");
     static_assert(has_visit<Subclass, EffectDecl>::value, "missing EffectDecl visitor");
@@ -374,6 +405,8 @@ constexpr bool has_all_visitors() {
         has_visit<Subclass, TypeDecl>::value &&
         has_visit<Subclass, TypeRef>::value &&
         has_visit<Subclass, Constructor>::value &&
+        has_visit<Subclass, NamedValue>::value &&
+        has_visit<Subclass, StringLiteral>::value &&
         has_visit<Subclass, Value>::value &&
         has_visit<Subclass, Type>::value &&
         has_visit<Subclass, EffectDecl>::value &&

@@ -28,6 +28,7 @@ std::ostream& operator<<(std::ostream& out, const Token::Type value) {
     case Token::Type::kw_effect: return out << "Type::kw_effect";
     case Token::Type::paren_l: return out << "Type::paren_l";
     case Token::Type::paren_r: return out << "Type::paren_r";
+    case Token::Type::string_literal: return out << "Type::string_literal";
     case Token::Type::true_literal: return out << "Type::true_literal";
     }
     // The preceding switch should be exhaustive. Add this to support VC++.
@@ -43,14 +44,12 @@ Token Lexer::peek_next() {
 }
 
 Token Lexer::take_next() {
-    while(isspace(file.peek())) {
-        ++columnNumber;
-        if(file.get() == '\n') {
-            ++lineNumber;
-            columnNumber = 0;
-        }
-    }
+    skipWhitespace();
     std::streampos startPos = file.tellg();
+
+    if(file.peek() == '"') {
+        return take_string_literal();
+    }
 
     std::string word;
     file >> word;
@@ -135,6 +134,16 @@ void Lexer::rewind(Token tok) {
     columnNumber = tok.location.columnNumber;
 }
 
+void Lexer::skipWhitespace() {
+    while(isspace(file.peek())) {
+        ++columnNumber;
+        if(file.get() == '\n') {
+            ++lineNumber;
+            columnNumber = 0;
+        }
+    }
+}
+
 std::string Lexer::takeIdentifier(const std::string str) {
     size_t i = 0;
     for(char c : str) {
@@ -146,6 +155,28 @@ std::string Lexer::takeIdentifier(const std::string str) {
     assert(i > 0);
     file.seekg(i - str.length(), std::ios_base::cur);
     return str.substr(0, i);
+}
+
+Token Lexer::take_string_literal() {
+    SourceLocation location(lineNumber, columnNumber);
+    std::streampos startPos = file.tellg();
+
+    char c;
+    c = file.get();
+    assert(c == '"');
+
+    std::string text;
+    while(c = file.get(), !file.eof() && c != '\n' && c != '"') {
+        text.push_back(c);
+    }
+
+    if(file.eof() || c == '\n') {
+        file.seekg(startPos);
+        return Token(Token::Type::end_of_file, "", location, startPos);
+    }
+
+    columnNumber += text.size() + 2;
+    return Token(Token::Type::string_literal, text, location, startPos);
 }
 
 } // namespace parser
