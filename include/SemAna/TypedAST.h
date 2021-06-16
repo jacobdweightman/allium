@@ -25,6 +25,7 @@ struct Type;
 typedef Name<Type> TypeRef;
 
 struct TypeDecl {
+    TypeDecl() {}
     TypeDecl(std::string name): name(name) {}
 
     Name<Type> name;

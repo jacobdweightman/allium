@@ -9,6 +9,8 @@ std::string formatString(ErrorMessage msg) {
         return "Constructor \"%s\" of type %s expects %s arguments.";
     case ErrorMessage::predicate_argument_count:
         return "Predicate \"%s\" expects %s arguments.";
+    case ErrorMessage::type_redefined:
+        return "Type \"%s\" was already defined at %s and cannot be redefined.";
     case ErrorMessage::undefined_predicate:
         return "Use of undefined predicate \"%s\".";
     case ErrorMessage::undefined_type:

@@ -1,7 +1,7 @@
 #ifndef SOURCE_LOCATION_H
 #define SOURCE_LOCATION_H
 
-#include <ostream>
+#include <sstream>
 #include <string>
 
 /// A line and column within a source file.
@@ -13,6 +13,12 @@ struct SourceLocation {
 
     SourceLocation(int lineNumber, int columnNumber):
         lineNumber(lineNumber), columnNumber(columnNumber) {}
+    
+    std::string toString() const {
+        std::ostringstream stringBuilder;
+        stringBuilder << *this;
+        return stringBuilder.str();
+    }
 
     friend bool operator==(const SourceLocation &lhs, const SourceLocation &rhs) {
         return lhs.lineNumber == rhs.lineNumber && lhs.columnNumber == rhs.columnNumber;

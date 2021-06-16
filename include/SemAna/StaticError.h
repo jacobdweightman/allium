@@ -9,6 +9,7 @@ enum class ErrorMessage {
     constructor_argument_count,
     impl_head_mismatches_predicate,
     predicate_argument_count,
+    type_redefined,
     undefined_predicate,
     undefined_type,
     unknown_constructor,

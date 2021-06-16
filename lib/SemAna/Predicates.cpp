@@ -148,7 +148,23 @@ public:
         return TypedAST::Predicate(*declaration, raisedImplications);
     }
 
-    TypedAST::TypeDecl visit(const TypeDecl &td) {
+    Optional<TypedAST::TypeDecl> visit(const TypeDecl &td) {
+        const auto originalDeclaration = std::find_if(
+            ast.types.begin(),
+            ast.types.end(),
+            [&](Type type) {
+                return type.declaration.name == td.name;
+            })->declaration;
+
+        if(originalDeclaration != td) {
+            error.emit(
+                td.location,
+                ErrorMessage::type_redefined,
+                td.name.string(),
+                originalDeclaration.location.toString());
+            return Optional<TypedAST::TypeDecl>();
+        }
+
         return TypedAST::TypeDecl(td.name.string());
     }
 
@@ -311,9 +327,14 @@ public:
         );
     }
 
-    TypedAST::Type visit(const Type &type) {
+    Optional<TypedAST::Type> visit(const Type &type) {
         enclosingType = type;
-        auto raisedDeclaration = visit(type.declaration);
+
+        TypedAST::TypeDecl raisedDeclaration;
+        if(visit(type.declaration).unwrapGuard(raisedDeclaration)) {
+            return Optional<TypedAST::Type>();
+        }
+
         std::vector<TypedAST::Constructor> raisedCtors;
         for(const Constructor &ctor : type.constructors) {
             visit(ctor).map([&](TypedAST::Constructor raisedCtor) {

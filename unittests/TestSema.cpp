@@ -313,3 +313,18 @@ TEST_F(TestSemAnaPredicates, variable_type_mismatch) {
 
     checkAll(AST(ts, {}, ps), error);
 }
+
+TEST_F(TestSemAnaPredicates, type_redefinition) {
+    // type Void {}
+    // type Void {}
+
+    SourceLocation errorLocation(2, 5);
+    std::vector<Type> ts = {
+        Type(TypeDecl("Void", SourceLocation(1, 5)), {}),
+        Type(TypeDecl("Void", errorLocation), {})
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::type_redefined, "Void", "1:5"));
+
+    checkAll(AST(ts, {}, {}), error);
+}
