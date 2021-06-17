@@ -43,11 +43,18 @@ public:
         return interpreter::ConstructorRef(index, arguments);
     }
 
+    // TODO: return type -> interpreter::String which doesn't exist yet
+    interpreter::Value visit(const StringLiteral &str) {
+        assert(false && "not implemented!");
+        return interpreter::Value(interpreter::VariableRef());
+    }
+
     interpreter::Value visit(const Value &val, const TypeRef &tr) {
         return val.match<interpreter::Value>(
             [&](AnonymousVariable av) { return interpreter::Value(visit(av)); },
             [&](Variable v) { return interpreter::Value(visit(v)); },
-            [&](ConstructorRef cr) { return interpreter::Value(visit(cr, tr)); }
+            [&](ConstructorRef cr) { return interpreter::Value(visit(cr, tr)); },
+            [&](StringLiteral str) { return interpreter::Value(visit(str)); }
         );
     }
 

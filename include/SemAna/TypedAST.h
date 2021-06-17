@@ -64,11 +64,13 @@ bool operator!=(const Type &left, const Type &right);
 struct AnonymousVariable;
 struct Variable;
 struct ConstructorRef;
+struct StringLiteral;
 
 typedef TaggedUnion<
     AnonymousVariable,
     Variable,
-    ConstructorRef
+    ConstructorRef,
+    StringLiteral
 > ValueBase;
 class Value;
 
@@ -107,6 +109,17 @@ struct ConstructorRef {
 
 bool operator==(const ConstructorRef &left, const ConstructorRef &right);
 bool operator!=(const ConstructorRef &left, const ConstructorRef &right);
+
+/// Represents string literals, which are used to construct values of the
+/// builtin type String.
+struct StringLiteral {
+    StringLiteral(std::string value): value(value) {}
+
+    std::string value;
+};
+
+bool operator==(const StringLiteral &left, const StringLiteral &right);
+bool operator!=(const StringLiteral &left, const StringLiteral &right);
 
 class Value : public ValueBase {
 public:

@@ -149,6 +149,15 @@ public:
     }
 
     Optional<TypedAST::TypeDecl> visit(const TypeDecl &td) {
+        // Prevent user from overloading builtin types
+        if(td.name == "String") {
+            error.emit(
+                td.location,
+                ErrorMessage::builtin_redefined,
+                td.name.string());
+            return Optional<TypedAST::TypeDecl>();
+        }
+
         const auto originalDeclaration = std::find_if(
             ast.types.begin(),
             ast.types.end(),
@@ -169,6 +178,11 @@ public:
     }
 
     Optional<TypedAST::TypeRef> visit(const TypeRef &typeRef) {
+        // Short-circuit for builtin types
+        if(typeRef.name == "String") {
+            return TypedAST::TypeRef("String");
+        }
+
         if(!ast.resolveTypeRef(typeRef)) {
             error.emit(
                 typeRef.location,
@@ -316,8 +330,21 @@ public:
     }
 
     Optional<TypedAST::Value> visit(const StringLiteral &str) {
-        assert(false && "String literals are not supported yet!");
-        return Optional<TypedAST::Value>();
+        Type type;
+        if(inferredType.unwrapGuard(type)) {
+            assert(false && "type inference failed.");
+            return Optional<TypedAST::Value>();
+        }
+
+        if(type.declaration.name != "String") {
+            error.emit(
+                str.location,
+                ErrorMessage::string_literal_not_convertible,
+                type.declaration.name.string());
+            return Optional<TypedAST::Value>();
+        }
+
+        return TypedAST::Value(TypedAST::StringLiteral(str.text));
     }
 
     Optional<TypedAST::Value> visit(const Value &val) {

@@ -43,6 +43,17 @@ protected:
     StrictMock<MockErrorEmitter> error;
 };
 
+TEST_F(TestSemAnaPredicates, builtin_redefined) {
+    SourceLocation errorLocation(1, 5);
+    std::vector<Type> ts = {
+        Type(TypeDecl("String", errorLocation), {})
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::builtin_redefined, "String"));
+
+    checkAll(AST(ts, {}, {}), error);
+}
+
 TEST_F(TestSemAnaPredicates, undefined_predicate) {
     SourceLocation errorLocation(2, 10);
     std::vector<Predicate> ps = {
@@ -245,6 +256,23 @@ TEST_F(TestSemAnaPredicates, undefined_type) {
     checkAll(AST({}, {}, ps), error);
 }
 
+TEST_F(TestSemAnaPredicates, string_builtin_does_not_require_definition) {
+    // This test asserts that no compile-time error is produced by this program:
+    // pred p(String) {}
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl(
+                "p",
+                { TypeRef("String", SourceLocation(1, 7)) },
+                SourceLocation(1, 5)
+            ),
+            {}
+        )
+    };
+
+    checkAll(AST({}, {}, ps), error);
+}
+
 TEST_F(TestSemAnaPredicates, variable_redefinition) {
     // type Foo {}
     // pred p(Foo, Foo) {
@@ -327,4 +355,31 @@ TEST_F(TestSemAnaPredicates, type_redefinition) {
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::type_redefined, "Void", "1:5"));
 
     checkAll(AST(ts, {}, {}), error);
+}
+
+TEST_F(TestSemAnaPredicates, string_literal_not_convertible) {
+    // type Void {}
+    // pred p(Void) {
+    //     p("hi") <- true;
+    // }
+
+    SourceLocation errorLocation(3, 6);
+    std::vector<Type> ts = {
+        Type(TypeDecl("Void", SourceLocation(1, 5)), {})
+    };
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", { TypeRef("Void", SourceLocation(2, 7)) }, SourceLocation(2, 5)),
+            {
+                Implication(
+                    PredicateRef("p", { Value(StringLiteral("hi", errorLocation)) }, SourceLocation(3, 4)),
+                    TruthLiteral(true, SourceLocation(3, 15))
+                )
+            }
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::string_literal_not_convertible, "Void"));
+
+    checkAll(AST(ts, {}, ps), error);
 }

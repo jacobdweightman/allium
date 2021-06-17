@@ -6,9 +6,11 @@
 #include "values/ParserValues.h"
 
 enum class ErrorMessage {
+    builtin_redefined,
     constructor_argument_count,
     impl_head_mismatches_predicate,
     predicate_argument_count,
+    string_literal_not_convertible,
     type_redefined,
     undefined_predicate,
     undefined_type,

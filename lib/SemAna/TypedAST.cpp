@@ -71,6 +71,14 @@ bool operator!=(Variable left, Variable right) {
     return !(left == right);
 }
 
+bool operator==(const StringLiteral &left, const StringLiteral &right) {
+    return left.value == right.value;
+}
+
+bool operator!=(const StringLiteral &left, const StringLiteral &right) {
+    return !(left == right);
+}
+
 std::ostream& operator<<(std::ostream &out, const Value &val) {
     return val.match<std::ostream&>(
     [&](AnonymousVariable av) -> std::ostream& { return out << "_"; },
@@ -79,6 +87,9 @@ std::ostream& operator<<(std::ostream &out, const Value &val) {
         out << cr.name << "(";
         for(const auto &x : cr.arguments) out << x << ", ";
         return out << ")";
+    },
+    [&](StringLiteral str) -> std::ostream& {
+        return out << "\"" << str.value << "\"";
     });
 }
 

@@ -5,10 +5,14 @@
 
 std::string formatString(ErrorMessage msg) {
     switch(msg) {
+    case ErrorMessage::builtin_redefined:
+        return "Allium builtin \"%s\" cannot be redefined.";
     case ErrorMessage::constructor_argument_count:
         return "Constructor \"%s\" of type %s expects %s arguments.";
     case ErrorMessage::predicate_argument_count:
         return "Predicate \"%s\" expects %s arguments.";
+    case ErrorMessage::string_literal_not_convertible:
+        return "A string literal is not convertible to type \"%s\".";
     case ErrorMessage::type_redefined:
         return "Type \"%s\" was already defined at %s and cannot be redefined.";
     case ErrorMessage::undefined_predicate:

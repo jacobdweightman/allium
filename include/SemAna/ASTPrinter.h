@@ -24,6 +24,7 @@ public:
     void visit(const Implication &impl);
     void visit(const AnonymousVariable &av);
     void visit(const Variable &var);
+    void visit(const StringLiteral &str);
     void visit(const Value &val);
     void visit(const AST &ast);
 
