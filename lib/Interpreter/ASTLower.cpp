@@ -43,10 +43,8 @@ public:
         return interpreter::ConstructorRef(index, arguments);
     }
 
-    // TODO: return type -> interpreter::String which doesn't exist yet
-    interpreter::Value visit(const StringLiteral &str) {
-        assert(false && "not implemented!");
-        return interpreter::Value(interpreter::VariableRef());
+    interpreter::String visit(const StringLiteral &str) {
+        return interpreter::String(str.value);
     }
 
     interpreter::Value visit(const Value &val, const TypeRef &tr) {

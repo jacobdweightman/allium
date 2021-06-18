@@ -56,6 +56,23 @@ struct ConstructorRef {
 
 std::ostream& operator<<(std::ostream &out, const ConstructorRef &ctor);
 
+/// Represents a value of the builtin type String.
+struct String {
+    String(std::string str): value(str) {}
+
+    friend bool operator==(const String &lhs, const String &rhs) {
+        return lhs.value == rhs.value;
+    }
+
+    friend bool operator!=(const String &lhs, const String &rhs) {
+        return !(lhs == rhs);
+    }
+
+    std::string value;
+};
+
+std::ostream& operator<<(std::ostream &out, const String &str);
+
 struct VariableRef {
     VariableRef(): index(anonymousIndex) {}
     VariableRef(size_t index, bool isDefinition, bool isExistential):
@@ -79,10 +96,11 @@ struct VariableRef {
 
 std::ostream& operator<<(std::ostream &out, const VariableRef &vr);
 
-class Value : public TaggedUnion<ConstructorRef, Value *, VariableRef> {
+class Value : public TaggedUnion<ConstructorRef, String, Value *, VariableRef> {
 public:
     using ValueBase = TaggedUnion<
         ConstructorRef,
+        String,
         Value *,
         VariableRef
     >;

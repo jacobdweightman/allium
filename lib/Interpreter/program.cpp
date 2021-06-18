@@ -55,6 +55,10 @@ std::ostream& operator<<(std::ostream &out, const ConstructorRef &ctor) {
     return out << ")";
 }
 
+std::ostream& operator<<(std::ostream &out, const String &str) {
+    return out << str.value;
+}
+
 std::ostream& operator<<(std::ostream &out, const VariableRef &vr) {
     if(vr.index == VariableRef::anonymousIndex)
         out << "var _";
@@ -68,6 +72,7 @@ std::ostream& operator<<(std::ostream &out, const VariableRef &vr) {
 std::ostream& operator<<(std::ostream &out, const Value &val) {
     return val.match<std::ostream&>(
     [&](ConstructorRef cr) -> std::ostream& { return out << cr; },
+    [&](String str) -> std::ostream& { return out << str; },
     [&](Value *v) -> std::ostream& { return out << "ptr " << *v; },
     [&](VariableRef vr) -> std::ostream& { return out << vr; });
 }
