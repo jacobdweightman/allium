@@ -7,80 +7,80 @@ using namespace parser;
 
 TEST(TestParser, parse_true_as_truth_literal) {
     std::istringstream f("true");
-    Lexer lexer(f);
+    Parser p(f);
     
     EXPECT_EQ(
-        parseTruthLiteral(lexer),
+        p.parseTruthLiteral(),
         TruthLiteral(true, SourceLocation(1, 0))
     );
 }
 
 TEST(TestParser, parse_false_as_truth_literal) {
     std::istringstream f("false");
-    Lexer lexer(f);
+    Parser p(f);
     
     EXPECT_EQ(
-        parseTruthLiteral(lexer),
+        p.parseTruthLiteral(),
         TruthLiteral(false, SourceLocation(1, 0))
     );
 }
 
 TEST(TestParser, parse_invalid_truth_literal) {
     std::istringstream f("tralse");
-    Lexer lexer(f);
+    Parser p(f);
     
     EXPECT_EQ(
-        parseTruthLiteral(lexer),
+        p.parseTruthLiteral(),
         Optional<TruthLiteral>()
     );
 }
 
 TEST(TestParser, parse_simple_predicate_name) {
     std::istringstream f("open");
-    Lexer lexer(f);
+    Parser p(f);
     
     EXPECT_EQ(
-        parsePredicateRef(lexer),
+        p.parsePredicateRef(),
         PredicateRef("open", SourceLocation(1, 0))
     );
 }
 
 TEST(TestParser, parse_snake_case_predicate_name) {
     std::istringstream f("is_open");
-    Lexer lexer(f);
+    Parser p(f);
     
     EXPECT_EQ(
-        parsePredicateRef(lexer),
+        p.parsePredicateRef(),
         PredicateRef("is_open", SourceLocation(1, 0))
     );
 }
 
 TEST(TestParser, parse_predicate_name_does_not_match_whitespace) {
     std::istringstream f("open closed");
-    Lexer lexer(f);
+    Parser p(f);
     
     EXPECT_EQ(
-        parsePredicateRef(lexer),
+        p.parsePredicateRef(),
         PredicateRef("open", SourceLocation(1, 0))
     );
 }
 
 TEST(TestParser, parse_predicate_ignores_semicolon) {
     std::istringstream f("open;");
-    Lexer lexer(f);
+    Parser p(f);
     
     EXPECT_EQ(
-        parsePredicateRef(lexer),
+        p.parsePredicateRef(),
         PredicateRef("open", SourceLocation(1, 0))
     );
 }
 
 TEST(TestParser, parse_predicate_with_parameters) {
     std::istringstream f("tall(redwood)");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parsePredicateRef(lexer),
+        p.parsePredicateRef(),
         PredicateRef(
             "tall",
             { NamedValue("redwood", {}, SourceLocation(1, 5)) },
@@ -91,9 +91,9 @@ TEST(TestParser, parse_predicate_with_parameters) {
 
 TEST(TestParser, parse_predicate_with_variable_definition) {
     std::istringstream f("tall(let x)");
-    Lexer lexer(f);
+    Parser p(f);
 
-    auto actual = parsePredicateRef(lexer);
+    auto actual = p.parsePredicateRef();
 
     EXPECT_EQ(
         actual,
@@ -108,11 +108,11 @@ TEST(TestParser, parse_predicate_with_variable_definition) {
 TEST(TestParser, parse_predicate_with_variable_use) {
     // There is an ambiguity between variables used after definition and
     // constructors which take no arguments. This can be disambiguated during
-    // SemAna, so for now we parse variables as constructor references.
+    // SemAna, so for now we p.parse variables as constructor references.
     std::istringstream f("tall(x)");
-    Lexer lexer(f);
+    Parser p(f);
 
-    auto actual = parsePredicateRef(lexer);
+    auto actual = p.parsePredicateRef();
 
     EXPECT_EQ(
         actual,
@@ -136,30 +136,30 @@ TEST(TestParser, lex_peek_beginning) {
 
 TEST(TestParser, parse_truth_literal_as_expression) {
     std::istringstream f("false;");
-    Lexer lexer(f);
+    Parser p(f);
     
     EXPECT_EQ(
-        parseExpression(lexer),
+        p.parseExpression(),
         Expression(TruthLiteral(false, SourceLocation(1, 0)))
     );
 }
 
 TEST(TestParser, parse_predicate_name_as_expression) {
     std::istringstream f("open;");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseExpression(lexer),
+        p.parseExpression(),
         Expression(PredicateRef("open", SourceLocation(1, 0)))
     );
 }
 
 TEST(TestParser, parse_simple_conjunction_expression) {
     std::istringstream f("a, b;");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseExpression(lexer),
+        p.parseExpression(),
         Expression(Conjunction(
             Expression(PredicateRef("a", SourceLocation(1, 0))),
             Expression(PredicateRef("b", SourceLocation(1, 3)))
@@ -169,10 +169,10 @@ TEST(TestParser, parse_simple_conjunction_expression) {
 
 TEST(TestParser, parse_conjunction_left_associative) {
     std::istringstream f("a, b, c;");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseExpression(lexer),
+        p.parseExpression(),
         Expression(Conjunction(
             Expression(Conjunction(
                 Expression(PredicateRef("a", SourceLocation(1, 0))),
@@ -185,10 +185,10 @@ TEST(TestParser, parse_conjunction_left_associative) {
 
 TEST(TestParser, parse_implication) {
     std::istringstream f("main <- true;");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseImplication(lexer),
+        p.parseImplication(),
         Implication(
             PredicateRef("main", SourceLocation(1, 0)),
             Expression(TruthLiteral(true, SourceLocation(1, 8)))
@@ -198,10 +198,10 @@ TEST(TestParser, parse_implication) {
 
 TEST(TestParser, parse_implication_without_whitespace) {
     std::istringstream f("main<-somePredicate;");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseImplication(lexer),
+        p.parseImplication(),
         Implication(
             PredicateRef("main", SourceLocation(1, 0)),
             Expression(PredicateRef("somePredicate", SourceLocation(1, 6)))
@@ -211,10 +211,10 @@ TEST(TestParser, parse_implication_without_whitespace) {
 
 TEST(TestParser, parse_trivial_predicate) {
     std::istringstream f("pred trivial { }");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parsePredicate(lexer),
+        p.parsePredicate(),
         Predicate(
             PredicateDecl("trivial", {}, SourceLocation(1, 5)),
             std::vector<Implication>()
@@ -224,10 +224,10 @@ TEST(TestParser, parse_trivial_predicate) {
 
 TEST(TestParser, parse_predicate_unspaced_braces) {
     std::istringstream f("pred trivial {}");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parsePredicate(lexer),
+        p.parsePredicate(),
         Predicate(
             PredicateDecl("trivial", {}, SourceLocation(1, 5)),
             std::vector<Implication>()
@@ -237,10 +237,10 @@ TEST(TestParser, parse_predicate_unspaced_braces) {
 
 TEST(TestParser, parse_predicate_with_implications) {
     std::istringstream f("pred trivial { trivial <- true; }");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parsePredicate(lexer),
+        p.parsePredicate(),
         Predicate(
             PredicateDecl("trivial", {}, SourceLocation(1, 5)),
             std::vector<Implication>({
@@ -255,10 +255,10 @@ TEST(TestParser, parse_predicate_with_implications) {
 
 TEST(TestParser, parse_predicate_minimal_whitespace) {
     std::istringstream f("pred trivial{trivial <- true;}");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parsePredicate(lexer),
+        p.parsePredicate(),
         Predicate(
             PredicateDecl("trivial", {}, SourceLocation(1, 5)),
             std::vector<Implication>({
@@ -277,10 +277,10 @@ TEST(TestParser, parse_predicate_multiple_implications) {
         "    a <- b;\n"
         "    a <- c;\n"
         "}");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parsePredicate(lexer),
+        p.parsePredicate(),
         Predicate(
             PredicateDecl("a", {}, SourceLocation(1, 5)),
             std::vector<Implication>({
@@ -299,30 +299,30 @@ TEST(TestParser, parse_predicate_multiple_implications) {
 
 TEST(TestParser, parse_type_ref) {
     std::istringstream f("IceCreamFlavor");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseTypeRef(lexer),
+        p.parseTypeRef(),
         TypeRef("IceCreamFlavor", SourceLocation(1, 0))
     );
 }
 
 TEST(TestParser, parse_constructor) {
     std::istringstream f("ctor vanilla;");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseConstructor(lexer),
+        p.parseConstructor(),
         Constructor("vanilla", {}, SourceLocation(1, 5))
     );
 }
 
 TEST(TestParser, parse_constructor_with_one) {
     std::istringstream f("ctor s(Nat);");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseConstructor(lexer),
+        p.parseConstructor(),
         Constructor(
             "s",
             { TypeRef("Nat", SourceLocation(1, 7)) },
@@ -333,10 +333,10 @@ TEST(TestParser, parse_constructor_with_one) {
 
 TEST(TestParser, parse_constructor_with_multiple_parameters) {
     std::istringstream f("ctor sundae(IceCream, Sauce);");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseConstructor(lexer),
+        p.parseConstructor(),
         Constructor(
             "sundae",
             {
@@ -350,20 +350,20 @@ TEST(TestParser, parse_constructor_with_multiple_parameters) {
 
 TEST(TestParser, parse_simple_constructor_ref) {
     std::istringstream f("vinaigrette");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseValue(lexer),
+        p.parseValue(),
         Value(NamedValue("vinaigrette", {}, SourceLocation(1, 0)))
     );
 }
 
 TEST(TestParser, parse_constructor_ref_with_argument) {
     std::istringstream f("s(zero)");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseValue(lexer),
+        p.parseValue(),
         Value(NamedValue(
             "s",
             { NamedValue("zero", {}, SourceLocation(1, 2)) },
@@ -374,40 +374,40 @@ TEST(TestParser, parse_constructor_ref_with_argument) {
 
 TEST(TestParser, parse_string_literal) {
     std::istringstream f("\"hello world\"");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseValue(lexer),
+        p.parseValue(),
         Value(StringLiteral("hello world", SourceLocation(1, 0)))
     );
 }
 
 TEST(TestParser, parse_string_literal_mismatched_quotes) {
     std::istringstream f("\"hello world");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseValue(lexer),
+        p.parseValue(),
         Optional<Value>()
     );
 }
 
 TEST(TestParser, parse_string_literal_cannot_contain_newline) {
     std::istringstream f("\"hello\nworld\"");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseValue(lexer),
+        p.parseValue(),
         Optional<Value>()
     );
 }
 
 TEST(TestParser, parse_uninhabited_type) {
     std::istringstream f("type void {}");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseType(lexer),
+        p.parseType(),
         Type(TypeDecl("void", SourceLocation(1, 5)), {})
     );
 }
@@ -417,10 +417,10 @@ TEST(TestParser, parse_unit_type) {
         "type unit {\n"
         "    ctor unit;\n"
         "}");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseType(lexer),
+        p.parseType(),
         Type(
             TypeDecl("unit", SourceLocation(1, 5)),
             { Constructor("unit", {}, SourceLocation(2, 9)) }
@@ -434,10 +434,10 @@ TEST(TestParser, parse_recursive_type) {
         "    ctor zero;\n"
         "    ctor s(Nat);\n"
         "}");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseType(lexer),
+        p.parseType(),
         Type(
             TypeDecl("Nat", SourceLocation(1, 5)),
             {
@@ -452,10 +452,10 @@ TEST(TestParser, parse_recursive_type) {
 
 TEST(TestParser, parse_uninhabited_effect) {
     std::istringstream f("effect Never {}\n");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseEffect(lexer),
+        p.parseEffect(),
         Effect(EffectDecl("Never", SourceLocation(1, 7)), {})
     );
 }
@@ -465,10 +465,10 @@ TEST(TestParser, parse_effect_with_constructor) {
         "effect Exception {\n"
         "    ctor Raise;"
         "}\n");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseEffect(lexer),
+        p.parseEffect(),
         Effect(
             EffectDecl("Exception", SourceLocation(1, 7)),
             {
@@ -484,10 +484,10 @@ TEST(TestParser, parse_effect_with_constructors_and_arguments) {
         "    ctor Open(String, File);\n"
         "    ctor Close(File);\n"
         "}\n");
-    Lexer lexer(f);
+    Parser p(f);
 
     EXPECT_EQ(
-        parseEffect(lexer),
+        p.parseEffect(),
         Effect(
             EffectDecl("IO", SourceLocation(1, 7)),
             {

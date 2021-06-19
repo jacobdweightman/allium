@@ -10,24 +10,36 @@
 
 namespace parser {
 
-Optional<Implication> parseImplication(Lexer &lexer);
-Optional<Predicate> parsePredicate(Lexer &lexer);
-Optional<Type> parseType(Lexer &lexer);
-Optional<Effect> parseEffect(Lexer &lexer);
-Optional<AST> parseAST(Lexer &lexer);
+class Parser {
+public:
+    Parser(std::istream &f): lexer(f) {}
 
-// Exposed for test
-// TODO: guard these declarations with a compile flag.
-Optional<TruthLiteral> parseTruthLiteral(Lexer &lexer);
-Optional<PredicateDecl> parsePredicateDecl(Lexer &lexer);
-Optional<PredicateRef> parsePredicateRef(Lexer &lexer);
-Optional<Expression> parseExpression(Lexer &lexer);
-Optional<TypeDecl> parseTypeDecl(Lexer &lexer);
-Optional<TypeRef> parseTypeRef(Lexer &lexer);
-Optional<Constructor> parseConstructor(Lexer &lexer);
-Optional<NamedValue> parseNamedValue(Lexer &lexer);
-Optional<StringLiteral> parseStringLiteral(Lexer &lexer);
-Optional<Value> parseValue(Lexer &lexer);
+    Optional<Implication> parseImplication();
+    Optional<Predicate> parsePredicate();
+    Optional<Type> parseType();
+    Optional<Effect> parseEffect();
+    Optional<AST> parseAST();
+
+    // Exposed for test
+    // TODO: guard these declarations with a compile flag.
+    Optional<TruthLiteral> parseTruthLiteral();
+    Optional<PredicateDecl> parsePredicateDecl();
+    Optional<PredicateRef> parsePredicateRef();
+    Optional<Expression> parseExpression();
+    Optional<TypeDecl> parseTypeDecl();
+    Optional<TypeRef> parseTypeRef();
+    Optional<Constructor> parseConstructor();
+    Optional<NamedValue> parseNamedValue();
+    Optional<StringLiteral> parseStringLiteral();
+    Optional<Value> parseValue();
+
+private:
+    Optional<Expression> parseAtom();
+    Optional<EffectDecl> parseEffectDecl();
+    Optional<EffectConstructor> parseEffectConstructor();
+
+    Lexer lexer;
+};
 
 }
 

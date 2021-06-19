@@ -7,7 +7,7 @@ namespace parser {
 /// match.
 ///
 /// Note: rewinds the lexer on failure.
-Optional<TruthLiteral> parseTruthLiteral(Lexer &lexer) {
+Optional<TruthLiteral> Parser::parseTruthLiteral() {
     Token next = lexer.take_next();
     switch(next.type) {
     case Token::Type::true_literal:
@@ -23,7 +23,7 @@ Optional<TruthLiteral> parseTruthLiteral(Lexer &lexer) {
 /// Consumes an identifier from the lexer, and produces an AST node to match.
 ///
 /// Note: rewinds the lexer on failure.
-Optional<PredicateDecl> parsePredicateDecl(Lexer &lexer) {
+Optional<PredicateDecl> Parser::parsePredicateDecl() {
     Token identifier = lexer.take_next();
     if(identifier.type == Token::Type::identifier) {
         Token next = lexer.peek_next();
@@ -34,7 +34,7 @@ Optional<PredicateDecl> parsePredicateDecl(Lexer &lexer) {
             TypeRef pType;
 
             do {
-                if(parseTypeRef(lexer).unwrapInto(pType)) {
+                if(parseTypeRef().unwrapInto(pType)) {
                     parameters.push_back(pType);
                 } else {
                     // requires an argument
@@ -65,7 +65,7 @@ Optional<PredicateDecl> parsePredicateDecl(Lexer &lexer) {
     }
 }
 
-Optional<NamedValue> parseNamedValue(Lexer &lexer) {
+Optional<NamedValue> Parser::parseNamedValue() {
     Token next = lexer.peek_next();
     Token identifier;
 
@@ -86,7 +86,7 @@ Optional<NamedValue> parseNamedValue(Lexer &lexer) {
     if(lexer.take(Token::Type::paren_l)) {
         std::vector<Value> arguments;
         do {
-            parseValue(lexer).map([&](Value arg) {
+            parseValue().map([&](Value arg) {
                 arguments.push_back(arg);
             });
         } while(lexer.take(Token::Type::comma));
@@ -106,7 +106,7 @@ Optional<NamedValue> parseNamedValue(Lexer &lexer) {
     }
 }
 
-Optional<StringLiteral> parseStringLiteral(Lexer &lexer) {
+Optional<StringLiteral> Parser::parseStringLiteral() {
     Token token;
 
     // <string-literal> := '"' + any text + '"' (greedy)
@@ -117,16 +117,16 @@ Optional<StringLiteral> parseStringLiteral(Lexer &lexer) {
     }
 }
 
-Optional<Value> parseValue(Lexer &lexer) {
+Optional<Value> Parser::parseValue() {
     NamedValue nv;
     StringLiteral str;
 
     // <value> := <named-value>
-    if(parseNamedValue(lexer).unwrapInto(nv)) {
+    if(parseNamedValue().unwrapInto(nv)) {
         return Value(nv);
 
     // <value> := <string-literal>
-    } else if(parseStringLiteral(lexer).unwrapInto(str)) {
+    } else if(parseStringLiteral().unwrapInto(str)) {
         return Value(str);
 
     } else {
@@ -137,7 +137,7 @@ Optional<Value> parseValue(Lexer &lexer) {
 /// Consumes an identifier from the lexer, and produces an AST node to match.
 ///
 /// Note: rewinds the lexer on failure.
-Optional<PredicateRef> parsePredicateRef(Lexer &lexer) {
+Optional<PredicateRef> Parser::parsePredicateRef() {
     Token identifier = lexer.take_next();
     if(identifier.type == Token::Type::identifier) {
         Token next = lexer.peek_next();
@@ -147,7 +147,7 @@ Optional<PredicateRef> parsePredicateRef(Lexer &lexer) {
             std::vector<Value> arguments;
 
             do {
-                parseValue(lexer).map([&](Value val) {
+                parseValue().map([&](Value val) {
                     arguments.push_back(val);
                 });
             } while(lexer.take(Token::Type::comma));
@@ -171,16 +171,16 @@ Optional<PredicateRef> parsePredicateRef(Lexer &lexer) {
 }
 
 /// Parses a truth literal or predicate from the stream.
-Optional<Expression> parseAtom(Lexer &lexer) {
+Optional<Expression> Parser::parseAtom() {
     TruthLiteral tl;
     PredicateRef p;
 
     // <atom> := <truth-literal>
-    if(parseTruthLiteral(lexer).unwrapInto(tl)) {
+    if(parseTruthLiteral().unwrapInto(tl)) {
         return Optional(Expression(tl));
     
     // <atom> := <predicate-name>
-    } else if(parsePredicateRef(lexer).unwrapInto(p)) {
+    } else if(parsePredicateRef().unwrapInto(p)) {
         return Optional(Expression(p));
 
     } else
@@ -188,7 +188,7 @@ Optional<Expression> parseAtom(Lexer &lexer) {
 }
 
 /// Constructs a parse tree of an expression.
-Optional<Expression> parseExpression(Lexer &lexer) {
+Optional<Expression> Parser::parseExpression() {
     Token first = lexer.peek_next();
 
     // TODO: refactor optional "pyramid of doom."
@@ -197,12 +197,12 @@ Optional<Expression> parseExpression(Lexer &lexer) {
     Expression e;
 
     // <expression> := <atom>
-    if(parseAtom(lexer).unwrapInto(e)) {
+    if(parseAtom().unwrapInto(e)) {
         Expression r;
 
         // <expression> := <expression> "," <atom>
         while(lexer.take(Token::Type::comma)) {
-            if(parseAtom(lexer).unwrapInto(r)) {
+            if(parseAtom().unwrapInto(r)) {
                 e = Expression(Conjunction(e, r));
             } else {
                 lexer.rewind(first);
@@ -217,7 +217,7 @@ Optional<Expression> parseExpression(Lexer &lexer) {
     }
 }
 
-Optional<Implication> parseImplication(Lexer &lexer) {
+Optional<Implication> Parser::parseImplication() {
     Token first = lexer.peek_next();
 
     PredicateRef p;
@@ -225,9 +225,9 @@ Optional<Implication> parseImplication(Lexer &lexer) {
 
     // <implication> :=
     //     <predicate-name> "<-" <expression> "."
-    if( parsePredicateRef(lexer).unwrapInto(p) &&
+    if( parsePredicateRef().unwrapInto(p) &&
         lexer.take(Token::Type::implied_by) &&
-        parseExpression(lexer).unwrapInto(expr) &&
+        parseExpression().unwrapInto(expr) &&
         lexer.take(Token::Type::end_of_statement)) {
             return Implication(p, expr);
     } else {
@@ -236,7 +236,7 @@ Optional<Implication> parseImplication(Lexer &lexer) {
     }
 }
 
-Optional<Predicate> parsePredicate(Lexer &lexer) {
+Optional<Predicate> Parser::parsePredicate() {
     Token first = lexer.peek_next();
 
     PredicateDecl decl;
@@ -245,10 +245,10 @@ Optional<Predicate> parsePredicate(Lexer &lexer) {
     // <predicate> :=
     //     "pred" <predicate-name> "{" <0-or-more-implications> "}"
     if( lexer.take(Token::Type::kw_pred) &&
-        parsePredicateDecl(lexer).unwrapInto(decl) &&
+        parsePredicateDecl().unwrapInto(decl) &&
         lexer.take(Token::Type::brace_l)) {
             Implication impl;
-            while(parseImplication(lexer).unwrapInto(impl)) {
+            while(parseImplication().unwrapInto(impl)) {
                 implications.push_back(impl);
             }
 
@@ -264,7 +264,7 @@ Optional<Predicate> parsePredicate(Lexer &lexer) {
     }
 }
 
-Optional<TypeDecl> parseTypeDecl(Lexer &lexer) {
+Optional<TypeDecl> Parser::parseTypeDecl() {
     Token next = lexer.take_next();
     if(next.type == Token::Type::identifier) {
         return TypeDecl(next.text, next.location);
@@ -274,7 +274,7 @@ Optional<TypeDecl> parseTypeDecl(Lexer &lexer) {
     }
 }
 
-Optional<TypeRef> parseTypeRef(Lexer &lexer) {
+Optional<TypeRef> Parser::parseTypeRef() {
     Token next = lexer.take_next();
     if(next.type == Token::Type::identifier) {
         return TypeRef(next.text, next.location);
@@ -284,7 +284,7 @@ Optional<TypeRef> parseTypeRef(Lexer &lexer) {
     }
 }
 
-Optional<Constructor> parseConstructor(Lexer &lexer) {
+Optional<Constructor> Parser::parseConstructor() {
     Token next = lexer.peek_next();
 
     Token identifier;
@@ -307,7 +307,7 @@ Optional<Constructor> parseConstructor(Lexer &lexer) {
         std::vector<TypeRef> parameters;
         TypeRef type;
         do {
-            if(parseTypeRef(lexer).unwrapInto(type)) {
+            if(parseTypeRef().unwrapInto(type)) {
                 parameters.push_back(type);
             } else {
                 // requires a parameter
@@ -333,7 +333,7 @@ Optional<Constructor> parseConstructor(Lexer &lexer) {
     return Optional<Constructor>();
 }
 
-Optional<Type> parseType(Lexer &lexer) {
+Optional<Type> Parser::parseType() {
     Token first = lexer.peek_next();
 
     TypeDecl declaration;
@@ -341,12 +341,12 @@ Optional<Type> parseType(Lexer &lexer) {
     // <type> :=
     //     "type" <type-name> "{" "}"
     if( lexer.take(Token::Type::kw_type) &&
-        parseTypeDecl(lexer).unwrapInto(declaration) &&
+        parseTypeDecl().unwrapInto(declaration) &&
         lexer.take(Token::Type::brace_l)) {
 
             std::vector<Constructor> ctors;
             Constructor ctor;
-            while(parseConstructor(lexer).unwrapInto(ctor)) {
+            while(parseConstructor().unwrapInto(ctor)) {
                 ctors.push_back(ctor);
             }
 
@@ -362,7 +362,7 @@ Optional<Type> parseType(Lexer &lexer) {
     }
 }
 
-Optional<EffectDecl> parseEffectDecl(Lexer &lexer) {
+Optional<EffectDecl> Parser::parseEffectDecl() {
     Token next = lexer.take_next();
     if(next.type == Token::Type::identifier) {
         return EffectDecl(next.text, next.location);
@@ -372,7 +372,7 @@ Optional<EffectDecl> parseEffectDecl(Lexer &lexer) {
     }
 }
 
-Optional<EffectConstructor> parseEffectConstructor(Lexer &lexer) {
+Optional<EffectConstructor> Parser::parseEffectConstructor() {
     Token next = lexer.peek_next();
 
     Token identifier;
@@ -395,7 +395,7 @@ Optional<EffectConstructor> parseEffectConstructor(Lexer &lexer) {
         std::vector<TypeRef> parameters;
         TypeRef type;
         do {
-            if(parseTypeRef(lexer).unwrapInto(type)) {
+            if(parseTypeRef().unwrapInto(type)) {
                 parameters.push_back(type);
             } else {
                 // requires a parameter
@@ -421,19 +421,19 @@ Optional<EffectConstructor> parseEffectConstructor(Lexer &lexer) {
     return Optional<EffectConstructor>();
 }
 
-Optional<Effect> parseEffect(Lexer &lexer) {
+Optional<Effect> Parser::parseEffect() {
     Token first = lexer.peek_next();
 
     EffectDecl declaration;
 
     // <effect> := "type" <type-name> "{" "}"
     if( lexer.take(Token::Type::kw_effect) &&
-        parseEffectDecl(lexer).unwrapInto(declaration) &&
+        parseEffectDecl().unwrapInto(declaration) &&
         lexer.take(Token::Type::brace_l)) {
 
             std::vector<EffectConstructor> ctors;
             EffectConstructor ctor;
-            while(parseEffectConstructor(lexer).unwrapInto(ctor)) {
+            while(parseEffectConstructor().unwrapInto(ctor)) {
                 ctors.push_back(ctor);
             }
 
@@ -449,7 +449,7 @@ Optional<Effect> parseEffect(Lexer &lexer) {
     }
 }
 
-Optional<AST> parseAST(Lexer &lexer) {
+Optional<AST> Parser::parseAST() {
     std::vector<Predicate> predicates;
     std::vector<Type> types;
     std::vector<Effect> effects;
@@ -460,17 +460,17 @@ Optional<AST> parseAST(Lexer &lexer) {
     bool changed;
     do {
         changed = false;
-        if(parsePredicate(lexer).unwrapInto(p)) {
+        if(parsePredicate().unwrapInto(p)) {
             predicates.push_back(p);
             changed = true;
         }
 
-        if(parseType(lexer).unwrapInto(t)) {
+        if(parseType().unwrapInto(t)) {
             types.push_back(t);
             changed = true;
         }
 
-        if(parseEffect(lexer).unwrapInto(e)) {
+        if(parseEffect().unwrapInto(e)) {
             effects.push_back(e);
             changed = true;
         }

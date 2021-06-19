@@ -74,11 +74,9 @@ int main(int argc, char *argv[]) {
     // Note: we currently only support single-file programs. This will need to
     // change someday to support multi-file programs.
     std::ifstream file(arguments.filePaths.front());
-    parser::Lexer lexer(file);
-
     ErrorEmitter errorEmitter(std::cout);
-    
-    parseAST(lexer).then([&](const parser::AST &ast) {
+
+    parser::Parser(file).parseAST().then([&](const parser::AST &ast) {
         if(arguments.printAST == Arguments::PrintASTMode::SYNTACTIC) {
             parser::ASTPrinter(std::cout).visit(ast);
             exit(0);
