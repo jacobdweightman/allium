@@ -6,9 +6,9 @@
 #include <memory>
 #include <vector>
 
-#include "values/Optional.h"
-#include "values/TaggedUnion.h"
-#include "values/ParserValues.h"
+#include "Utils/Optional.h"
+#include "Utils/TaggedUnion.h"
+#include "Utils/ParserValues.h"
 
 namespace parser {
 

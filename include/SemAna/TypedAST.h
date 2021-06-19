@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
-#include "values/ParserValues.h"
-#include "values/TaggedUnion.h"
+#include "Utils/ParserValues.h"
+#include "Utils/TaggedUnion.h"
 
 /// The structs in this namespace represent the nodes of a fully resolved and
 /// semantically valid AST.

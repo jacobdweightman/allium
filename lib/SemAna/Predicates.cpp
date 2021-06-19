@@ -4,7 +4,7 @@
 #include "Parser/AST.h"
 #include "SemAna/Predicates.h"
 #include "SemAna/TypedAST.h"
-#include "values/VectorUtils.h"
+#include "Utils/VectorUtils.h"
 
 using namespace parser;
 

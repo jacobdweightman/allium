@@ -7,7 +7,7 @@
 #include <memory>
 #include <vector>
 
-#include "../values/TaggedUnion.h"
+#include "Utils/TaggedUnion.h"
 
 // Define the value types of the language which are used by the interpreter.
 // The AST is lowered into these types after semantic analysis so that the

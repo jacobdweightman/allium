@@ -10,7 +10,7 @@
 #include "SemAna/ASTPrinter.h"
 #include "SemAna/StaticError.h"
 #include "SemAna/Predicates.h"
-#include "values/Optional.h"
+#include "Utils/Optional.h"
 
 struct Arguments {
     /// Represents the possible modes for writing the AST to stdout.

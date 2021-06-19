@@ -3,8 +3,8 @@
 
 #include <string>
 
-#include "values/Optional.h"
-#include "values/TaggedUnion.h"
+#include "Utils/Optional.h"
+#include "Utils/TaggedUnion.h"
 #include "Parser/AST.h"
 #include "Parser/lexer.h"
 
