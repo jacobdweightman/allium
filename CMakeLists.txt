@@ -81,6 +81,18 @@ target_link_libraries(unittests AlliumSemAna)
 target_link_libraries(unittests AlliumInterpreter)
 
 #############################
+# functional tests
+#############################
+
+add_custom_target(functionaltests
+  COMMAND python ${CMAKE_SOURCE_DIR}/tests/runner.py $<TARGET_FILE:allium>)
+add_test(NAME functionaltests
+  COMMAND python ${CMAKE_SOURCE_DIR}/tests/runner.py $<TARGET_FILE:allium>)
+
+set_target_properties(functionaltests PROPERTIES
+  EXCLUDE_FROM_ALL TRUE)
+
+#############################
 # googletest
 #############################
 # Source: https://github.com/google/googletest/blob/master/googletest/README.md

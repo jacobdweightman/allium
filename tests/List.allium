@@ -15,5 +15,5 @@ pred second(Word, Letter) {
 pred main {
     main <- second(
         ht(a, ht(b, ht(a, ht(a, empty)))),
-        a);
+        b);
 }
