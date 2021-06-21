@@ -82,7 +82,6 @@ int main(int argc, char *argv[]) {
             exit(0);
         }
     }).error([]() {
-        std::cout << "Syntax error.\n";
         exit(1);
     })
 

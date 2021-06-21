@@ -37,7 +37,7 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
                 if(parseTypeRef().unwrapInto(pType)) {
                     parameters.push_back(pType);
                 } else {
-                    // requires an argument
+                    emitSyntaxError("Expected an additional argument after \",\" in parameter list.");
                     lexer.rewind(next);
                     return Optional<PredicateDecl>();
                 }
@@ -49,7 +49,7 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
                     parameters,
                     identifier.location);
             } else {
-                // requires a ")"
+                emitSyntaxError("Expected a \",\" or \")\" after parameter.");
                 lexer.rewind(next);
                 return Optional<PredicateDecl>();
             }
@@ -86,8 +86,12 @@ Optional<NamedValue> Parser::parseNamedValue() {
     if(lexer.take(Token::Type::paren_l)) {
         std::vector<Value> arguments;
         do {
-            parseValue().map([&](Value arg) {
+            parseValue().switchOver<void>(
+            [&](Value arg) {
                 arguments.push_back(arg);
+            },
+            [&]() {
+                emitSyntaxError("Expected argument after \",\" in argument list.");
             });
         } while(lexer.take(Token::Type::comma));
 
@@ -97,7 +101,7 @@ Optional<NamedValue> Parser::parseNamedValue() {
                 arguments,
                 identifier.location);
         } else {
-            // expected ")"
+            emitSyntaxError("Expected a \",\" or \")\" after argument.");
             lexer.rewind(next);
             return Optional<NamedValue>();
         }
@@ -109,7 +113,7 @@ Optional<NamedValue> Parser::parseNamedValue() {
 Optional<StringLiteral> Parser::parseStringLiteral() {
     Token token;
 
-    // <string-literal> := '"' + any text + '"' (greedy)
+    // <string-literal> := <string-literal-token>
     if(lexer.take_token(Token::Type::string_literal).unwrapInto(token)) {
         return StringLiteral(token.text, token.location);
     } else {
@@ -147,15 +151,19 @@ Optional<PredicateRef> Parser::parsePredicateRef() {
             std::vector<Value> arguments;
 
             do {
-                parseValue().map([&](Value val) {
+                parseValue().switchOver<void>(
+                [&](Value val) {
                     arguments.push_back(val);
+                },
+                [&]() {
+                    emitSyntaxError("Expected argument after \",\" in argument list.");
                 });
             } while(lexer.take(Token::Type::comma));
 
             if(lexer.take(Token::Type::paren_r)) {
                 return PredicateRef(identifier.text, arguments, identifier.location);
             } else {
-                // requires a ")"
+                emitSyntaxError("Expected a \",\" or \")\" after argument.");
                 lexer.rewind(next);
                 return Optional<PredicateRef>();
             }
@@ -220,19 +228,35 @@ Optional<Expression> Parser::parseExpression() {
 Optional<Implication> Parser::parseImplication() {
     Token first = lexer.peek_next();
 
+    auto rewindAndReturn = [&]() {
+        lexer.rewind(first);
+        return Optional<Implication>();
+    };
+
     PredicateRef p;
-    Expression expr;
 
     // <implication> :=
     //     <predicate-name> "<-" <expression> "."
-    if( parsePredicateRef().unwrapInto(p) &&
-        lexer.take(Token::Type::implied_by) &&
-        parseExpression().unwrapInto(expr) &&
-        lexer.take(Token::Type::end_of_statement)) {
+    if(parsePredicateRef().unwrapInto(p)) {
+        if(!lexer.take(Token::Type::implied_by)) {
+            emitSyntaxError("Expected a \"<-\" after the head of an implication.");
+            return rewindAndReturn();
+        }
+
+        Expression expr;
+        if(parseExpression().unwrapGuard(expr)) {
+            emitSyntaxError("Expected an expression after \"<-\" in an implication.");
+            return rewindAndReturn();
+        }
+
+        if(lexer.take(Token::Type::end_of_statement)) {
             return Implication(p, expr);
+        } else {
+            emitSyntaxError("Expected a \";\" at the end of an implication.");
+            return rewindAndReturn();
+        }
     } else {
-        lexer.rewind(first);
-        return Optional<Implication>();
+        return rewindAndReturn();
     }
 }
 
@@ -255,6 +279,7 @@ Optional<Predicate> Parser::parsePredicate() {
             if(lexer.take(Token::Type::brace_r)) {
                 return Predicate(decl, implications);
             } else {
+                emitSyntaxError("Expected \"}\" at the end of a predicate definition.");
                 lexer.rewind(first);
                 return Optional<Predicate>();
             }
@@ -336,29 +361,39 @@ Optional<Constructor> Parser::parseConstructor() {
 Optional<Type> Parser::parseType() {
     Token first = lexer.peek_next();
 
+    auto rewindAndReturn = [&]() {
+        lexer.rewind(first);
+        return Optional<Type>();
+    };
+
     TypeDecl declaration;
 
     // <type> :=
     //     "type" <type-name> "{" "}"
-    if( lexer.take(Token::Type::kw_type) &&
-        parseTypeDecl().unwrapInto(declaration) &&
-        lexer.take(Token::Type::brace_l)) {
+    if(!lexer.take(Token::Type::kw_type)) {
+        return rewindAndReturn();
+    }
 
-            std::vector<Constructor> ctors;
-            Constructor ctor;
-            while(parseConstructor().unwrapInto(ctor)) {
-                ctors.push_back(ctor);
-            }
+    if(parseTypeDecl().unwrapGuard(declaration)) {
+        emitSyntaxError("Type name is missing from type declaration.");
+        return rewindAndReturn();
+    }
 
-            if(lexer.take(Token::Type::brace_r)) {
-                return Type(declaration, ctors);
-            } else {
-                lexer.rewind(first);
-                return Optional<Type>();
-            }
+    if(lexer.take(Token::Type::brace_l)) {
+        std::vector<Constructor> ctors;
+        Constructor ctor;
+        while(parseConstructor().unwrapInto(ctor)) {
+            ctors.push_back(ctor);
+        }
+
+        if(lexer.take(Token::Type::brace_r)) {
+            return Type(declaration, ctors);
+        } else {
+            emitSyntaxError("Closing \"}\" is missing from type definition.");
+            return rewindAndReturn();
+        }
     } else {
-        lexer.rewind(first);
-        return Optional<Type>();
+        return rewindAndReturn();
     }
 }
 
@@ -476,7 +511,17 @@ Optional<AST> Parser::parseAST() {
         }
     } while(changed);
 
-    return AST(types, effects, predicates);
+    if(foundSyntaxError) {
+        return Optional<AST>();
+    } else {
+        return AST(types, effects, predicates);
+    }
+}
+
+void Parser::emitSyntaxError(std::string message) {
+    out << "syntax error " << lexer.peek_next().location <<
+        " - " << message << "\n";
+    foundSyntaxError = true;
 }
 
 } // namespace parser

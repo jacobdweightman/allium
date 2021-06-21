@@ -12,7 +12,8 @@ namespace parser {
 
 class Parser {
 public:
-    Parser(std::istream &f): lexer(f) {}
+    Parser(std::istream &f, std::ostream &out = std::cout):
+        lexer(f), out(std::cout) {}
 
     Optional<Implication> parseImplication();
     Optional<Predicate> parsePredicate();
@@ -38,7 +39,11 @@ private:
     Optional<EffectDecl> parseEffectDecl();
     Optional<EffectConstructor> parseEffectConstructor();
 
+    void emitSyntaxError(std::string message);
+
     Lexer lexer;
+    std::ostream &out;
+    bool foundSyntaxError = false;
 };
 
 }
