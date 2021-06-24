@@ -25,6 +25,36 @@ TEST(TestParser, parse_false_as_truth_literal) {
     );
 }
 
+TEST(TestParser, lexer_ignores_comments) {
+    std::istringstream f("// comment\ntrue");
+    Parser p(f);
+    
+    EXPECT_EQ(
+        p.parseTruthLiteral(),
+        TruthLiteral(true, SourceLocation(2, 0))
+    );
+}
+
+TEST(TestParser, lexer_ignores_consecutive_comments) {
+    std::istringstream f("// comment 1\n// comment 2\ntrue");
+    Parser p(f);
+    
+    EXPECT_EQ(
+        p.parseTruthLiteral(),
+        TruthLiteral(true, SourceLocation(3, 0))
+    );
+}
+
+TEST(TestParser, lexer_ignores_consecutive_comments_with_leading_whitespace) {
+    std::istringstream f("  // comment 1\n  // comment 2\ntrue");
+    Parser p(f);
+    
+    EXPECT_EQ(
+        p.parseTruthLiteral(),
+        TruthLiteral(true, SourceLocation(3, 0))
+    );
+}
+
 TEST(TestParser, parse_invalid_truth_literal) {
     std::istringstream f("tralse");
     Parser p(f);

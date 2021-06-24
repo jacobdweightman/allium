@@ -20,6 +20,12 @@ type State {
     ctor check;
 }
 
+// Simulates a turing machine which accepts strings of the form (A^n)(B^n)(C^n).
+//
+// State - starting state of the TM
+// Symbol - the symbol under the reader head of the TM
+// HalfTape - the symbols to the left of the read head, in "reverse" order
+// HalfTape - the symbols to the right of the reader head, in "forward" order
 pred simulate(State, Symbol, HalfTape, HalfTape) {
     simulate(markA, a, let l, cons(let next, let r)) <- simulate(markB, next, cons(markA, l), r);
     simulate(markB, a, let l, cons(let next, let r)) <- simulate(markB, next, cons(a, l), r);

@@ -103,6 +103,9 @@ private:
     /// Consumes any text up to the next double quote.
     Token take_string_literal();
 
+    /// Advances the lexer to the end of a comment.
+    void skipComment();
+
     /// The source code file which is lexed by this lexer.
     std::istream &file;
 

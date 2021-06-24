@@ -47,9 +47,24 @@ Token Lexer::take_next() {
     skipWhitespace();
     std::streampos startPos = file.tellg();
 
+    while(file.peek() == '/') {
+        char start[2];
+        file.read(start, 2);
+
+        if(start[1] == '/') {
+            skipComment();
+            skipWhitespace();
+        } else {
+            file.clear();
+            file.seekg(startPos);
+        }
+    }
+
     if(file.peek() == '"') {
         return take_string_literal();
     }
+
+    startPos = file.tellg();
 
     std::string word;
     file >> word;
@@ -177,6 +192,14 @@ Token Lexer::take_string_literal() {
 
     columnNumber += text.size() + 2;
     return Token(Token::Type::string_literal, text, location, startPos);
+}
+
+void Lexer::skipComment() {
+    char c;
+    while(c = file.get(), !file.eof() && c != '\n');
+    if(c == '\n')
+        ++lineNumber;
+        columnNumber = 0;
 }
 
 } // namespace parser

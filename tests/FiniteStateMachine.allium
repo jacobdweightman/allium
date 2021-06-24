@@ -13,6 +13,7 @@ type State {
     ctor readB;
 }
 
+// Accepts iff the given SymbolList matches (AB)*
 pred simulate(State, SymbolList) {
     simulate(readA, empty) <- true;
     simulate(readA, cons(a, let tail)) <- simulate(readB, tail);

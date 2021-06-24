@@ -22,6 +22,7 @@ type State {
     ctor readB;
 }
 
+// Accepts iff the given Input matches (A^n)(B^n)
 pred simulate(State, Stack, Input) {
     simulate(readB, empty, empty) <- true;
     simulate(readA, let stack, cons(a, let tail)) <- simulate(readA, push(i, stack), tail);
