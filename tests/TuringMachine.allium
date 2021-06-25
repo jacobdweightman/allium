@@ -1,23 +1,23 @@
 type Symbol {
-    ctor a;
-    ctor b;
-    ctor c;
-    ctor markA;
-    ctor markB;
-    ctor markC;
+    ctor A;
+    ctor B;
+    ctor C;
+    ctor MarkA;
+    ctor MarkB;
+    ctor MarkC;
 }
 
 type HalfTape {
-    ctor empty;
-    ctor cons(Symbol, HalfTape);
+    ctor Nil;
+    ctor Cons(Symbol, HalfTape);
 }
 
 type State {
-    ctor markA;
-    ctor markB;
-    ctor markC;
-    ctor scanLeft;
-    ctor check;
+    ctor MarkA;
+    ctor MarkB;
+    ctor MarkC;
+    ctor ScanLeft;
+    ctor Check;
 }
 
 // Simulates a turing machine which accepts strings of the form (A^n)(B^n)(C^n).
@@ -27,24 +27,24 @@ type State {
 // HalfTape - the symbols to the left of the read head, in "reverse" order
 // HalfTape - the symbols to the right of the reader head, in "forward" order
 pred simulate(State, Symbol, HalfTape, HalfTape) {
-    simulate(markA, a, let l, cons(let next, let r)) <- simulate(markB, next, cons(markA, l), r);
-    simulate(markB, a, let l, cons(let next, let r)) <- simulate(markB, next, cons(a, l), r);
-    simulate(markB, markB, let l, cons(let next, let r)) <- simulate(markB, next, cons(markB, l), r);
-    simulate(markB, b, let l, cons(let next, let r)) <- simulate(markC, next, cons(markB, l), r);
-    simulate(markC, b, let l, cons(let next, let r)) <- simulate(markC, next, cons(b, l), r);
-    simulate(markC, markC, let l, cons(let next, let r)) <- simulate(markC, next, cons(markC, l), r);
-    simulate(markC, c, cons(let next, let l), empty) <- simulate(check, next, l, cons(markC, empty));
-    simulate(markC, c, cons(let next, let l), let r) <- simulate(scanLeft, next, l, cons(markC, r));
+    simulate(MarkA, A, let l, Cons(let next, let r)) <- simulate(MarkB, next, Cons(MarkA, l), r);
+    simulate(MarkB, A, let l, Cons(let next, let r)) <- simulate(MarkB, next, Cons(A, l), r);
+    simulate(MarkB, MarkB, let l, Cons(let next, let r)) <- simulate(MarkB, next, Cons(MarkB, l), r);
+    simulate(MarkB, B, let l, Cons(let next, let r)) <- simulate(MarkC, next, Cons(MarkB, l), r);
+    simulate(MarkC, B, let l, Cons(let next, let r)) <- simulate(MarkC, next, Cons(B, l), r);
+    simulate(MarkC, MarkC, let l, Cons(let next, let r)) <- simulate(MarkC, next, Cons(MarkC, l), r);
+    simulate(MarkC, C, Cons(let next, let l), Nil) <- simulate(Check, next, l, Cons(MarkC, Nil));
+    simulate(MarkC, C, Cons(let next, let l), let r) <- simulate(ScanLeft, next, l, Cons(MarkC, r));
 
-    simulate(check, markA, _, _) <- true;
-    simulate(check, markB, cons(let next, let l), let r) <- simulate(check, next, l, cons(markB, r));
-    simulate(check, markC, cons(let next, let l), let r) <- simulate(check, next, l, cons(markC, r));
-    simulate(check, let s, cons(let next, let l), let r) <- simulate(scanLeft, next, l, cons(s, r));
+    simulate(Check, MarkA, _, _) <- true;
+    simulate(Check, MarkB, Cons(let next, let l), let r) <- simulate(Check, next, l, Cons(MarkB, r));
+    simulate(Check, MarkC, Cons(let next, let l), let r) <- simulate(Check, next, l, Cons(MarkC, r));
+    simulate(Check, let s, Cons(let next, let l), let r) <- simulate(ScanLeft, next, l, Cons(s, r));
 
-    simulate(scanLeft, markA, let l, cons(let next, let r)) <- simulate(markA, next, cons(markA, l), r);
-    simulate(scanLeft, let s, cons(let next, let l), let r) <- simulate(scanLeft, next, l, cons(s, r));
+    simulate(ScanLeft, MarkA, let l, Cons(let next, let r)) <- simulate(MarkA, next, Cons(MarkA, l), r);
+    simulate(ScanLeft, let s, Cons(let next, let l), let r) <- simulate(ScanLeft, next, l, Cons(s, r));
 }
 
 pred main {
-    main <- simulate(markA, a, empty, cons(a, cons(b, cons(b, cons(c, cons(c, empty))))));
+    main <- simulate(MarkA, A, Nil, Cons(A, Cons(B, Cons(B, Cons(C, Cons(C, Nil))))));
 }

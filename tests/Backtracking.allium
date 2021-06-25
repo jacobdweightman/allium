@@ -1,18 +1,18 @@
 type Tree {
-    ctor redwood;
-    ctor spruse;
-    ctor apple;
-    ctor pear;
+    ctor Redwood;
+    ctor Spruse;
+    ctor Apple;
+    ctor Pear;
 }
 
 pred tall(Tree) {
-    tall(redwood) <- true;
-    tall(spruse) <- true;
+    tall(Redwood) <- true;
+    tall(Spruse) <- true;
 }
 
 pred smellsNice(Tree) {
-    smellsNice(spruse) <- true;
-    smellsNice(apple) <- true;
+    smellsNice(Spruse) <- true;
+    smellsNice(Apple) <- true;
 }
 
 pred main {

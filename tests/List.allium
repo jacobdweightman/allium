@@ -1,19 +1,19 @@
 type Letter {
-    ctor a;
-    ctor b;
+    ctor A;
+    ctor B;
 }
 
 type Word {
-    ctor empty;
-    ctor ht(Letter, Word);
+    ctor Nil;
+    ctor Cons(Letter, Word);
 }
 
 pred second(Word, Letter) {
-    second(ht(_, ht(let c, _)), c) <- true;
+    second(Cons(_, Cons(let c, _)), c) <- true;
 }
 
 pred main {
     main <- second(
-        ht(a, ht(b, ht(a, ht(a, empty)))),
-        b);
+        Cons(A, Cons(B, Cons(A, Cons(A, Nil)))),
+        B);
 }

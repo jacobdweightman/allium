@@ -1,15 +1,15 @@
 type Symbol {
-    ctor a;
-    ctor b;
+    ctor A;
+    ctor B;
 }
 
 type SymbolList {
-    ctor empty;
-    ctor cons(Symbol, SymbolList);
+    ctor Nil;
+    ctor Cons(Symbol, SymbolList);
 }
 
 pred main {
-    main <- palindrome(cons(a, cons(b, cons(b, cons(a, empty)))));
+    main <- palindrome(Cons(A, Cons(B, Cons(B, Cons(A, Nil)))));
 }
 
 pred palindrome(SymbolList) {
@@ -17,11 +17,11 @@ pred palindrome(SymbolList) {
 }
 
 pred reverse(SymbolList, SymbolList) {
-    reverse(let x, let y) <- reverseHelper(x, y, empty);
+    reverse(let x, let y) <- reverseHelper(x, y, Nil);
 }
 
 pred reverseHelper(SymbolList, SymbolList, SymbolList) {
-    reverseHelper(empty, let y, y) <- true;
-    reverseHelper(cons(let head, let tail), let y, let z) <-
-        reverseHelper(tail, y, cons(head, z));
+    reverseHelper(Nil, let y, y) <- true;
+    reverseHelper(Cons(let head, let tail), let y, let z) <-
+        reverseHelper(tail, y, Cons(head, z));
 }

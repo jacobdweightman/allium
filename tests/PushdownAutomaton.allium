@@ -1,35 +1,35 @@
 type Symbol {
-    ctor a;
-    ctor b;
+    ctor A;
+    ctor B;
 }
 
 type Input {
-    ctor empty;
-    ctor cons(Symbol, Input);
+    ctor Nil;
+    ctor Cons(Symbol, Input);
 }
 
 type StackSymbol {
-    ctor i;
+    ctor I;
 }
 
 type Stack {
-    ctor empty;
-    ctor push(StackSymbol, Stack);
+    ctor Nil;
+    ctor Push(StackSymbol, Stack);
 }
 
 type State {
-    ctor readA;
-    ctor readB;
+    ctor ReadA;
+    ctor ReadB;
 }
 
 // Accepts iff the given Input matches (A^n)(B^n)
 pred simulate(State, Stack, Input) {
-    simulate(readB, empty, empty) <- true;
-    simulate(readA, let stack, cons(a, let tail)) <- simulate(readA, push(i, stack), tail);
-    simulate(readA, push(i, let stack), cons(b, let tail)) <- simulate(readB, stack, tail);
-    simulate(readB, push(i, let stack), cons(b, let tail)) <- simulate(readB, stack, tail);
+    simulate(ReadB, Nil, Nil) <- true;
+    simulate(ReadA, let stack, Cons(A, let tail)) <- simulate(ReadA, Push(I, stack), tail);
+    simulate(ReadA, Push(I, let stack), Cons(B, let tail)) <- simulate(ReadB, stack, tail);
+    simulate(ReadB, Push(I, let stack), Cons(B, let tail)) <- simulate(ReadB, stack, tail);
 }
 
 pred main {
-    main <- simulate(readA, empty, cons(a, cons(a, cons(b, cons(b, empty)))));
+    main <- simulate(ReadA, Nil, Cons(A, Cons(A, Cons(B, Cons(B, Nil)))));
 }

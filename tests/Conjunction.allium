@@ -3,14 +3,9 @@ pred p {
 }
 
 pred q {
-    q <- false;
-}
-
-pred r {
-    r <- p, q;
+    q <- true;
 }
 
 pred main {
-    main <- r;
-    main <- p;
+    main <- p, q;
 }
