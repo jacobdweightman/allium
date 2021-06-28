@@ -101,4 +101,11 @@ std::ostream& operator<<(std::ostream &out, const Predicate &p) {
     return out << "}"; 
 }
 
+std::ostream& operator<<(std::ostream &out, const Program &prog) {
+    out << "Program\n";
+    for(const auto &pred : prog.predicates)
+        out << "    " << pred << "\n";
+    return out;
+}
+
 } // namespace interpreter

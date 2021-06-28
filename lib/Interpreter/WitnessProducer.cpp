@@ -106,10 +106,12 @@ bool match(
     if( matcher.index == VariableRef::anonymousIndex ||
         (vr.index == matcher.index &&
          vr.isExistential == matcher.isExistential))
-        return true;
+        return vr.isTypeInhabited;
 
     if(vr.isDefinition) {
         if(matcher.isDefinition) {
+            if(!vr.isTypeInhabited)
+                return false;
             VariableRef u = matcher;
             u.isExistential = true;
             universalVariables[matcher.index] = Value(u);
@@ -150,8 +152,10 @@ static Value replaceUnboundVariableRefsWithPointers(
         [](String str) { return Value(str); }, 
         [](Value *vp) { return Value(vp); },
         [&](VariableRef vr) {
+            if(vr.index == VariableRef::anonymousIndex)
+                return Value(vr);
             assert(!vr.isExistential);
-            universalVariables[vr.index] = Value(VariableRef(vr.index, true, true));
+            universalVariables[vr.index] = Value(VariableRef(vr.index, true, true, vr.isTypeInhabited));
             return Value(&universalVariables[vr.index]);
         });
     }
@@ -168,6 +172,8 @@ bool match(
     if(vr.isExistential) {
         assert(vr.index < existentialVariables.size());
         if(vr.isDefinition) {
+            if(!vr.isTypeInhabited)
+                return false;
             existentialVariables[vr.index] = replaceUnboundVariableRefsWithPointers(cr, universalVariables);
             return true;
         } else {

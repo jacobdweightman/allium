@@ -75,11 +75,13 @@ typedef TaggedUnion<
 class Value;
 
 struct AnonymousVariable {
-    AnonymousVariable() {}
+    AnonymousVariable(TypeRef type): type(type) {}
 
-    friend bool operator==(AnonymousVariable left, AnonymousVariable right) { return true; }
-    friend bool operator!=(AnonymousVariable left, AnonymousVariable right) { return false; }
+    TypeRef type;
 };
+
+bool operator==(AnonymousVariable left, AnonymousVariable right);
+bool operator!=(AnonymousVariable left, AnonymousVariable right);
 
 struct Variable {
     Variable(

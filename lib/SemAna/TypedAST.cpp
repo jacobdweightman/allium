@@ -62,6 +62,14 @@ bool operator!=(const Type &left, const Type &right) {
     return !(left == right);
 }
 
+bool operator==(AnonymousVariable left, AnonymousVariable right) {
+    return left.type == right.type;
+}
+
+bool operator!=(AnonymousVariable left, AnonymousVariable right) {
+    return !(left == right);
+}
+
 bool operator==(Variable left, Variable right) {
     return left.isDefinition == right.isDefinition && left.name == right.name &&
         left.type == right.type;

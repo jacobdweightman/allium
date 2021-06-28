@@ -294,14 +294,15 @@ public:
     }
 
     Optional<TypedAST::Value> visit(const NamedValue &val) {
-        if(val.name.string() == "_") {
-            return TypedAST::Value(TypedAST::AnonymousVariable());
-        }
-
         Type type;
         if(inferredType.unwrapGuard(type)) {
             assert(false && "type inference failed.");
             return Optional<TypedAST::Value>();
+        }
+
+        if(val.name.string() == "_") {
+            TypedAST::TypeRef tr(type.declaration.name.string());
+            return TypedAST::Value(TypedAST::AnonymousVariable(tr));
         }
 
         auto ctor = std::find_if(

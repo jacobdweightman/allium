@@ -74,13 +74,21 @@ struct String {
 std::ostream& operator<<(std::ostream &out, const String &str);
 
 struct VariableRef {
-    VariableRef(): index(anonymousIndex) {}
-    VariableRef(size_t index, bool isDefinition, bool isExistential):
-        index(index), isDefinition(isDefinition), isExistential(isExistential) {}
+    VariableRef(bool isTypeInhabited = true):
+        index(anonymousIndex), isDefinition(false), isExistential(false),
+        isTypeInhabited(isTypeInhabited) {}
+    VariableRef(
+        size_t index,
+        bool isDefinition,
+        bool isExistential,
+        bool isTypeInhabited = true
+    ): index(index), isDefinition(isDefinition), isExistential(isExistential),
+        isTypeInhabited(isTypeInhabited) {}
 
     friend bool operator==(const VariableRef &lhs, const VariableRef &rhs) {
         return lhs.index == rhs.index && lhs.isDefinition == rhs.isDefinition &&
-            lhs.isExistential == rhs.isExistential;
+            lhs.isExistential == rhs.isExistential &&
+            lhs.isTypeInhabited == rhs.isTypeInhabited;
     }
 
     friend bool operator!=(const VariableRef &lhs, const VariableRef &rhs) {
@@ -89,9 +97,20 @@ struct VariableRef {
 
     static const size_t anonymousIndex = std::numeric_limits<size_t>::max();
 
+    /// The index of this variable within the witness producer's variable table.
     size_t index;
+
+    /// Whether or not the variable is defined by this reference.
     bool isDefinition;
+
+    /// True if the variable is existentially quantified, false if it is
+    /// universally quantified.
     bool isExistential;
+
+    /// Whether or not this variable's type is inhabited. In an existence proof
+    /// where a variable is never bound, we must not produce a witness of an
+    /// uninhabited type. This information must be propagated from the TypedAST.
+    bool isTypeInhabited;
 };
 
 std::ostream& operator<<(std::ostream &out, const VariableRef &vr);
@@ -224,6 +243,7 @@ public:
     
     friend bool operator==(const Program &, const Program &);
     friend bool operator!=(const Program &, const Program &);
+    friend std::ostream& operator<<(std::ostream &out, const Program &prog);
 
     bool prove(const Expression&);
 

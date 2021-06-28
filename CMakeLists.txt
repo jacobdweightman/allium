@@ -8,6 +8,8 @@ enable_testing()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_CXX_FLAGS_DEBUG_INIT "-g")
+
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options("-fcoroutines-ts")
   add_compile_options("-stdlib=libc++")
@@ -63,6 +65,7 @@ GENERATE_EXPORT_HEADER(AlliumInterpreter)
 #############################
 
 add_executable(unittests
+  unittests/TestASTLower.cpp
   unittests/TestGenerator.cpp
   unittests/TestOptional.cpp
   unittests/TestTaggedUnion.cpp

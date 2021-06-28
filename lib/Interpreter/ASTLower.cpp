@@ -17,7 +17,8 @@ public:
     ASTLowerer(const AST &ast): ast(ast) {}
 
     interpreter::VariableRef visit(const AnonymousVariable &av) {
-        return interpreter::VariableRef();
+        bool isTypeInhabited = ast.resolveTypeRef(av.type).constructors.size() > 0;
+        return interpreter::VariableRef(isTypeInhabited);
     }
 
     interpreter::VariableRef visit(const Variable &v) {
@@ -26,7 +27,12 @@ public:
             assert(false && "implication not set!");
         }
         size_t index = getVariableIndex(*impl, v);
-        return interpreter::VariableRef(index, v.isDefinition, v.isExistential);
+        bool isTypeInhabited = ast.resolveTypeRef(v.type).constructors.size() > 0;
+        return interpreter::VariableRef(
+            index,
+            v.isDefinition,
+            v.isExistential,
+            isTypeInhabited);
     }
 
     /// Note: To support type inference, this requires the additional
