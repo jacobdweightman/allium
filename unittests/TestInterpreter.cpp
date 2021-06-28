@@ -13,7 +13,7 @@ public:
         {
             // pred a { a <- true; }
             Predicate({
-                Implication(PredicateReference(0, {}), TruthValue(true), 0, 0)
+                Implication(PredicateReference(0, {}), TruthValue(true), 0)
             }),
             // pred b { }
             Predicate({}),
@@ -22,12 +22,11 @@ public:
             //     c(s(let x)) <- c(x);
             // }
             Predicate({
-                Implication(PredicateReference(2, { ConstructorRef(0, {}) }), TruthValue(true), 0, 0),
+                Implication(PredicateReference(2, { ConstructorRef(0, {}) }), TruthValue(true), 0),
                 Implication(
                     PredicateReference(2, { ConstructorRef(1, { Value(VariableRef(0, true, false)) }) }),
                     Expression(PredicateReference(2, { Value(VariableRef(0, false, false)) })),
-                    1,
-                    0
+                    1
                 )
             }),
             // pred d(Nat) {
@@ -37,7 +36,6 @@ public:
                 Implication(
                     PredicateReference(3, { ConstructorRef(1, { ConstructorRef(0, {}) }) }),
                     TruthValue(true),
-                    0,
                     0
                 )
             }),
@@ -48,7 +46,6 @@ public:
                 Implication(
                     PredicateReference(4, {}),
                     Expression(PredicateReference(2, { Value(VariableRef(0, true, true)) })),
-                    0,
                     1
                 )
             })
@@ -126,15 +123,13 @@ public:
     Implication impl = Implication(
         PredicateReference(0, { ConstructorRef(0, {}) }),
         Expression(TruthValue(true)),
-        0,
         0
     );
     // p(s(let x)) <- p(x);
     Implication impl2 = Implication(
         PredicateReference(0, { ConstructorRef(1, { Value(VariableRef(0, true, false)) }) }),
         Expression(PredicateReference(0, { Value(VariableRef(0, false, false)) })),
-        1,
-        0
+        1
     );
 };
 

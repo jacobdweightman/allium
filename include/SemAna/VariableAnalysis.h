@@ -4,8 +4,8 @@
 
 namespace TypedAST {
 
-Scope getVariables(const AST &ast, const PredicateRef pr);
-
-Scope getVariables(const AST &ast, const Expression expr);
+/// Returns the variables and their types which are defined inside of the given
+/// implication.
+Scope getVariables(const AST &ast, const Implication &impl);
 
 }

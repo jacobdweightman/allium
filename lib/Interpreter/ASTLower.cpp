@@ -100,9 +100,8 @@ public:
         auto body = visit(impl.body);
         enclosingImplication = Optional<Implication>();
 
-        size_t headVariableCount = getVariables(ast, impl.head).size();
-        size_t bodyVariableCount = getVariables(ast, impl.body).size();
-        return interpreter::Implication(head, body, headVariableCount, bodyVariableCount);
+        size_t variableCount = getVariables(ast, impl).size();
+        return interpreter::Implication(head, body, variableCount);
     }
 
     interpreter::Predicate visit(const Predicate &p) {
@@ -161,8 +160,7 @@ private:
     /// Computes the implication's variable list and returns the variable's
     /// index within it.
     size_t getVariableIndex(const Implication &impl, const Variable &v) {
-        // TODO: variables defined in body
-        Scope scope = getVariables(ast, impl.head);
+        Scope scope = getVariables(ast, impl);
         size_t index = 0;
         auto vIter = scope.find(v.name);
         for(; vIter != scope.begin(); --vIter) ++index;

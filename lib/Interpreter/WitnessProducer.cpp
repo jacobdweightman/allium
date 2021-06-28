@@ -18,9 +18,7 @@ Generator<Unit> witnesses(
     const auto &pd = prog.getPredicate(pr.index);
     for(const auto &impl : pd.implications) {
         std::cout << "  try implication: " << impl << std::endl;
-        std::vector<Value> localVariables(
-            impl.headVariableCount + impl.bodyVariableCount
-        );
+        std::vector<Value> localVariables(impl.variableCount);
 
         if(match(pr, impl.head, enclosingVariables, localVariables)) {
             Expression body = instantiate(impl.body, localVariables);

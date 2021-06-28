@@ -198,22 +198,20 @@ std::ostream& operator<<(std::ostream &out, const Conjunction &conj);
 struct Implication {
     Implication(
         PredicateReference head, Expression body,
-        size_t headVariableCount, size_t bodyVariableCount
-    ): head(head), body(body), headVariableCount(headVariableCount),
-        bodyVariableCount(bodyVariableCount) {}
+        size_t variableCount
+    ): head(head), body(body), variableCount(variableCount) {}
 
     Implication operator=(Implication other) {
         using std::swap;
         swap(head, other.head);
         swap(body, other.body);
-        swap(headVariableCount, other.headVariableCount);
+        swap(variableCount, other.variableCount);
         return *this;
     }
 
     PredicateReference head;
     Expression body;
-    size_t headVariableCount;
-    size_t bodyVariableCount;
+    size_t variableCount;
 };
 
 bool operator==(const Implication &, const Implication &);

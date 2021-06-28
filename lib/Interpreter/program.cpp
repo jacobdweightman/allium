@@ -17,7 +17,8 @@ bool Program::prove(const Expression &expr) {
 }
 
 bool operator==(const Implication &left, const Implication &right) {
-    return left.head == right.head && left.body == right.body;
+    return left.head == right.head && left.body == right.body &&
+        left.variableCount == right.variableCount;
 }
 
 bool operator!=(const Implication &left, const Implication &right) {

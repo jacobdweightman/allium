@@ -34,37 +34,28 @@ private:
 public:
     VariableAnalysis(const AST &ast): ast(ast) {}
 
-    Scope getVariables(const PredicateRef &pr) {
+    void getVariables(const PredicateRef &pr) {
         getVariables_(pr);
-        return scope;
     }
 
-    Scope getVariables(const Expression &expr) {
+    void getVariables(const Expression &expr) {
         expr.switchOver(
         [](TruthLiteral) {},
         [&](PredicateRef pr) { getVariables_(pr); },
         [&](Conjunction conj) { getVariables(conj); }
         );
+    }
+
+    Scope getScope() {
         return scope;
     }
 };
 
-/// Returns the variables and their types which are defined inside of the given
-/// predicate reference.
-///
-/// This is primarily used to find possibly universally quantified variables
-/// from an implication by traversing its head.
-Scope getVariables(const AST &ast, const PredicateRef pr) {
-    return VariableAnalysis(ast).getVariables(pr);
-}
-
-/// Returns the variables and their types which are defined inside of the given
-/// expression.
-///
-/// This is primarily used to get the existentially quantified variables from an
-/// implication by traversing its body.
-Scope getVariables(const AST &ast, const Expression expr) {
-    return VariableAnalysis(ast).getVariables(expr);
+Scope getVariables(const AST &ast, const Implication &impl) {
+    VariableAnalysis va(ast);
+    va.getVariables(impl.head);
+    va.getVariables(impl.body);
+    return va.getScope();
 }
 
 }
