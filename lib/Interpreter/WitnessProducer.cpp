@@ -288,17 +288,28 @@ bool match(
     });
 }
 
-static ConstructorRef instantiate(
+
+static Value instantiate(Value v, const std::vector<Value> &variables);
+
+static Value instantiate(
+    VariableRef vr,
+    const std::vector<Value> &variables
+) {
+    if( vr.index != VariableRef::anonymousIndex &&
+        !vr.isExistential &&
+        variables[vr.index] != Value()) {
+            return interpreter::Value(variables[vr.index]);
+    } else {
+        return interpreter::Value(vr);
+    }
+}
+
+static Value instantiate(
     ConstructorRef cr,
     const std::vector<Value> &variables
 ) {
     for(Value &arg : cr.arguments) {
-        VariableRef vr;
-        if( arg.as_a<VariableRef>().unwrapInto(vr) &&
-            vr.index != VariableRef::anonymousIndex &&
-            variables[vr.index] != ConstructorRef()) {
-                arg = variables[vr.index];
-        }
+        arg = instantiate(arg, variables);
     }
     return cr;
 }
@@ -316,15 +327,8 @@ static Value instantiate(
         // scope.
         return v;
     },
-    [&](VariableRef vr) {
-        if( vr.index != VariableRef::anonymousIndex &&
-            !vr.isExistential &&
-            variables[vr.index] != Value()) {
-                return interpreter::Value(variables[vr.index]);
-        } else {
-            return interpreter::Value(vr);
-        }
-    });
+    [&](VariableRef vr) { return instantiate(vr, variables); }
+    );
 }
 
 Expression instantiate(

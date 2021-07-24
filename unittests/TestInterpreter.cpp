@@ -350,3 +350,25 @@ TEST_F(TestMatching, instantiate_ignores_existentially_quantified_variables) {
         )
     );
 }
+
+TEST_F(TestMatching, instantiate_ignores_existentially_quantified_variables_in_constructors) {
+    std::vector<Value> variables = { ConstructorRef(1, {}) };
+
+    EXPECT_EQ(
+        instantiate(
+            Expression(
+                PredicateReference(
+                    0,
+                    { Value(ConstructorRef(0, { Value(VariableRef(0, true, true)) })) }
+                )
+            ),
+            variables
+        ),
+        Expression(
+            PredicateReference(
+                0,
+                { Value(ConstructorRef(0, { Value(VariableRef(0, true, true)) })) }
+            )
+        )
+    );
+}
