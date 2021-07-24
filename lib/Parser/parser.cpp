@@ -25,44 +25,47 @@ Optional<TruthLiteral> Parser::parseTruthLiteral() {
 /// Note: rewinds the lexer on failure.
 Optional<PredicateDecl> Parser::parsePredicateDecl() {
     Token identifier = lexer.take_next();
-    if(identifier.type == Token::Type::identifier) {
-        Token next = lexer.peek_next();
 
-        // <predicate-name> := identifier "(" <comma-separated-arguments> ")"
-        if(lexer.take(Token::Type::paren_l)) {
-            std::vector<TypeRef> parameters;
-            TypeRef pType;
-
-            do {
-                if(parseTypeRef().unwrapInto(pType)) {
-                    parameters.push_back(pType);
-                } else {
-                    emitSyntaxError("Expected an additional argument after \",\" in parameter list.");
-                    lexer.rewind(next);
-                    return Optional<PredicateDecl>();
-                }
-            } while(lexer.take(Token::Type::comma));
-
-            if(lexer.take(Token::Type::paren_r)) {
-                return PredicateDecl(
-                    Name<Predicate>(identifier.text),
-                    parameters,
-                    identifier.location);
-            } else {
-                emitSyntaxError("Expected a \",\" or \")\" after parameter.");
-                lexer.rewind(next);
-                return Optional<PredicateDecl>();
-            }
-        }
-
-        // <predicate-name> := identifier
-        lexer.rewind(next);
-        return Optional(PredicateDecl(
-            Name<Predicate>(identifier.text), {}, identifier.location));
-    } else {
+    auto rewindAndReturn = [&]() {
         lexer.rewind(identifier);
         return Optional<PredicateDecl>();
+    };
+
+    if(identifier.type != Token::Type::identifier) {
+        return rewindAndReturn();
     }
+
+    Token next = lexer.peek_next();
+
+    // <predicate-name> := identifier "(" <comma-separated-arguments> ")"
+    if(lexer.take(Token::Type::paren_l)) {
+        std::vector<TypeRef> parameters;
+        TypeRef pType;
+
+        do {
+            if(parseTypeRef().unwrapInto(pType)) {
+                parameters.push_back(pType);
+            } else {
+                emitSyntaxError("Expected an additional argument after \",\" in parameter list.");
+                return rewindAndReturn();
+            }
+        } while(lexer.take(Token::Type::comma));
+
+        if(lexer.take(Token::Type::paren_r)) {
+            return PredicateDecl(
+                Name<Predicate>(identifier.text),
+                parameters,
+                identifier.location);
+        } else {
+            emitSyntaxError("Expected a \",\" or \")\" after parameter.");
+            return rewindAndReturn();
+        }
+    }
+
+    // <predicate-name> := identifier
+    lexer.rewind(next);
+    return Optional(PredicateDecl(
+        Name<Predicate>(identifier.text), {}, identifier.location));
 }
 
 Optional<NamedValue> Parser::parseNamedValue() {
@@ -263,29 +266,39 @@ Optional<Implication> Parser::parseImplication() {
 Optional<Predicate> Parser::parsePredicate() {
     Token first = lexer.peek_next();
 
+    auto rewindAndReturn = [&]() {
+        lexer.rewind(first);
+        return Optional<Predicate>();
+    };
+
     PredicateDecl decl;
     std::vector<Implication> implications;
 
     // <predicate> :=
     //     "pred" <predicate-name> "{" <0-or-more-implications> "}"
-    if( lexer.take(Token::Type::kw_pred) &&
-        parsePredicateDecl().unwrapInto(decl) &&
-        lexer.take(Token::Type::brace_l)) {
-            Implication impl;
-            while(parseImplication().unwrapInto(impl)) {
-                implications.push_back(impl);
-            }
+    if(!lexer.take(Token::Type::kw_pred)) {
+        return rewindAndReturn();
+    }
 
-            if(lexer.take(Token::Type::brace_r)) {
-                return Predicate(decl, implications);
-            } else {
-                emitSyntaxError("Expected \"}\" at the end of a predicate definition.");
-                lexer.rewind(first);
-                return Optional<Predicate>();
-            }
+    if(parsePredicateDecl().unwrapGuard(decl)) {
+        emitSyntaxError("Expected predicate name in predicate definition.");
+        return rewindAndReturn();
+    }
+
+    if(lexer.take(Token::Type::brace_l)) {
+        Implication impl;
+        while(parseImplication().unwrapInto(impl)) {
+            implications.push_back(impl);
+        }
+
+        if(lexer.take(Token::Type::brace_r)) {
+            return Predicate(decl, implications);
+        } else {
+            emitSyntaxError("Expected \"}\" at the end of a predicate definition.");
+            return rewindAndReturn();
+        }
     } else {
-        lexer.rewind(first);
-        return Optional<Predicate>();
+        return rewindAndReturn();
     }
 }
 
@@ -312,6 +325,11 @@ Optional<TypeRef> Parser::parseTypeRef() {
 Optional<Constructor> Parser::parseConstructor() {
     Token next = lexer.peek_next();
 
+    auto rewindAndReturn = [&]() {
+        lexer.rewind(next);
+        return Optional<Constructor>();
+    };
+
     Token identifier;
 
     // <constructor> :=
@@ -335,9 +353,8 @@ Optional<Constructor> Parser::parseConstructor() {
             if(parseTypeRef().unwrapInto(type)) {
                 parameters.push_back(type);
             } else {
-                // requires a parameter
-                lexer.rewind(next);
-                return Optional<Constructor>();
+                emitSyntaxError("Expected an additional argument after \",\" in parameter list.");
+                return rewindAndReturn();
             }
         } while(lexer.take(Token::Type::comma));
 
@@ -348,14 +365,12 @@ Optional<Constructor> Parser::parseConstructor() {
                     parameters,
                     identifier.location);
         } else {
-            // requires a ")"
-            lexer.rewind(next);
-            return Optional<Constructor>();
+            emitSyntaxError("Expected a \",\" or \")\" after parameter.");
+            return rewindAndReturn();
         }
     }
 
-    lexer.rewind(next);
-    return Optional<Constructor>();
+    return rewindAndReturn();
 }
 
 Optional<Type> Parser::parseType() {
