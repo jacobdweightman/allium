@@ -14,12 +14,14 @@ namespace parser {
 
 struct TruthLiteral;
 struct PredicateRef;
+struct EffectCtorRef;
 struct Conjunction;
 
 /// Represents a logical expression in the AST.
 typedef TaggedUnion<
     TruthLiteral,
     PredicateRef,
+    EffectCtorRef,
     Conjunction
 > ExpressionBase;
 class Expression;
@@ -39,6 +41,9 @@ std::ostream& operator<<(std::ostream &out, const Value &val);
 struct Predicate;
 struct TypeRef;
 struct Type;
+
+struct Effect;
+struct EffectRef;
 
 /// Represents a truth value literal in the AST.
 struct TruthLiteral {
@@ -61,11 +66,14 @@ struct PredicateDecl {
     PredicateDecl(
         Name<Predicate> name,
         std::vector<TypeRef> parameters,
+        std::vector<EffectRef> effects,
         SourceLocation location
-    ): name(name), parameters(parameters), location(location) {}
+    ): name(name), parameters(parameters), effects(effects),
+        location(location) {}
 
     Name<Predicate> name;
     std::vector<TypeRef> parameters;
+    std::vector<EffectRef> effects;
     SourceLocation location;
 };
 
@@ -94,6 +102,26 @@ struct PredicateRef {
 bool operator==(const PredicateRef &lhs, const PredicateRef &rhs);
 bool operator!=(const PredicateRef &lhs, const PredicateRef &rhs);
 std::ostream& operator<<(std::ostream &out, const PredicateRef &p);
+
+/// Represents a concrete effect which should be performed when proving a
+/// predicate.
+struct EffectCtorRef {
+    EffectCtorRef() {}
+
+    EffectCtorRef(
+        std::string name,
+        std::vector<Value> arguments,
+        SourceLocation location
+    ): name(name), arguments(arguments), location(location) {}
+
+    Name<Effect> name;
+    std::vector<Value> arguments;
+    SourceLocation location;
+};
+
+bool operator==(const EffectCtorRef &lhs, const EffectCtorRef &rhs);
+bool operator!=(const EffectCtorRef &lhs, const EffectCtorRef &rhs);
+std::ostream& operator<<(std::ostream &out, const EffectCtorRef &p);
 
 /// Represents the conjunction of two expressions.
 struct Conjunction {
@@ -292,7 +320,21 @@ bool operator==(const Type &lhs, const Type &rhs);
 bool operator!=(const Type &lhs, const Type &rhs);
 std::ostream& operator<<(std::ostream &out, const Type &type);
 
-struct Effect;
+/// Represents an "abstract" (without arguments) reference to an effect, as
+/// would occur in a predicate declaration's effect list.
+struct EffectRef {
+    EffectRef(): name(""), location(SourceLocation()) {}
+
+    EffectRef(std::string name, SourceLocation location):
+        name(name), location(location) {}
+
+    Name<Effect> name;
+    SourceLocation location;
+};
+
+bool operator==(const EffectRef &lhs, const EffectRef &rhs);
+bool operator!=(const EffectRef &lhs, const EffectRef &rhs);
+std::ostream& operator<<(std::ostream &out, const EffectRef &e);
 
 /// Represents the declaration of an effect at the begining of its definition.
 struct EffectDecl {
@@ -380,6 +422,7 @@ constexpr bool has_all_visitors() {
     static_assert(has_visit<Subclass, TruthLiteral>::value, "missing TruthLiteral visitor");
     static_assert(has_visit<Subclass, PredicateDecl>::value, "missing PredicateDecl visitor");
     static_assert(has_visit<Subclass, PredicateRef>::value, "missing PredicateRef visitor");
+    static_assert(has_visit<Subclass, EffectCtorRef>::value, "missing EffectCtorRef visitor");
     static_assert(has_visit<Subclass, Conjunction>::value, "missing Conjunction visitor");
     static_assert(has_visit<Subclass, Expression>::value, "missing Expression visitor");
     static_assert(has_visit<Subclass, Implication>::value, "missing Implication visitor");
@@ -391,6 +434,7 @@ constexpr bool has_all_visitors() {
     static_assert(has_visit<Subclass, StringLiteral>::value, "missing StringLiteral visitor");
     static_assert(has_visit<Subclass, Value>::value, "missing Value visitor");
     static_assert(has_visit<Subclass, Type>::value, "missing Type visitor");
+    static_assert(has_visit<Subclass, EffectRef>::value, "missing EffectRef visitor");
     static_assert(has_visit<Subclass, EffectDecl>::value, "missing EffectDecl visitor");
     static_assert(has_visit<Subclass, EffectConstructor>::value, "missing EffectConstructor visitor");
     static_assert(has_visit<Subclass, Effect>::value, "missing Effect visitor");
@@ -398,6 +442,7 @@ constexpr bool has_all_visitors() {
     return has_visit<Subclass, TruthLiteral>::value &&
         has_visit<Subclass, PredicateDecl>::value &&
         has_visit<Subclass, PredicateRef>::value &&
+        has_visit<Subclass, EffectCtorRef>::value &&
         has_visit<Subclass, Conjunction>::value &&
         has_visit<Subclass, Expression>::value &&
         has_visit<Subclass, Implication>::value &&
@@ -409,6 +454,7 @@ constexpr bool has_all_visitors() {
         has_visit<Subclass, StringLiteral>::value &&
         has_visit<Subclass, Value>::value &&
         has_visit<Subclass, Type>::value &&
+        has_visit<Subclass, EffectRef>::value &&
         has_visit<Subclass, EffectDecl>::value &&
         has_visit<Subclass, EffectConstructor>::value &&
         has_visit<Subclass, Effect>::value;

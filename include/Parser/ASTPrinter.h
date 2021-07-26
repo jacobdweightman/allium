@@ -23,6 +23,9 @@ public:
         for(const auto &parameter : pd.parameters) {
             visit(parameter);
         }
+        for(const auto &e : pd.effects) {
+            visit(e);
+        }
         --depth;
     }
 
@@ -32,6 +35,17 @@ public:
             pn.location << ">\n";
         ++depth;
         for(const auto &argument : pn.arguments) {
+            visit(argument);
+        }
+        --depth;
+    }
+
+    void visit(const EffectCtorRef &ecr) {
+        indent();
+        out << "<EffectCtorRef \"" << ecr.name << "\" line:" << ecr.location <<
+            ">\n";
+        ++depth;
+        for(const auto &argument : ecr.arguments) {
             visit(argument);
         }
         --depth;
@@ -50,6 +64,7 @@ public:
         expr.switchOver(
         [&](TruthLiteral tl) { visit(tl); },
         [&](PredicateRef pr) { visit(pr); },
+        [&](EffectCtorRef ecr) { visit(ecr); },
         [&](Conjunction conj) { visit(conj); }
         );
     }
@@ -131,6 +146,11 @@ public:
             visit(ctor);
         }
         --depth;
+    }
+
+    void visit(const EffectRef &e) {
+        indent();
+        out << "<EffectRef \"" << e.name << "\" line:" << e.location << ">\n";
     }
 
     void visit(const EffectDecl &decl) {

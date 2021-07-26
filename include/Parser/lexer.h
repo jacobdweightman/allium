@@ -13,6 +13,7 @@ struct Token {
     enum class Type {
         brace_l,
         brace_r,
+        colon,
         comma,
         end_of_statement,
         end_of_file,
@@ -20,6 +21,7 @@ struct Token {
         identifier,
         implied_by,
         kw_ctor,
+        kw_do,
         kw_effect,
         kw_let,
         kw_pred,

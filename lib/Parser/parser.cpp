@@ -37,7 +37,7 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
 
     Token next = lexer.peek_next();
 
-    // <predicate-name> := identifier "(" <comma-separated-arguments> ")"
+    // <predicate-name> := identifier "(" <comma-separated-arguments> ")" <effect-list>
     if(lexer.take(Token::Type::paren_l)) {
         std::vector<TypeRef> parameters;
         TypeRef pType;
@@ -51,21 +51,33 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
             }
         } while(lexer.take(Token::Type::comma));
 
-        if(lexer.take(Token::Type::paren_r)) {
-            return PredicateDecl(
-                Name<Predicate>(identifier.text),
-                parameters,
-                identifier.location);
-        } else {
+        if(!lexer.take(Token::Type::paren_r)) {
             emitSyntaxError("Expected a \",\" or \")\" after parameter.");
             return rewindAndReturn();
         }
+
+        std::vector<EffectRef> effects;
+        if(parseEffectList().unwrapGuard(effects)) {
+            rewindAndReturn();
+        }
+
+        return PredicateDecl(
+            Name<Predicate>(identifier.text),
+            parameters,
+            effects,
+            identifier.location);
     }
 
-    // <predicate-name> := identifier
+    // <predicate-name> := identifier <effect-list>
     lexer.rewind(next);
+
+    std::vector<EffectRef> effects;
+    if(parseEffectList().unwrapGuard(effects)) {
+        rewindAndReturn();
+    }
+
     return Optional(PredicateDecl(
-        Name<Predicate>(identifier.text), {}, identifier.location));
+        Name<Predicate>(identifier.text), {}, effects, identifier.location));
 }
 
 Optional<NamedValue> Parser::parseNamedValue() {
@@ -181,10 +193,55 @@ Optional<PredicateRef> Parser::parsePredicateRef() {
     }
 }
 
-/// Parses a truth literal or predicate from the stream.
+Optional<EffectCtorRef> Parser::parseEffectCtorRef() {
+    Token first = lexer.take_next();
+
+    auto rewindAndReturn = [&]() {
+        lexer.rewind(first);
+        return Optional<EffectCtorRef>();
+    };
+
+    // <effect-ctor-ref> := "do" <identifier>
+    // <effect-ctor-ref> := "do" <identifier" "(" <comma-separated-arguments> ")"
+    if(first.type != Token::Type::kw_do) {
+        return rewindAndReturn();
+    }
+
+    Token identifier = lexer.take_next();
+    if(identifier.type != Token::Type::identifier) {
+        emitSyntaxError("Expected identifier after \"do\".");
+        return rewindAndReturn();
+    }
+
+    if(lexer.take(Token::Type::paren_l)) {
+        std::vector<Value> arguments;
+
+        do {
+            parseValue().switchOver<void>(
+            [&](Value val) {
+                arguments.push_back(val);
+            },
+            [&]() {
+                emitSyntaxError("Expected argument after \",\" in argument list.");
+            });
+        } while(lexer.take(Token::Type::comma));
+
+        if(lexer.take(Token::Type::paren_r)) {
+            return EffectCtorRef(identifier.text, arguments, identifier.location);
+        } else {
+            emitSyntaxError("Expected a \",\" or \")\" after argument.");
+            return rewindAndReturn();
+        }
+    }
+
+    return EffectCtorRef(identifier.text, {}, identifier.location);
+}
+
+/// Parses a truth literal, predicate, or effect constructor from the stream.
 Optional<Expression> Parser::parseAtom() {
     TruthLiteral tl;
     PredicateRef p;
+    EffectCtorRef ecr;
 
     // <atom> := <truth-literal>
     if(parseTruthLiteral().unwrapInto(tl)) {
@@ -193,6 +250,10 @@ Optional<Expression> Parser::parseAtom() {
     // <atom> := <predicate-name>
     } else if(parsePredicateRef().unwrapInto(p)) {
         return Optional(Expression(p));
+
+    // <atom> := <effect-constructor-ref>
+    } else if(parseEffectCtorRef().unwrapInto(ecr)) {
+        return Optional(Expression(ecr));
 
     } else
         return Optional<Expression>();
@@ -410,6 +471,31 @@ Optional<Type> Parser::parseType() {
     } else {
         return rewindAndReturn();
     }
+}
+
+Optional<std::vector<EffectRef>> Parser::parseEffectList() {
+    Token first = lexer.take_next();
+
+    std::vector<EffectRef> effects;
+
+    // <effect-list> := ""
+    // <effect-list> := ":" <comma-separated-effect-refs>
+    if(first.type != Token::Type::colon) {
+        lexer.rewind(first);
+        return effects;
+    }
+
+    do {
+        Token identifier;
+        if(lexer.take_token(Token::Type::identifier).unwrapGuard(identifier)) {
+            emitSyntaxError("Expected an effect name.");
+            lexer.rewind(first);
+            return Optional<std::vector<EffectRef>>();
+        }
+        effects.emplace_back(identifier.text, identifier.location);
+    } while(lexer.take(Token::Type::comma));
+
+    return effects;
 }
 
 Optional<EffectDecl> Parser::parseEffectDecl() {

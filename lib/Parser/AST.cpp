@@ -9,6 +9,7 @@ std::ostream& operator<<(std::ostream &out, const Expression &e) {
     return e.match<std::ostream&>(
         [&](TruthLiteral tl) -> std::ostream& { out << tl; return out; },
         [&](PredicateRef p) -> std::ostream& { out << p; return out; },
+        [&](EffectCtorRef ecr) -> std::ostream& { out << ecr; return out; },
         [&](Conjunction conj) -> std::ostream& {
             out << "(" << conj.getLeft() << " and " << conj.getRight() << ")";
             return out;
@@ -38,7 +39,7 @@ std::ostream& operator<<(std::ostream &out, const TruthLiteral &tl) {
 
 bool operator==(const PredicateDecl &lhs, const PredicateDecl &rhs) {
     return lhs.location == rhs.location && lhs.name == rhs.name &&
-        lhs.parameters == rhs.parameters;
+        lhs.parameters == rhs.parameters && lhs.effects == rhs.effects;
 }
 
 bool operator!=(const PredicateDecl &lhs, const PredicateDecl &rhs) {
@@ -60,6 +61,20 @@ bool operator!=(const PredicateRef &lhs, const PredicateRef &rhs) {
 }
 
 std::ostream& operator<<(std::ostream &out, const PredicateRef &p) {
+    ASTPrinter(out).visit(p);
+    return out;
+}
+
+bool operator==(const EffectCtorRef &lhs, const EffectCtorRef &rhs) {
+    return lhs.location == rhs.location && lhs.name == rhs.name &&
+        lhs.arguments == rhs.arguments;
+}
+
+bool operator!=(const EffectCtorRef &lhs, const EffectCtorRef &rhs) {
+    return !(lhs == rhs);
+}
+
+std::ostream& operator<<(std::ostream &out, const EffectCtorRef &p) {
     ASTPrinter(out).visit(p);
     return out;
 }
@@ -232,6 +247,19 @@ Optional<Predicate> AST::resolvePredicateRef(const PredicateRef &pr) const {
     } else {
         return *x;
     }
+}
+
+bool operator==(const EffectRef &lhs, const EffectRef &rhs) {
+    return lhs.location == rhs.location && lhs.name == rhs.name;
+}
+
+bool operator!=(const EffectRef &lhs, const EffectRef &rhs) {
+    return !(lhs == rhs);
+}
+
+std::ostream& operator<<(std::ostream &out, const EffectRef &e) {
+    ASTPrinter(out).visit(e);
+    return out;
 }
 
 bool operator==(const EffectDecl &lhs, const EffectDecl &rhs) {

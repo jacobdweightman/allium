@@ -184,6 +184,30 @@ TEST(TestParser, parse_predicate_name_as_expression) {
     );
 }
 
+TEST(TestParser, parse_simple_effect_expression) {
+    std::istringstream f("do abort;");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseExpression(),
+        Expression(EffectCtorRef("abort", {}, SourceLocation(1, 3)))
+    );
+}
+
+TEST(TestParser, parse_effect_expression_with_arguments) {
+    std::istringstream f("do print(\"Hello world\");");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseExpression(),
+        Expression(EffectCtorRef(
+            "print",
+            { Value(StringLiteral("Hello world", SourceLocation(1, 9))) },
+            SourceLocation(1, 3)
+        ))
+    );
+}
+
 TEST(TestParser, parse_simple_conjunction_expression) {
     std::istringstream f("a, b;");
     Parser p(f);
@@ -246,7 +270,7 @@ TEST(TestParser, parse_trivial_predicate) {
     EXPECT_EQ(
         p.parsePredicate(),
         Predicate(
-            PredicateDecl("trivial", {}, SourceLocation(1, 5)),
+            PredicateDecl("trivial", {}, {}, SourceLocation(1, 5)),
             std::vector<Implication>()
         )
     );
@@ -259,7 +283,7 @@ TEST(TestParser, parse_predicate_unspaced_braces) {
     EXPECT_EQ(
         p.parsePredicate(),
         Predicate(
-            PredicateDecl("trivial", {}, SourceLocation(1, 5)),
+            PredicateDecl("trivial", {}, {}, SourceLocation(1, 5)),
             std::vector<Implication>()
         )
     );
@@ -272,7 +296,7 @@ TEST(TestParser, parse_predicate_with_implications) {
     EXPECT_EQ(
         p.parsePredicate(),
         Predicate(
-            PredicateDecl("trivial", {}, SourceLocation(1, 5)),
+            PredicateDecl("trivial", {}, {}, SourceLocation(1, 5)),
             std::vector<Implication>({
                 Implication(
                     PredicateRef("trivial", SourceLocation(1, 15)),
@@ -290,7 +314,7 @@ TEST(TestParser, parse_predicate_minimal_whitespace) {
     EXPECT_EQ(
         p.parsePredicate(),
         Predicate(
-            PredicateDecl("trivial", {}, SourceLocation(1, 5)),
+            PredicateDecl("trivial", {}, {}, SourceLocation(1, 5)),
             std::vector<Implication>({
                 Implication(
                     PredicateRef("trivial", SourceLocation(1, 13)),
@@ -312,7 +336,7 @@ TEST(TestParser, parse_predicate_multiple_implications) {
     EXPECT_EQ(
         p.parsePredicate(),
         Predicate(
-            PredicateDecl("a", {}, SourceLocation(1, 5)),
+            PredicateDecl("a", {}, {}, SourceLocation(1, 5)),
             std::vector<Implication>({
                 Implication(
                     PredicateRef("a", SourceLocation(2, 4)),
@@ -323,6 +347,39 @@ TEST(TestParser, parse_predicate_multiple_implications) {
                     Expression(PredicateRef("c", SourceLocation(3, 9)))
                 )
             })
+        )
+    );
+}
+
+TEST(TestParser, parse_predicate_with_unhandled_effect) {
+    std::istringstream f("pred p: print {}");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parsePredicate(),
+        Predicate(
+            PredicateDecl("p", {}, { EffectRef("print", SourceLocation(1, 8)) }, SourceLocation(1, 5)),
+            {}
+        )
+    );
+}
+
+TEST(TestParser, parse_predicate_with_multiple_unhandled_effects) {
+    std::istringstream f("pred p: print, abort {}");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parsePredicate(),
+        Predicate(
+            PredicateDecl(
+                "p",
+                {},
+                {
+                    EffectRef("print", SourceLocation(1, 8)),
+                    EffectRef("abort", SourceLocation(1, 15))
+                },
+                SourceLocation(1, 5)),
+            {}
         )
     );
 }

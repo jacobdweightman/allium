@@ -15,6 +15,7 @@ std::ostream& operator<<(std::ostream& out, const Token::Type value) {
     switch(value) {
     case Token::Type::brace_l: return out << "Type::brace_l";
     case Token::Type::brace_r: return out << "Type::brace_r";
+    case Token::Type::colon: return out << "Type::colon";
     case Token::Type::comma: return out << "Type::comma";
     case Token::Type::end_of_statement: return out << "Type::end_of_statement";
     case Token::Type::end_of_file: return out << "Type::end_of_file";
@@ -22,6 +23,7 @@ std::ostream& operator<<(std::ostream& out, const Token::Type value) {
     case Token::Type::identifier: return out << "Type::identifier";
     case Token::Type::implied_by: return out << "Type::implied_by";
     case Token::Type::kw_ctor: return out << "Type::kw_ctor";
+    case Token::Type::kw_do: return out << "Type::kw_do";
     case Token::Type::kw_let: return out << "Type::kw_let";
     case Token::Type::kw_pred: return out << "Type::kw_predicate";
     case Token::Type::kw_type: return out << "Type::kw_type";
@@ -89,6 +91,7 @@ Token Lexer::take_next() {
     // peel off tokens that "stick" to the back of the word.
     while(word.size() > 1 &&
         (word.back() == ';' || word.back() == ',' ||
+         word.back() == ':' ||
          word.back() == '{' || word.back() == '}' ||
          word.back() == '(' || word.back() == ')')) {
             file.unget();
@@ -105,6 +108,7 @@ Token Lexer::take_next() {
     if(word == "let") return makeToken(Token::Type::kw_let, word);
     if(word == "pred") return makeToken(Token::Type::kw_pred, word);
     if(word == "type") return makeToken(Token::Type::kw_type, word);
+    if(word == "do") return makeToken(Token::Type::kw_do, word);
     if(word == "ctor") return makeToken(Token::Type::kw_ctor, word);
     if(word == "effect") return makeToken(Token::Type::kw_effect, word);
     if(word == "true") return makeToken(Token::Type::true_literal, word);
@@ -112,6 +116,7 @@ Token Lexer::take_next() {
     else if(word == "<-") return makeToken(Token::Type::implied_by, word);
     else if(word == ";") return makeToken(Token::Type::end_of_statement, word);
     else if(word == ",") return makeToken(Token::Type::comma, word);
+    else if(word == ":") return makeToken(Token::Type::colon, word);
     else if(word == "{") return makeToken(Token::Type::brace_l, word);
     else if(word == "}") return makeToken(Token::Type::brace_r, word);
     else if(word == "(") return makeToken(Token::Type::paren_l, word);

@@ -35,7 +35,9 @@ public:
     Optional<Value> parseValue();
 
 private:
+    Optional<EffectCtorRef> parseEffectCtorRef();
     Optional<Expression> parseAtom();
+    Optional<std::vector<EffectRef>> parseEffectList();
     Optional<EffectDecl> parseEffectDecl();
     Optional<EffectConstructor> parseEffectConstructor();
 

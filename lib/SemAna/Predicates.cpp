@@ -84,6 +84,12 @@ public:
         return TypedAST::PredicateRef(pr.name.string(), arguments);
     }
 
+    Optional<TypedAST::PredicateRef> visit(const EffectCtorRef &ecr) {
+        // TODO: TypedAST::EffectCtorRef doesn't exist yet!
+        assert(false && "Effects not implemented yet!");
+        return Optional<TypedAST::PredicateRef>();
+    }
+
     Optional<TypedAST::Conjunction> visit(const Conjunction &conj) {
         std::unique_ptr<TypedAST::Expression> left, right;
         if( visit(conj.getLeft()).unwrapGuard(left) ||
@@ -99,6 +105,12 @@ public:
         [&](PredicateRef pr) {
             return visit(pr).map<TypedAST::Expression>(
                 [](TypedAST::PredicateRef tpr) { return TypedAST::Expression(tpr); }
+            );
+        },
+        [&](EffectCtorRef ecr) {
+            return visit(ecr).map<TypedAST::Expression>(
+                // TODO: correct argument type doesn't exist yet
+                [](TypedAST::PredicateRef tecr) { return TypedAST::Expression(tecr); }
             );
         },
         [&](Conjunction conj) {
@@ -372,6 +384,10 @@ public:
         enclosingType = Optional<Type>();
 
         return TypedAST::Type(raisedDeclaration, raisedCtors);
+    }
+
+    void visit(const EffectRef &e) {
+        assert(false && "Effects are not supported yet!");
     }
 
     void visit(const EffectDecl &decl) {
