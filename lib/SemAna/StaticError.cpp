@@ -9,6 +9,12 @@ std::string formatString(ErrorMessage msg) {
         return "Allium builtin \"%s\" cannot be redefined.";
     case ErrorMessage::constructor_argument_count:
         return "Constructor \"%s\" of type %s expects %s arguments.";
+    case ErrorMessage::effect_argument_count:
+        return "Effect constructor \"%s\" of effect %s expects %s arguments.";
+    case ErrorMessage::effect_redefined:
+        return "Effect \"%s\" was already defined at %s and cannot be redefined.";
+    case ErrorMessage::effect_unknown:
+        return "Effect constructor \"%s\" does not match any effect constructor of effects produced by predicate \"%s\".";
     case ErrorMessage::predicate_argument_count:
         return "Predicate \"%s\" expects %s arguments.";
     case ErrorMessage::string_literal_not_convertible:

@@ -130,6 +130,45 @@ public:
 
 
 /*
+ * Effects
+ */
+
+struct Effect;
+
+struct EffectDecl {
+    EffectDecl() {}
+    EffectDecl(std::string name): name(name) {}
+
+    Name<Effect> name;
+};
+
+bool operator==(const EffectDecl &left, const EffectDecl &right);
+bool operator!=(const EffectDecl &left, const EffectDecl &right);
+
+struct EffectCtor {
+    EffectCtor(std::string name, std::vector<TypeRef> parameters):
+        name(name), parameters(parameters) {}
+
+    Name<EffectCtor> name;
+    std::vector<TypeRef> parameters;
+};
+
+bool operator==(const EffectCtor &left, const EffectCtor &right);
+bool operator!=(const EffectCtor &left, const EffectCtor &right);
+
+struct Effect {
+    Effect(EffectDecl declaration, std::vector<EffectCtor> constructors):
+        declaration(declaration), constructors(constructors) {}
+
+    EffectDecl declaration;
+    std::vector<EffectCtor> constructors;
+};
+
+bool operator==(const Effect &left, const Effect &right);
+bool operator!=(const Effect &left, const Effect &right);
+
+
+/*
  * Predicates
  */
 
@@ -137,11 +176,13 @@ struct Predicate;
 
 struct TruthLiteral;
 struct PredicateRef;
+struct EffectCtorRef;
 struct Conjunction;
 
 typedef TaggedUnion<
     TruthLiteral,
     PredicateRef,
+    EffectCtorRef,
     Conjunction
 > Expression;
 
@@ -163,6 +204,18 @@ struct PredicateRef {
     PredicateRef(std::string name, std::vector<Value> arguments);
 
     Name<Predicate> name;
+    std::vector<Value> arguments;
+};
+
+struct EffectCtorRef {
+    EffectCtorRef(
+        std::string effectName,
+        std::string ctorName,
+        std::vector<Value> arguments
+    ): effectName(effectName), ctorName(ctorName), arguments(arguments) {}
+
+    Name<Effect> effectName;
+    Name<EffectCtor> ctorName;
     std::vector<Value> arguments;
 };
 
@@ -201,8 +254,9 @@ std::ostream& operator<<(std::ostream &out, const PredicateRef &pr);
 class AST {
 public:
     AST(std::vector<Type> types,
+        std::vector<Effect> effects,
         std::vector<Predicate> predicates
-    ): types(types), predicates(predicates) {}
+    ): types(types), effects(effects), predicates(predicates) {}
 
     const Type &resolveTypeRef(const TypeRef &tr) const {
         const auto x = std::find_if(
@@ -237,6 +291,7 @@ public:
     }
 
     std::vector<Type> types;
+    std::vector<Effect> effects;
     std::vector<Predicate> predicates;
 };
 

@@ -7,6 +7,7 @@ using namespace TypedAST;
 TEST(TestASTLower, variables_of_uninhabited_types_are_marked) {
     AST ast(
         { Type(TypeDecl("Void"), {}) },
+        {},
         {
             Predicate(PredicateDecl("foo", { TypeRef("Void") }), {
                 Implication(
@@ -48,6 +49,7 @@ TEST(TestASTLower, existential_variables_are_uniquely_indexed) {
                 { Constructor("t", {}) }
             )
         },
+        {},
         {
             Predicate(PredicateDecl("foo", { TypeRef("T"), TypeRef("T") }), {
                 Implication(

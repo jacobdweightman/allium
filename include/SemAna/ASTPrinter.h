@@ -15,10 +15,14 @@ public:
     void visit(const ConstructorRef &cr);
     void visit(const Type &type);
     void visit(const TypeRef &tr);
+    void visit(const EffectDecl &eDecl);
+    void visit(const EffectCtor &eCtor);
+    void visit(const Effect &e);
     void visit(const Predicate &p);
     void visit(const TruthLiteral &tl);
     void visit(const PredicateDecl &pd);
     void visit(const PredicateRef &pr);
+    void visit(const EffectCtorRef &ecr);
     void visit(const Conjunction &conj);
     void visit(const Expression &expr);
     void visit(const Implication &impl);

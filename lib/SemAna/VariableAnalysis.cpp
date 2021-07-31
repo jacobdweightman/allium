@@ -26,6 +26,10 @@ private:
         for(const auto &arg : pr.arguments) getVariables(arg);
     }
 
+    void getVariables(const EffectCtorRef &ecr) {
+        for(const auto &arg : ecr.arguments) getVariables(arg);
+    }
+
     void getVariables(const Conjunction &conj) {
         getVariables(conj.getLeft());
         getVariables(conj.getRight());
@@ -42,6 +46,7 @@ public:
         expr.switchOver(
         [](TruthLiteral) {},
         [&](PredicateRef pr) { getVariables_(pr); },
+        [&](EffectCtorRef ecr) { getVariables(ecr); },
         [&](Conjunction conj) { getVariables(conj); }
         );
     }

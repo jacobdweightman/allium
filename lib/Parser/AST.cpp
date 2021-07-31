@@ -236,6 +236,19 @@ Optional<Type> AST::resolveTypeRef(const TypeRef &tr) const {
     }
 }
 
+Optional<const Effect*> AST::resolveEffectRef(const EffectRef &er) const {
+    const auto &x = std::find_if(
+        effects.begin(),
+        effects.end(),
+        [&](const Effect &e) { return e.declaration.name == er.name; });
+    
+    if(x == effects.end()) {
+        return Optional<const Effect*>();
+    } else {
+        return &*x;
+    }
+}
+
 Optional<Predicate> AST::resolvePredicateRef(const PredicateRef &pr) const {
     const auto &x = std::find_if(
         predicates.begin(),
@@ -283,12 +296,9 @@ bool operator!=(const EffectConstructor &lhs, const EffectConstructor &rhs) {
     return !(lhs == rhs);
 }
 
-std::ostream& operator<<(std::ostream &out, const EffectConstructor &ctor) {
-    out << "ctor " << ctor.name << "(";
-    for(const auto &param : ctor.parameters) {
-        out << param << ", ";
-    }
-    return out << ")";
+std::ostream& operator<<(std::ostream &out, const EffectConstructor &eCtor) {
+    ASTPrinter(out).visit(eCtor);
+    return out;
 }
 
 bool operator==(const Effect &lhs, const Effect &rhs) {

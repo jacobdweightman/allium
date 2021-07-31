@@ -79,6 +79,11 @@ public:
         return interpreter::PredicateReference(predicateIndex, arguments);
     }
 
+    interpreter::PredicateReference visit(const EffectCtorRef &ecr) {
+        assert(false && "Effects not implemented");
+        return interpreter::PredicateReference(0, {});
+    }
+
     interpreter::Conjunction visit(const Conjunction &conj) {
         return interpreter::Conjunction(
             visit(conj.getLeft()),
@@ -90,6 +95,7 @@ public:
         return expr.match<interpreter::Expression>(
         [&](TruthLiteral tl) { return interpreter::Expression(visit(tl)); },
         [&](PredicateRef pr) { return interpreter::Expression(visit(pr)); },
+        [&](EffectCtorRef ecr) { return interpreter::Expression(visit(ecr)); },
         [&](Conjunction conj) { return interpreter::Expression(visit(conj)); }
         );
     }

@@ -385,3 +385,100 @@ TEST_F(TestSemAnaPredicates, string_literal_not_convertible) {
 
     checkAll(AST(ts, {}, ps), error);
 }
+
+TEST_F(TestSemAnaPredicates, unhandled_effect) {
+    // effect Abort {
+    //     ctor abort;
+    // }
+    // pred p {
+    //     p <- do abort;
+    // }
+
+    SourceLocation errorLocation(5, 12);
+    std::vector<Effect> es = {
+        Effect(
+            EffectDecl("Abort", SourceLocation(1, 7)),
+            { EffectConstructor("abort", {}, SourceLocation(2, 9)) }
+        )
+    };
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", {}, {}, SourceLocation(4, 5)),
+            {
+                Implication(
+                    PredicateRef("p", SourceLocation(5, 4)),
+                    Expression(EffectCtorRef("abort", {}, errorLocation))
+                )
+            }
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::effect_unknown, "abort", "p"));
+
+    checkAll(AST({}, es, ps), error);
+}
+
+TEST_F(TestSemAnaPredicates, effect_argument_count) {
+    // effect Foo {
+    //     ctor bar(String, String);
+    // }
+    // pred p: Foo {
+    //     p <- do bar("a");
+    // }
+
+    SourceLocation errorLocation(5, 12);
+    std::vector<Effect> es = {
+        Effect(
+            EffectDecl("Foo", SourceLocation(1, 7)),
+            {
+                EffectConstructor(
+                    "bar",
+                    {
+                        TypeRef("String", SourceLocation(2, 13)),
+                        TypeRef("String", SourceLocation(2, 21))
+                    },
+                    SourceLocation(2, 9)
+                )
+            }
+        )
+    };
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl(
+                "p",
+                {},
+                { EffectRef("Foo", SourceLocation(4, 8)) },
+                SourceLocation(4, 5)
+            ),
+            {
+                Implication(
+                    PredicateRef("p", SourceLocation(5, 4)),
+                    Expression(EffectCtorRef(
+                        "bar",
+                        { Value(StringLiteral("a", SourceLocation(5, 17))) },
+                        errorLocation
+                    ))
+                )
+            }
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::effect_argument_count, "bar", "Foo", "2"));
+
+    checkAll(AST({}, es, ps), error);
+}
+
+TEST_F(TestSemAnaPredicates, effect_redefined) {
+    // effect Foo {}
+    // effect Foo {}
+
+    SourceLocation errorLocation(2, 7);
+    std::vector<Effect> es = {
+        Effect(EffectDecl("Foo", SourceLocation(1, 7)), {}),
+        Effect(EffectDecl("Foo", errorLocation), {})
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::effect_redefined, "Foo", "1:7"));
+
+    checkAll(AST({}, es, {}), error);
+}

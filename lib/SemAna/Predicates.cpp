@@ -15,6 +15,9 @@ class SemAna {
     // The type-checked and raised type definitions.
     mutable std::vector<TypedAST::Type> raisedTypes;
 
+    // The type-checked and raised effect definitions.
+    mutable std::vector<TypedAST::Effect> raisedEffects;
+
     /// The predicate definition enclosing the current AST node being analyzed, if there is one.
     mutable Optional<Predicate> enclosingPredicate;
 
@@ -84,10 +87,66 @@ public:
         return TypedAST::PredicateRef(pr.name.string(), arguments);
     }
 
-    Optional<TypedAST::PredicateRef> visit(const EffectCtorRef &ecr) {
-        // TODO: TypedAST::EffectCtorRef doesn't exist yet!
-        assert(false && "Effects not implemented yet!");
-        return Optional<TypedAST::PredicateRef>();
+    Optional<TypedAST::EffectCtorRef> visit(const EffectCtorRef &ecr) {
+        Predicate p;
+        if(enclosingPredicate.unwrapGuard(p)) {
+            assert(enclosingPredicate && "enclosingPredicate not set!");
+            return Optional<TypedAST::EffectCtorRef>();
+        }
+
+        std::vector<EffectConstructor>::const_iterator eCtor;
+        auto effect = std::find_if(
+            p.name.effects.begin(),
+            p.name.effects.end(),
+            [&](const EffectRef &er) {
+                const Effect *e;
+                if(ast.resolveEffectRef(er).unwrapGuard(e)) {
+                    // The effect is undefined.
+                    return false;
+                }
+                eCtor = std::find_if(
+                    e->constructors.begin(),
+                    e->constructors.end(),
+                    [&](const EffectConstructor &eCtor) { return eCtor.name == ecr.name; }
+                );
+                return eCtor != e->constructors.end();
+            });
+
+        if(effect == p.name.effects.end()) {
+            error.emit(
+                ecr.location,
+                ErrorMessage::effect_unknown,
+                ecr.name.string(),
+                p.name.name.string());
+            return Optional<TypedAST::EffectCtorRef>();
+        }
+
+        if(ecr.arguments.size() != eCtor->parameters.size()) {
+            error.emit(
+                ecr.location,
+                ErrorMessage::effect_argument_count,
+                eCtor->name.string(),
+                effect->name.string(),
+                std::to_string(eCtor->parameters.size()));
+            return Optional<TypedAST::EffectCtorRef>();
+        }
+
+        auto parameter = eCtor->parameters.begin();
+        auto raisedArguments = compactMap<Value, TypedAST::Value>(
+            ecr.arguments,
+            [&](Value argument) -> Optional<TypedAST::Value> {
+                inferredType = ast.resolveTypeRef(*parameter);
+                Optional<TypedAST::Value> raisedArg = visit(argument);
+                inferredType = Optional<Type>();
+                ++parameter;
+                return raisedArg;
+            }
+        );
+
+        return TypedAST::EffectCtorRef(
+            effect->name.string(),
+            eCtor->name.string(),
+            raisedArguments);
     }
 
     Optional<TypedAST::Conjunction> visit(const Conjunction &conj) {
@@ -109,8 +168,7 @@ public:
         },
         [&](EffectCtorRef ecr) {
             return visit(ecr).map<TypedAST::Expression>(
-                // TODO: correct argument type doesn't exist yet
-                [](TypedAST::PredicateRef tecr) { return TypedAST::Expression(tecr); }
+                [](TypedAST::EffectCtorRef ecr) { return TypedAST::Expression(ecr); }
             );
         },
         [&](Conjunction conj) {
@@ -390,16 +448,53 @@ public:
         assert(false && "Effects are not supported yet!");
     }
 
-    void visit(const EffectDecl &decl) {
-        assert(false && "Effects are not supported yet!");
+    Optional<TypedAST::EffectDecl> visit(const EffectDecl &decl) {
+        // TODO: builtin effects?
+
+        const auto originalDeclaration = std::find_if(
+            ast.effects.begin(),
+            ast.effects.end(),
+            [&](Effect e) {
+                return e.declaration.name == decl.name;
+            })->declaration;
+
+        if(originalDeclaration != decl) {
+            error.emit(
+                decl.location,
+                ErrorMessage::effect_redefined,
+                decl.name.string(),
+                originalDeclaration.location.toString());
+            return Optional<TypedAST::EffectDecl>();
+        }
+
+        return TypedAST::EffectDecl(decl.name.string());
     }
 
-    void visit(const EffectConstructor &ctor) {
-        assert(false && "Effects are not supported yet!");
+    Optional<TypedAST::EffectCtor> visit(const EffectConstructor &eCtor) {
+        return fullMap<TypeRef, TypedAST::TypeRef>(
+            eCtor.parameters,
+            [&](TypeRef param) { return visit(param); }
+        ).map<TypedAST::EffectCtor>(
+            [&](std::vector<TypedAST::TypeRef> raisedParameters) {
+                return TypedAST::EffectCtor(eCtor.name.string(), raisedParameters);
+            }
+        );
     }
 
-    void visit(const Effect &effect) {
-        assert(false && "Effects are not supported yet!");
+    Optional<TypedAST::Effect> visit(const Effect &effect) {
+        TypedAST::EffectDecl raisedDeclaration;
+        if(visit(effect.declaration).unwrapGuard(raisedDeclaration)) {
+            return Optional<TypedAST::Effect>();
+        }
+
+        std::vector<TypedAST::EffectCtor> raisedCtors;
+        for(const EffectConstructor &eCtor : effect.constructors) {
+            visit(eCtor).map([&](TypedAST::EffectCtor raisedCtor) {
+                raisedCtors.push_back(raisedCtor);
+            });
+        }
+
+        return TypedAST::Effect(raisedDeclaration, raisedCtors);
     }
 
     TypedAST::AST visit(const AST &ast) {
@@ -408,16 +503,17 @@ public:
             [&](Type type) { return visit(type); }
         );
 
-        for(const auto &effect : ast.effects) {
-            visit(effect);
-        }
+        raisedEffects = compactMap<Effect, TypedAST::Effect>(
+            ast.effects,
+            [&](Effect effect) { return visit(effect); }
+        );
 
         auto raisedPredicates = compactMap<Predicate, TypedAST::Predicate>(
             ast.predicates,
             [&](Predicate predicate) { return visit(predicate); }
         );
 
-        return TypedAST::AST(raisedTypes, raisedPredicates);
+        return TypedAST::AST(raisedTypes, raisedEffects, raisedPredicates);
     }
 };
 

@@ -8,6 +8,9 @@
 enum class ErrorMessage {
     builtin_redefined,
     constructor_argument_count,
+    effect_argument_count,
+    effect_redefined,
+    effect_unknown,
     impl_head_mismatches_predicate,
     predicate_argument_count,
     string_literal_not_convertible,

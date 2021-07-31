@@ -38,6 +38,32 @@ void ASTPrinter::visit(const TypeRef &tr) {
     out << "<TypeRef \"" << tr << "\">\n";
 }
 
+void ASTPrinter::visit(const EffectDecl &eDecl) {
+    indent();
+    out << "<EffectDecl \"" << eDecl.name << "\">\n";
+}
+
+void ASTPrinter::visit(const EffectCtor &eCtor) {
+    indent();
+    out << "<EffectCtor \"" << eCtor.name << "\">\n";
+    depth++;
+    for(const auto &parameter : eCtor.parameters) {
+        visit(parameter);
+    }
+    depth--;
+}
+
+void ASTPrinter::visit(const Effect &e) {
+    indent();
+    out << "<Effect>\n";
+    depth++;
+    visit(e.declaration);
+    for(const auto &ctor : e.constructors) {
+        visit(ctor);
+    }
+    depth--;
+}
+
 void ASTPrinter::visit(const Predicate &p) {
     indent();
     out << "<Predicate>\n";
@@ -68,6 +94,17 @@ void ASTPrinter::visit(const PredicateRef &pr) {
     depth--;
 }
 
+void ASTPrinter::visit(const EffectCtorRef &ecr) {
+    indent();
+    out << "EffectCtorRef \"" << ecr.effectName << "." << ecr.ctorName <<
+        "\">\n";
+    depth++;
+    for(const auto &arg : ecr.arguments) {
+        visit(arg);
+    }
+    depth--;
+}
+
 void ASTPrinter::visit(const Conjunction &conj) {
     indent();
     out << "<Conjunction>\n";
@@ -81,6 +118,7 @@ void ASTPrinter::visit(const Expression &expr) {
     expr.switchOver(
     [&](TruthLiteral tl) { visit(tl); },
     [&](PredicateRef pr) { visit(pr); },
+    [&](EffectCtorRef ecr) { visit(ecr); },
     [&](Conjunction conj) { visit(conj); }
     );
 }
@@ -128,6 +166,7 @@ void ASTPrinter::visit(const AST &ast) {
     out << "<TypedAST>\n";
     depth++;
     for(const auto &x : ast.types) visit(x);
+    for(const auto &x : ast.effects) visit(x);
     for(const auto &x : ast.predicates) visit(x);
     depth--;
 }

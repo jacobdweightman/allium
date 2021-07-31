@@ -44,6 +44,7 @@ struct Type;
 
 struct Effect;
 struct EffectRef;
+struct EffectConstructor;
 
 /// Represents a truth value literal in the AST.
 struct TruthLiteral {
@@ -114,7 +115,7 @@ struct EffectCtorRef {
         SourceLocation location
     ): name(name), arguments(arguments), location(location) {}
 
-    Name<Effect> name;
+    Name<EffectConstructor> name;
     std::vector<Value> arguments;
     SourceLocation location;
 };
@@ -389,6 +390,7 @@ struct AST {
     ): types(types), effects(effects), predicates(predicates) {}
 
     Optional<Type> resolveTypeRef(const TypeRef &tr) const;
+    Optional<const Effect*> resolveEffectRef(const EffectRef &er) const;
     Optional<Predicate> resolvePredicateRef(const PredicateRef &pr) const;
 
     std::vector<Type> types;
