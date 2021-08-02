@@ -286,6 +286,8 @@ public:
             raisedTypes.end(),
             [&](const TypedAST::Type &rt) { return rt.declaration.name.string() == type.declaration.name.string(); });
 
+        assert(raisedType != raisedTypes.end());
+
         TypedAST::Scope *scope;
         if(enclosingScope.unwrapGuard(scope)) {
             assert(enclosingScope && "Scope not initialized!");
@@ -498,7 +500,10 @@ public:
     }
 
     TypedAST::AST visit(const AST &ast) {
-        raisedTypes = compactMap<Type, TypedAST::Type>(
+        raisedTypes = {
+            TypedAST::Type(TypedAST::TypeDecl("String"), {})
+        };
+        raisedTypes += compactMap<Type, TypedAST::Type>(
             ast.types,
             [&](Type type) { return visit(type); }
         );

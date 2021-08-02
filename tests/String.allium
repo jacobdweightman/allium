@@ -3,5 +3,8 @@ pred saysHello(String) {
 }
 
 pred main {
-    main <- saysHello("Hello world!");
+    main <-
+        saysHello(let x),
+        saysHello(x),
+        saysHello("Hello world!");
 }

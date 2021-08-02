@@ -66,6 +66,7 @@ GENERATE_EXPORT_HEADER(AlliumInterpreter)
 
 add_executable(unittests
   unittests/TestASTLower.cpp
+  unittests/TestASTRaise.cpp
   unittests/TestGenerator.cpp
   unittests/TestInterpreter.cpp
   unittests/TestOptional.cpp

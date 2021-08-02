@@ -41,3 +41,8 @@ Optional<std::vector<U>> fullMap(std::vector<T> V, std::function< Optional<U> (T
     }
     return result;
 }
+
+template <typename T>
+void operator+=(std::vector<T> &a, std::vector<T> &&b) {
+    a.insert(a.end(), b.begin(), b.end());
+}

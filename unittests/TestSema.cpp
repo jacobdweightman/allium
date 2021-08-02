@@ -215,6 +215,13 @@ TEST_F(TestSemAnaPredicates, predicate_argument_with_arguments_type_mismatch) {
 }
 
 TEST_F(TestSemAnaPredicates, predicate_argument_type_mismatch) {
+    // type Foo {
+    //     ctor bar;
+    // }
+    // pred a(Foo) {
+    //     a(baz) <- true;
+    // }
+
     SourceLocation errorLocation(2, 4);
     std::vector<Type> ts = {
         Type(
