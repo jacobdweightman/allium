@@ -7,8 +7,8 @@
 #include <vector>
 
 #include "Utils/Optional.h"
-#include "Utils/TaggedUnion.h"
 #include "Utils/ParserValues.h"
+#include "Utils/TaggedUnion.h"
 
 namespace parser {
 

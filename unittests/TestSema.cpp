@@ -1,8 +1,9 @@
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
-#include "SemAna/StaticError.h"
-#include "SemAna/Predicates.h"
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 #include <iostream>
+
+#include "SemAna/Predicates.h"
+#include "SemAna/StaticError.h"
 
 using ::testing::_;
 using ::testing::StrictMock;

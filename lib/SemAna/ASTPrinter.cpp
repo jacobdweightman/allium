@@ -1,4 +1,5 @@
 #include <ostream>
+
 #include "SemAna/ASTPrinter.h"
 
 namespace TypedAST {

@@ -2,10 +2,10 @@
 #define TAGGED_UNION_H
 
 #include <algorithm>
+#include <assert.h>
 #include <functional>
 #include <iostream>
 #include <tuple>
-#include <assert.h>
 #include <variant>
 
 #include "Optional.h"

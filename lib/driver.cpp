@@ -3,10 +3,10 @@
 #include <vector>
 
 #include "Interpreter/ASTLower.h"
-#include "Interpreter/program.h"
+#include "Interpreter/Program.h"
 #include "Parser/ASTPrinter.h"
-#include "Parser/lexer.h"
-#include "Parser/parser.h"
+#include "Parser/Lexer.h"
+#include "Parser/Parser.h"
 #include "SemAna/ASTPrinter.h"
 #include "SemAna/StaticError.h"
 #include "SemAna/Predicates.h"

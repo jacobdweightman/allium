@@ -1,4 +1,5 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
+
 #include "Utils/Optional.h"
 
 template class Optional<int>;

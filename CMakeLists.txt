@@ -33,8 +33,8 @@ include(GenerateExportHeader)
 
 add_library(AlliumParse SHARED
   lib/Parser/AST.cpp
-  lib/Parser/lexer.cpp
-  lib/Parser/parser.cpp)
+  lib/Parser/Lexer.cpp
+  lib/Parser/Parser.cpp)
 
 target_include_directories(AlliumParse PUBLIC include)
 GENERATE_EXPORT_HEADER(AlliumParse)
@@ -53,7 +53,7 @@ GENERATE_EXPORT_HEADER(AlliumSemAna)
 
 add_library(AlliumInterpreter SHARED
   lib/Interpreter/ASTLower.cpp
-  lib/Interpreter/program.cpp
+  lib/Interpreter/Program.cpp
   lib/Interpreter/WitnessProducer.cpp)
 
 target_include_directories(AlliumInterpreter PUBLIC include)
@@ -67,11 +67,11 @@ GENERATE_EXPORT_HEADER(AlliumInterpreter)
 add_executable(unittests
   unittests/TestASTLower.cpp
   unittests/TestGenerator.cpp
+  unittests/TestInterpreter.cpp
   unittests/TestOptional.cpp
-  unittests/TestTaggedUnion.cpp
   unittests/TestParse.cpp
   unittests/TestSema.cpp
-  unittests/TestInterpreter.cpp)
+  unittests/TestTaggedUnion.cpp)
 add_test(unittests unittests)
 
 set_target_properties(unittests PROPERTIES

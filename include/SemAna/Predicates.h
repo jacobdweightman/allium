@@ -1,8 +1,8 @@
 #ifndef SEMANA_PREDICATE_H
 #define SEMANA_PREDICATE_H
 
-#include <vector>
 #include <map>
+#include <vector>
 
 #include "Parser/AST.h"
 #include "SemAna/StaticError.h"

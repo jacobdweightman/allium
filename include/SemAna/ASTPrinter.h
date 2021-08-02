@@ -2,6 +2,7 @@
 #define TYPED_AST_PRINTER_H
 
 #include <ostream>
+
 #include "TypedAST.h"
 
 namespace TypedAST {

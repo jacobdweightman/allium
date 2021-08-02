@@ -7,5 +7,5 @@ struct Unit {
     Unit() {}
 
     /// This type has one possible value, which is trivially equal to itself.
-    bool operator == (const Unit right) const { return true; }
+    bool operator==(const Unit right) const { return true; }
 };

@@ -1,9 +1,10 @@
 #include <algorithm>
 #include <limits>
 
+#include "Interpreter/ASTLower.h"
 #include "SemAna/TypedAST.h"
 #include "SemAna/VariableAnalysis.h"
-#include "Interpreter/ASTLower.h"
+#include "Utils/VectorUtils.h"
 
 using namespace TypedAST;
 

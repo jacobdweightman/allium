@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "Interpreter/program.h"
+#include "Interpreter/Program.h"
 #include "Interpreter/WitnessProducer.h"
 
 namespace interpreter {

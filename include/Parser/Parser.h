@@ -3,10 +3,10 @@
 
 #include <string>
 
+#include "Parser/AST.h"
+#include "Parser/Lexer.h"
 #include "Utils/Optional.h"
 #include "Utils/TaggedUnion.h"
-#include "Parser/AST.h"
-#include "Parser/lexer.h"
 
 namespace parser {
 

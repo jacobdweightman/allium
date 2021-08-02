@@ -1,7 +1,7 @@
+#include <gtest/gtest.h>
 #include <iostream>
 
-#include "gtest/gtest.h"
-#include "Parser/parser.h"
+#include "Parser/Parser.h"
 
 using namespace parser;
 

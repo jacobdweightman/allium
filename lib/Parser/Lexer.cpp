@@ -2,7 +2,7 @@
 #include <iostream>
 #include <limits>
 
-#include "Parser/lexer.h"
+#include "Parser/Lexer.h"
 
 namespace parser {
 
