@@ -1,6 +1,6 @@
-#include "Interpreter/WitnessProducer.h"
-
 #include <vector>
+
+#include "Interpreter/WitnessProducer.h"
 
 namespace interpreter {
 

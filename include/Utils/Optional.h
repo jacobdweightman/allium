@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <utility>
 
 /// Represents a value which may or may not have a value, and may be accessed
 /// in a type-safe way.
@@ -187,5 +188,15 @@ public:
 private:
     std::optional<T> wrapped;
 };
+
+/// Returns the pair of the values from two Optionals iff both have values.
+template <typename T, typename U>
+Optional<std::pair<T, U>> both(const Optional<T> &t, const Optional<U> &u) {
+    return t.template flatMap<std::pair<T, U>>([&](T tt) {
+        return u.template map<std::pair<T,U>>([&](U uu) {
+            return std::make_pair(tt, uu);
+        });
+    });
+}
 
 #endif // OPTIONAL_H

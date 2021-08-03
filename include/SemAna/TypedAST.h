@@ -134,6 +134,7 @@ public:
  */
 
 struct Effect;
+typedef Name<Type> EffectRef;
 
 struct EffectDecl {
     EffectDecl() {}
@@ -193,11 +194,15 @@ struct TruthLiteral {
 };
 
 struct PredicateDecl {
-    PredicateDecl(std::string name, std::vector<TypeRef> parameters):
-        name(name), parameters(parameters) {}
+    PredicateDecl(
+        std::string name,
+        std::vector<TypeRef> parameters,
+        std::vector<EffectRef> effects
+    ): name(name), parameters(parameters), effects(effects) {}
 
     Name<Predicate> name;
     std::vector<TypeRef> parameters;
+    std::vector<EffectRef> effects;
 };
 
 struct PredicateRef {
@@ -278,6 +283,23 @@ public:
 
         assert(ctor != type.constructors.end());
         return *ctor;
+    }
+
+    const EffectCtor &resolveEffectCtorRef(const EffectCtorRef &ecr) const {
+        const auto effect = std::find_if(
+            effects.begin(),
+            effects.end(),
+            [&](const Effect &e) { return e.declaration.name == ecr.effectName; });
+        
+        assert(effect != effects.end());
+
+        const auto eCtor = std::find_if(
+            effect->constructors.begin(),
+            effect->constructors.end(),
+            [&](const EffectCtor &eCtor) { return eCtor.name == ecr.ctorName; });
+        
+        assert(eCtor != effect->constructors.end());
+        return *eCtor;
     }
 
     const Predicate &resolvePredicateRef(const PredicateRef &pr) const {

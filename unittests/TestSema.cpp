@@ -394,6 +394,27 @@ TEST_F(TestSemAnaPredicates, string_literal_not_convertible) {
     checkAll(AST(ts, {}, ps), error);
 }
 
+TEST_F(TestSemAnaPredicates, undefined_effect) {
+    // pred p: Foo {}
+
+    SourceLocation errorLocation(1, 8);
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl(
+                "p",
+                {},
+                { EffectRef("Foo", errorLocation) },
+                SourceLocation(1, 5)
+            ),
+            {}
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::effect_type_undefined, "Foo"));
+
+    checkAll(AST({}, {}, ps), error);
+}
+
 TEST_F(TestSemAnaPredicates, unhandled_effect) {
     // effect Abort {
     //     ctor abort;

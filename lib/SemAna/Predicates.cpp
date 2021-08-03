@@ -43,12 +43,18 @@ public:
     }
 
     Optional<TypedAST::PredicateDecl> visit(const PredicateDecl &pd) {
-        return fullMap<TypeRef, TypedAST::TypeRef>(
-            pd.parameters,
-            [&](TypeRef tr) -> Optional<TypedAST::TypeRef> { return visit(tr); }
+        return both(
+            fullMap<TypeRef, TypedAST::TypeRef>(
+                pd.parameters,
+                [&](TypeRef tr) -> Optional<TypedAST::TypeRef> { return visit(tr); }
+            ),
+            fullMap<EffectRef, TypedAST::EffectRef>(
+                pd.effects,
+                [&](EffectRef er) { return visit(er); }
+            )
         ).map<TypedAST::PredicateDecl>(
-            [&](std::vector<TypedAST::TypeRef> parameters) {
-                return TypedAST::PredicateDecl(pd.name.string(), parameters);
+            [&](auto pair) {
+                return TypedAST::PredicateDecl(pd.name.string(), pair.first, pair.second);
             }
         );
     }
@@ -446,8 +452,20 @@ public:
         return TypedAST::Type(raisedDeclaration, raisedCtors);
     }
 
-    void visit(const EffectRef &e) {
-        assert(false && "Effects are not supported yet!");
+    Optional<TypedAST::EffectRef> visit(const EffectRef &er) {
+        // Short-circuit for builtin types
+        if(er.name == "IO") {
+            return TypedAST::EffectRef("IO");
+        }
+
+        if(!ast.resolveEffectRef(er)) {
+            error.emit(
+                er.location,
+                ErrorMessage::effect_type_undefined,
+                er.name.string());
+            return Optional<TypedAST::TypeRef>();
+        }
+        return TypedAST::EffectRef(er.name.string());
     }
 
     Optional<TypedAST::EffectDecl> visit(const EffectDecl &decl) {
@@ -508,7 +526,15 @@ public:
             [&](Type type) { return visit(type); }
         );
 
-        raisedEffects = compactMap<Effect, TypedAST::Effect>(
+        raisedEffects = {
+            TypedAST::Effect(
+                TypedAST::EffectDecl("IO"),
+                {
+                    TypedAST::EffectCtor("print", { TypedAST::TypeRef("String") })
+                }
+            )
+        };
+        raisedEffects += compactMap<Effect, TypedAST::Effect>(
             ast.effects,
             [&](Effect effect) { return visit(effect); }
         );

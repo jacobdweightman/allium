@@ -9,7 +9,7 @@ TEST(TestASTLower, variables_of_uninhabited_types_are_marked) {
         { Type(TypeDecl("Void"), {}) },
         {},
         {
-            Predicate(PredicateDecl("foo", { TypeRef("Void") }), {
+            Predicate(PredicateDecl("foo", { TypeRef("Void") }, {}), {
                 Implication(
                     PredicateRef("foo", { AnonymousVariable(TypeRef("Void")) }),
                     TruthLiteral(true)
@@ -51,7 +51,7 @@ TEST(TestASTLower, existential_variables_are_uniquely_indexed) {
         },
         {},
         {
-            Predicate(PredicateDecl("foo", { TypeRef("T"), TypeRef("T") }), {
+            Predicate(PredicateDecl("foo", { TypeRef("T"), TypeRef("T") }, {}), {
                 Implication(
                     PredicateRef("foo", {
                         AnonymousVariable(TypeRef("T")),

@@ -10,7 +10,13 @@ enum class ErrorMessage {
     constructor_argument_count,
     effect_argument_count,
     effect_redefined,
+
+    /// An effect type reference could not be matched to its definition.
+    effect_type_undefined,
+
+    /// The definition of an effect constructor use could not be deduced.
     effect_unknown,
+
     impl_head_mismatches_predicate,
     predicate_argument_count,
     string_literal_not_convertible,

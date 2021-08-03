@@ -23,7 +23,7 @@ jobs:
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
         sudo ./llvm.sh 12
-        sudo apt-get install libc++-12-dev libc++abi-12-dev
+        sudo apt-get install libc++-12-dev libc++abi-12-dev libunwind-dev
         clang++-12 --version
         echo "CXX=clang++-12" >> $GITHUB_ENV
       if: matrix.os == 'ubuntu-latest'
