@@ -46,6 +46,7 @@ std::ostream& operator<<(std::ostream &out, const Expression &expr) {
     return expr.match<std::ostream&>(
     [&](TruthValue tv) -> std::ostream& { return out << tv; },
     [&](PredicateReference pr) -> std::ostream& { return out << pr; },
+    [&](EffectCtorRef ecr) -> std::ostream& { return out << ecr; },
     [&](Conjunction conj) -> std::ostream& { return out << conj; }
     );
 }
@@ -86,6 +87,10 @@ std::ostream& operator<<(std::ostream &out, const PredicateReference &pr) {
     out << pr.index << "(";
     for(const auto &arg : pr.arguments) out << arg << ", ";
     return out << ")";
+}
+
+std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr) {
+    return out << "do " << ecr.effectIndex << "." << ecr.effectCtorIndex;
 }
 
 std::ostream& operator<<(std::ostream &out, const Conjunction &conj) {

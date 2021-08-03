@@ -80,9 +80,17 @@ public:
         return interpreter::PredicateReference(predicateIndex, arguments);
     }
 
-    interpreter::PredicateReference visit(const EffectCtorRef &ecr) {
-        assert(false && "Effects not implemented");
-        return interpreter::PredicateReference(0, {});
+    interpreter::EffectCtorRef visit(const EffectCtorRef &ecr) {
+        const EffectCtor &eCtor = ast.resolveEffectCtorRef(ecr);
+        auto [effectIndex, eCtorIndex] = getEffectIndices(ecr);
+
+        std::vector<interpreter::Value> arguments;
+        for(int i=0; i<eCtor.parameters.size(); ++i) {
+            auto loweredCtorRef = visit(ecr.arguments[i], eCtor.parameters[i]);
+            arguments.push_back(loweredCtorRef);
+        }
+
+        return interpreter::EffectCtorRef(effectIndex, eCtorIndex, arguments);
     }
 
     interpreter::Conjunction visit(const Conjunction &conj) {
@@ -172,6 +180,26 @@ private:
         auto vIter = scope.find(v.name);
         for(; vIter != scope.begin(); --vIter) ++index;
         return index;
+    }
+
+    std::pair<size_t, size_t> getEffectIndices(const EffectCtorRef &ecr) {
+        auto effect = std::find_if(
+            ast.effects.begin(),
+            ast.effects.end(),
+            [&](const Effect &e) { return ecr.effectName == e.declaration.name; });
+        
+        assert(effect != ast.effects.end());
+
+        auto eCtor = std::find_if(
+            effect->constructors.begin(),
+            effect->constructors.end(),
+            [&](const EffectCtor &eCtor) { return ecr.ctorName == eCtor.name; });
+        
+        assert(eCtor != effect->constructors.end());
+        return {
+            effect - ast.effects.begin(),
+            eCtor - effect->constructors.begin()
+        };
     }
 
     const AST &ast;

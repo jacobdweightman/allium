@@ -1,5 +1,6 @@
 #include <vector>
 
+#include "Interpreter/BuiltinEffects.h"
 #include "Interpreter/WitnessProducer.h"
 
 namespace interpreter {
@@ -34,6 +35,18 @@ Generator<Unit> witnesses(
 
 Generator<Unit> witnesses(
     const Program &prog,
+    const EffectCtorRef &ecr,
+    std::vector<Value> &enclosingVariables
+) {
+    std::cout << "handle effect: " << ecr << "\n";
+    if(ecr.effectIndex == 0) {
+        handleDefaultIO(ecr, enclosingVariables);
+    }
+    co_yield {};
+}
+
+Generator<Unit> witnesses(
+    const Program &prog,
     const Conjunction conj,
     std::vector<Value> &variables
 ) {
@@ -56,6 +69,7 @@ Generator<Unit> witnesses(
     // Expression::switchOver here
     std::unique_ptr<TruthValue> tv;
     std::unique_ptr<PredicateReference> pr;
+    std::unique_ptr<EffectCtorRef> ecr;
     std::unique_ptr<Conjunction> conj;
     if(expr.as_a<TruthValue>().unwrapInto(tv)) {
         auto w = witnesses(*tv);
@@ -63,6 +77,10 @@ Generator<Unit> witnesses(
             co_yield {};
     } else if(expr.as_a<PredicateReference>().unwrapInto(pr)) {
         auto w = witnesses(prog, *pr, variables);
+        while(w.next())
+            co_yield {};
+    } else if(expr.as_a<EffectCtorRef>().unwrapInto(ecr)) {
+        auto w = witnesses(prog, *ecr, variables);
         while(w.next())
             co_yield {};
     } else if(expr.as_a<Conjunction>().unwrapInto(conj)) {
@@ -342,6 +360,12 @@ Expression instantiate(
             arg = instantiate(arg, variables);
         }
         return interpreter::Expression(pr);
+    },
+    [&](EffectCtorRef ecr) {
+        for(Value &arg : ecr.arguments) {
+            arg = instantiate(arg, variables);
+        }
+        return interpreter::Expression(ecr);
     },
     [&](Conjunction conj) {
         return interpreter::Expression(Conjunction(

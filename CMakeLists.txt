@@ -53,6 +53,7 @@ GENERATE_EXPORT_HEADER(AlliumSemAna)
 
 add_library(AlliumInterpreter SHARED
   lib/Interpreter/ASTLower.cpp
+  lib/Interpreter/BuiltinEffects.cpp
   lib/Interpreter/Program.cpp
   lib/Interpreter/WitnessProducer.cpp)
 

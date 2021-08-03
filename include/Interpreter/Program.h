@@ -25,11 +25,13 @@ namespace interpreter {
 
 struct TruthValue;
 struct PredicateReference;
+struct EffectCtorRef;
 struct Conjunction;
 
 typedef TaggedUnion<
     TruthValue,
     PredicateReference,
+    EffectCtorRef,
     Conjunction
 > Expression;
 
@@ -128,6 +130,38 @@ public:
 };
 
 std::ostream& operator<<(std::ostream &out, const Value &val);
+
+struct EffectCtorRef {
+    EffectCtorRef(
+        size_t effectIndex,
+        size_t effectCtorIndex,
+        std::vector<Value> arguments
+    ): effectIndex(effectIndex), effectCtorIndex(effectCtorIndex),
+        arguments(arguments) {}
+
+    friend bool operator==(const EffectCtorRef &lhs, const EffectCtorRef &rhs) {
+        return lhs.effectIndex == rhs.effectIndex &&
+            lhs.effectCtorIndex == rhs.effectCtorIndex &&
+            lhs.arguments == rhs.arguments;
+    }
+
+    friend bool operator!=(const EffectCtorRef &lhs, const EffectCtorRef &rhs) {
+        return !(lhs == rhs);
+    }
+
+    /// A number which uniquely identifies the effect type. This is used to
+    /// lookup handlers in the interpreter.
+    size_t effectIndex;
+
+    /// A number which uniquely identifies this effect's constructor. This is
+    /// necessary for pattern-matching in effect handlers.
+    size_t effectCtorIndex;
+
+    /// The arguments which should be passed to the effect handler.
+    std::vector<Value> arguments;
+};
+
+std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr);
 
 struct TruthValue {
     TruthValue(bool value): value(value) {}

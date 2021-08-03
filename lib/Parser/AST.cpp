@@ -237,6 +237,21 @@ Optional<Type> AST::resolveTypeRef(const TypeRef &tr) const {
 }
 
 Optional<const Effect*> AST::resolveEffectRef(const EffectRef &er) const {
+    // Type definitions for builtins
+    // TODO: this won't scale well with many builtin effect types.
+    if(er.name == "IO") {
+        return new Effect(
+            EffectDecl("IO", SourceLocation()),
+            {
+                EffectConstructor(
+                    "print",
+                    { TypeRef("String", SourceLocation()) },
+                    SourceLocation()
+                )
+            }
+        );
+    }
+
     const auto &x = std::find_if(
         effects.begin(),
         effects.end(),
