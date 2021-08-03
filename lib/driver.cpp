@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include "Interpreter/ASTLower.h"
@@ -28,6 +29,7 @@ struct Arguments {
 
     Optional<PrintASTMode> printAST;
     std::vector<std::string> filePaths;
+    interpreter::Config interpreterConfig;
 
     static void issueError(Error error) {
         switch(error) {
@@ -56,6 +58,9 @@ struct Arguments {
                     issueError(Error::PRINT_MULTIPLE_ASTS);
                 else
                     arguments.printAST = PrintASTMode::SYNTACTIC;
+            } else if(arg.starts_with("--log-level=")) {
+                arguments.interpreterConfig.debugLevel =
+                    static_cast<interpreter::Config::LogLevel>(std::stoi(&arg.c_str()[12]));
             } else {
                 arguments.filePaths.push_back(arg);
             }
@@ -100,9 +105,9 @@ int main(int argc, char *argv[]) {
         }
     })
 
-    .map([](TypedAST::AST ast) {
+    .map([&](TypedAST::AST ast) {
         using namespace interpreter;
-        auto program = lower(ast);
+        auto program = lower(ast, arguments.interpreterConfig);
         return program.getEntryPoint().switchOver<void>(
         [&](interpreter::PredicateReference main) {
             exit(!program.prove(interpreter::Expression(main)));

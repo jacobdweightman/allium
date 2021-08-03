@@ -268,10 +268,25 @@ bool operator==(const Predicate &, const Predicate &);
 bool operator!=(const Predicate &, const Predicate &);
 std::ostream& operator<<(std::ostream &out, const Predicate &p);
 
+// A container for configuration parameters of the program.
+struct Config {
+    enum class LogLevel {
+        OFF = 0,
+        QUIET = 1,
+        LOUD = 2,
+        MAX = 3,
+    };
+
+    LogLevel debugLevel = LogLevel::OFF;
+};
+
 class Program {
 public:
-    Program(std::vector<Predicate> ps, Optional<PredicateReference> main):
-        predicates(ps), entryPoint(main) {}
+    Program(
+        std::vector<Predicate> ps,
+        Optional<PredicateReference> main,
+        Config config = Config()
+    ): predicates(ps), entryPoint(main), config(config) {}
     
     friend bool operator==(const Program &, const Program &);
     friend bool operator!=(const Program &, const Program &);
@@ -287,6 +302,9 @@ public:
         assert(index < predicates.size());
         return predicates[index];
     }
+
+    /// The program's configuration parameters.
+    const Config config;
 
 protected:
     bool match(

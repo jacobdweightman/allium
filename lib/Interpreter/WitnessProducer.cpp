@@ -15,10 +15,13 @@ Generator<Unit> witnesses(
     const PredicateReference &pr,
     std::vector<Value> &enclosingVariables
 ) {
-    std::cout << "prove: " << pr << "\n";
+    if(prog.config.debugLevel >= Config::LogLevel::LOUD)
+        std::cout << "prove: " << pr << "\n";
+
     const auto &pd = prog.getPredicate(pr.index);
     for(const auto &impl : pd.implications) {
-        std::cout << "  try implication: " << impl << std::endl;
+        if(prog.config.debugLevel >= Config::LogLevel::MAX)
+            std::cout << "  try implication: " << impl << std::endl;
         std::vector<Value> localVariables(impl.variableCount);
 
         if(match(pr, impl.head, enclosingVariables, localVariables)) {
@@ -38,7 +41,8 @@ Generator<Unit> witnesses(
     const EffectCtorRef &ecr,
     std::vector<Value> &enclosingVariables
 ) {
-    std::cout << "handle effect: " << ecr << "\n";
+    if(prog.config.debugLevel >= Config::LogLevel::QUIET)
+        std::cout << "handle effect: " << ecr << "\n";
     if(ecr.effectIndex == 0) {
         handleDefaultIO(ecr, enclosingVariables);
     }

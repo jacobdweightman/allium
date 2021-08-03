@@ -208,7 +208,7 @@ private:
 // TODO: new assert for TypedAST
 //static_assert(has_all_visitors<ASTLowerer>(), "ASTLowerer missing visitor(s).");
 
-interpreter::Program lower(const AST &ast) {
+interpreter::Program lower(const AST &ast, interpreter::Config config) {
     ASTLowerer lowerer(ast);
     
     std::vector<interpreter::Predicate> loweredPredicates;
@@ -228,5 +228,5 @@ interpreter::Program lower(const AST &ast) {
         ++i;
     }
 
-    return interpreter::Program(loweredPredicates, main);
+    return interpreter::Program(loweredPredicates, main, config);
 }
