@@ -30,10 +30,12 @@ std::ostream& operator<<(std::ostream &out, const Expression &e);
 
 struct NamedValue;
 struct StringLiteral;
+struct IntegerLiteral;
 
 typedef TaggedUnion<
     NamedValue,
-    StringLiteral
+    StringLiteral,
+    IntegerLiteral
 > Value;
 
 std::ostream& operator<<(std::ostream &out, const Value &val);
@@ -306,6 +308,19 @@ struct StringLiteral {
 bool operator==(const StringLiteral &lhs, const StringLiteral &rhs);
 bool operator!=(const StringLiteral &lhs, const StringLiteral &rhs);
 std::ostream& operator<<(std::ostream &out, const StringLiteral &str);
+
+struct IntegerLiteral {
+    IntegerLiteral() {}
+    IntegerLiteral(int64_t value, SourceLocation location):
+        value(value), location(location) {}
+
+    int64_t value;
+    SourceLocation location;
+};
+
+bool operator==(const IntegerLiteral &lhs, const IntegerLiteral &rhs);
+bool operator!=(const IntegerLiteral &lhs, const IntegerLiteral &rhs);
+std::ostream& operator<<(std::ostream &out, const IntegerLiteral &i);
 
 /// Represents the complete definition of a type in the AST.
 struct Type {

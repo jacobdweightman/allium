@@ -32,6 +32,7 @@ public:
     Optional<Constructor> parseConstructor();
     Optional<NamedValue> parseNamedValue();
     Optional<StringLiteral> parseStringLiteral();
+    Optional<IntegerLiteral> parseIntegerLiteral();
     Optional<Value> parseValue();
 
 private:

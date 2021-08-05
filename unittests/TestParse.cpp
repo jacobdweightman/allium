@@ -489,6 +489,47 @@ TEST(TestParser, parse_string_literal_cannot_contain_newline) {
     );
 }
 
+TEST(TestParser, parse_constructor_ref_with_string_literal_argument) {
+    std::istringstream f("name(\"Jacob\")");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseValue(),
+        Value(NamedValue(
+            "name",
+            { Value(StringLiteral("Jacob", SourceLocation(1, 5))) },
+            SourceLocation(1, 0)
+        ))
+    );
+}
+
+TEST(TestParser, parse_integer_literal) {
+    std::istringstream f("42");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseValue(),
+        Value(IntegerLiteral(42, SourceLocation(1, 0)))
+    );
+}
+
+TEST(TestParser, parse_constructor_ref_with_integer_literal_argument) {
+    std::istringstream f("point(12, 4)");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseValue(),
+        Value(NamedValue(
+            "point",
+            {
+                Value(IntegerLiteral(12, SourceLocation(1, 6))),
+                Value(IntegerLiteral(4, SourceLocation(1, 10)))
+            },
+            SourceLocation(1, 0)
+        ))
+    );
+}
+
 TEST(TestParser, parse_uninhabited_type) {
     std::istringstream f("type void {}");
     Parser p(f);

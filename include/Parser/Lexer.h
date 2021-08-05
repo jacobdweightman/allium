@@ -20,6 +20,7 @@ struct Token {
         false_literal,
         identifier,
         implied_by,
+        integer_literal,
         kw_ctor,
         kw_do,
         kw_effect,
@@ -103,7 +104,10 @@ private:
     std::string takeIdentifier(const std::string str);
 
     /// Consumes any text up to the next double quote.
-    Token take_string_literal();
+    Token takeStringLiteral();
+
+    /// Consumes a sequence of digits from the stream.
+    Token takeIntegerLiteral();
 
     /// Advances the lexer to the end of a comment.
     void skipComment();

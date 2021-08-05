@@ -136,9 +136,22 @@ Optional<StringLiteral> Parser::parseStringLiteral() {
     }
 }
 
+Optional<IntegerLiteral> Parser::parseIntegerLiteral() {
+    Token token;
+
+    // <integer-literal> := <integer-literal-token>
+    if(lexer.take_token(Token::Type::integer_literal).unwrapInto(token)) {
+        int64_t i = atoll(token.text.c_str());
+        return IntegerLiteral(i, token.location);
+    } else {
+        return Optional<IntegerLiteral>();
+    }
+}
+
 Optional<Value> Parser::parseValue() {
     NamedValue nv;
     StringLiteral str;
+    IntegerLiteral i;
 
     // <value> := <named-value>
     if(parseNamedValue().unwrapInto(nv)) {
@@ -147,6 +160,10 @@ Optional<Value> Parser::parseValue() {
     // <value> := <string-literal>
     } else if(parseStringLiteral().unwrapInto(str)) {
         return Value(str);
+
+    // <value> := <integer-literal>
+    } else if(parseIntegerLiteral().unwrapInto(i)) {
+        return Value(i);
 
     } else {
         return Optional<Value>();

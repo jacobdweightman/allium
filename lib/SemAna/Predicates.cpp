@@ -426,10 +426,16 @@ public:
         return TypedAST::Value(TypedAST::StringLiteral(str.text));
     }
 
+    Optional<TypedAST::Value> visit(const IntegerLiteral &i) {
+        assert(false && "not implemented: raise IntegerLiteral");
+        return Optional<TypedAST::Value>();
+    }
+
     Optional<TypedAST::Value> visit(const Value &val) {
         return val.match<Optional<TypedAST::Value>>(
         [&](NamedValue nv) { return visit(nv); },
-        [&](StringLiteral str) { return visit(str); }
+        [&](StringLiteral str) { return visit(str); },
+        [&](IntegerLiteral i) { return visit(i); }
         );
     }
 

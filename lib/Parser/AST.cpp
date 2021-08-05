@@ -20,7 +20,8 @@ std::ostream& operator<<(std::ostream &out, const Expression &e) {
 std::ostream& operator<<(std::ostream &out, const Value &val) {
     return val.match<std::ostream&>(
     [&](NamedValue nv) -> std::ostream& { out << nv; return out; },
-    [&](StringLiteral str) -> std::ostream& { out << str; return out; }
+    [&](StringLiteral str) -> std::ostream& { out << str; return out; },
+    [&](IntegerLiteral i) -> std::ostream& { out << i; return out; }
     );
 }
 
@@ -194,6 +195,19 @@ bool operator!=(const StringLiteral &lhs, const StringLiteral &rhs) {
 
 std::ostream& operator<<(std::ostream &out, const StringLiteral &str) {
     ASTPrinter(out).visit(str);
+    return out;
+}
+
+bool operator==(const IntegerLiteral &lhs, const IntegerLiteral &rhs) {
+    return lhs.value == rhs.value && lhs.location == rhs.location;
+}
+
+bool operator!=(const IntegerLiteral &lhs, const IntegerLiteral &rhs) {
+    return !(lhs == rhs);
+}
+
+std::ostream& operator<<(std::ostream &out, const IntegerLiteral &i) {
+    ASTPrinter(out).visit(i);
     return out;
 }
 

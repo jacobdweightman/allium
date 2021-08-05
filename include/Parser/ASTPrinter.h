@@ -130,10 +130,16 @@ public:
         out << "<StringLiteral \"" << str.text << "\" line:" << str.location << ">\n";
     }
 
+    void visit(const IntegerLiteral &i) {
+        indent();
+        out << "<IntegerLiteral " << i.value << " line:" << i.location << ">\n";
+    }
+
     void visit(const Value &val) {
         val.switchOver(
         [&](NamedValue nv) { visit(nv); },
-        [&](StringLiteral str) { visit(str); }
+        [&](StringLiteral str) { visit(str); },
+        [&](IntegerLiteral i) { visit(i); }
         );
     }
 

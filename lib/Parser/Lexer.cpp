@@ -22,6 +22,7 @@ std::ostream& operator<<(std::ostream& out, const Token::Type value) {
     case Token::Type::false_literal: return out << "Type::false_literal";
     case Token::Type::identifier: return out << "Type::identifier";
     case Token::Type::implied_by: return out << "Type::implied_by";
+    case Token::Type::integer_literal: return out << "Type::integer_literal";
     case Token::Type::kw_ctor: return out << "Type::kw_ctor";
     case Token::Type::kw_do: return out << "Type::kw_do";
     case Token::Type::kw_let: return out << "Type::kw_let";
@@ -63,7 +64,11 @@ Token Lexer::take_next() {
     }
 
     if(file.peek() == '"') {
-        return take_string_literal();
+        return takeStringLiteral();
+    }
+
+    if(isdigit(file.peek())) {
+        return takeIntegerLiteral();
     }
 
     startPos = file.tellg();
@@ -177,7 +182,7 @@ std::string Lexer::takeIdentifier(const std::string str) {
     return str.substr(0, i);
 }
 
-Token Lexer::take_string_literal() {
+Token Lexer::takeStringLiteral() {
     SourceLocation location(lineNumber, columnNumber);
     std::streampos startPos = file.tellg();
 
@@ -197,6 +202,21 @@ Token Lexer::take_string_literal() {
 
     columnNumber += text.size() + 2;
     return Token(Token::Type::string_literal, text, location, startPos);
+}
+
+Token Lexer::takeIntegerLiteral() {
+    SourceLocation location(lineNumber, columnNumber);
+    std::streampos startPos = file.tellg();
+
+    char c;
+    std::string text;
+    while(c = file.get(), !file.eof() && isdigit(c)) {
+        text.push_back(c);
+    }
+
+    file.unget();
+    columnNumber += text.size();
+    return Token(Token::Type::integer_literal, text, location, startPos);
 }
 
 void Lexer::skipComment() {
