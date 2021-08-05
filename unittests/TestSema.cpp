@@ -394,6 +394,33 @@ TEST_F(TestSemAnaPredicates, string_literal_not_convertible) {
     checkAll(AST(ts, {}, ps), error);
 }
 
+TEST_F(TestSemAnaPredicates, int_literal_not_convertible) {
+    // type Void {}
+    // pred p(Void) {
+    //     p(14) <- true;
+    // }
+
+    SourceLocation errorLocation(3, 6);
+    std::vector<Type> ts = {
+        Type(TypeDecl("Void", SourceLocation(1, 5)), {})
+    };
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", { TypeRef("Void", SourceLocation(2, 7)) }, {}, SourceLocation(2, 5)),
+            {
+                Implication(
+                    PredicateRef("p", { Value(IntegerLiteral(14, errorLocation)) }, SourceLocation(3, 4)),
+                    TruthLiteral(true, SourceLocation(3, 15))
+                )
+            }
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::int_literal_not_convertible, "Void"));
+
+    checkAll(AST(ts, {}, ps), error);
+}
+
 TEST_F(TestSemAnaPredicates, undefined_effect) {
     // pred p: Foo {}
 

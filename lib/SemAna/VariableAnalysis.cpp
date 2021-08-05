@@ -19,7 +19,8 @@ private:
         [&](ConstructorRef cr) {
             for(const auto &arg : cr.arguments) getVariables(arg);
         },
-        [&](StringLiteral) {});
+        [&](StringLiteral) {},
+        [&](IntegerLiteral) {});
     }
 
     void getVariables_(const PredicateRef &pr) {

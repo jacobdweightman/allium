@@ -17,6 +17,8 @@ std::string formatString(ErrorMessage msg) {
         return "Use of undefined effect type \"%s\".";
     case ErrorMessage::effect_unknown:
         return "Effect constructor \"%s\" does not match any effect constructor of effects produced by predicate \"%s\".";
+    case ErrorMessage::int_literal_not_convertible:
+        return "An Int literal is not convertible to type \"%s\".";
     case ErrorMessage::predicate_argument_count:
         return "Predicate \"%s\" expects %s arguments.";
     case ErrorMessage::string_literal_not_convertible:

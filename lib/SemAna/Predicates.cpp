@@ -226,7 +226,7 @@ public:
 
     Optional<TypedAST::TypeDecl> visit(const TypeDecl &td) {
         // Prevent user from overloading builtin types
-        if(td.name == "String") {
+        if(td.name == "String" || td.name == "Int") {
             error.emit(
                 td.location,
                 ErrorMessage::builtin_redefined,
@@ -257,6 +257,8 @@ public:
         // Short-circuit for builtin types
         if(typeRef.name == "String") {
             return TypedAST::TypeRef("String");
+        } else if(typeRef.name == "Int") {
+            return TypedAST::TypeRef("Int");
         }
 
         if(!ast.resolveTypeRef(typeRef)) {
@@ -427,8 +429,21 @@ public:
     }
 
     Optional<TypedAST::Value> visit(const IntegerLiteral &i) {
-        assert(false && "not implemented: raise IntegerLiteral");
-        return Optional<TypedAST::Value>();
+        Type type;
+        if(inferredType.unwrapGuard(type)) {
+            assert(false && "type inference failed.");
+            return Optional<TypedAST::Value>();
+        }
+
+        if(type.declaration.name != "Int") {
+            error.emit(
+                i.location,
+                ErrorMessage::int_literal_not_convertible,
+                type.declaration.name.string());
+            return Optional<TypedAST::Value>();
+        }
+
+        return TypedAST::Value(TypedAST::IntegerLiteral(i.value));
     }
 
     Optional<TypedAST::Value> visit(const Value &val) {

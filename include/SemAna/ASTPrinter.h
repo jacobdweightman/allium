@@ -30,6 +30,7 @@ public:
     void visit(const AnonymousVariable &av);
     void visit(const Variable &var);
     void visit(const StringLiteral &str);
+    void visit(const IntegerLiteral &i);
     void visit(const Value &val);
     void visit(const AST &ast);
 

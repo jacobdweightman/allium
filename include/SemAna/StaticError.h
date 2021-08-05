@@ -18,6 +18,7 @@ enum class ErrorMessage {
     effect_unknown,
 
     impl_head_mismatches_predicate,
+    int_literal_not_convertible,
     predicate_argument_count,
     string_literal_not_convertible,
     type_redefined,

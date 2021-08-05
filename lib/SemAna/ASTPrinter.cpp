@@ -153,12 +153,18 @@ void ASTPrinter::visit(const StringLiteral &str) {
     out << "<StringLiteral \"" << str.value << "\">\n";
 }
 
+void ASTPrinter::visit(const IntegerLiteral &i) {
+    indent();
+    out << "<IntegerLiteral \"" << i.value << "\">\n";
+}
+
 void ASTPrinter::visit(const Value &val) {
     val.switchOver(
     [&](AnonymousVariable av) { visit(av); },
     [&](Variable var) { visit(var); },
     [&](ConstructorRef cr) { visit(cr); },
-    [&](StringLiteral str) { visit(str); }
+    [&](StringLiteral str) { visit(str); },
+    [&](IntegerLiteral i) { visit(i); }
     );
 }
 

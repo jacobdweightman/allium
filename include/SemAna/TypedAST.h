@@ -65,12 +65,14 @@ struct AnonymousVariable;
 struct Variable;
 struct ConstructorRef;
 struct StringLiteral;
+struct IntegerLiteral;
 
 typedef TaggedUnion<
     AnonymousVariable,
     Variable,
     ConstructorRef,
-    StringLiteral
+    StringLiteral,
+    IntegerLiteral
 > ValueBase;
 class Value;
 
@@ -122,6 +124,15 @@ struct StringLiteral {
 
 bool operator==(const StringLiteral &left, const StringLiteral &right);
 bool operator!=(const StringLiteral &left, const StringLiteral &right);
+
+struct IntegerLiteral {
+    IntegerLiteral(int64_t value): value(value) {}
+
+    std::int64_t value;
+};
+
+bool operator==(const IntegerLiteral &left, const IntegerLiteral &right);
+bool operator!=(const IntegerLiteral &left, const IntegerLiteral &right);
 
 class Value : public ValueBase {
 public:

@@ -449,6 +449,7 @@ constexpr bool has_all_visitors() {
     static_assert(has_visit<Subclass, Constructor>::value, "missing Constructor visitor");
     static_assert(has_visit<Subclass, NamedValue>::value, "missing NamedValue visitor");
     static_assert(has_visit<Subclass, StringLiteral>::value, "missing StringLiteral visitor");
+    static_assert(has_visit<Subclass, IntegerLiteral>::value, "missing IntegerLiteral visitor");
     static_assert(has_visit<Subclass, Value>::value, "missing Value visitor");
     static_assert(has_visit<Subclass, Type>::value, "missing Type visitor");
     static_assert(has_visit<Subclass, EffectRef>::value, "missing EffectRef visitor");
@@ -469,6 +470,7 @@ constexpr bool has_all_visitors() {
         has_visit<Subclass, Constructor>::value &&
         has_visit<Subclass, NamedValue>::value &&
         has_visit<Subclass, StringLiteral>::value &&
+        has_visit<Subclass, IntegerLiteral>::value &&
         has_visit<Subclass, Value>::value &&
         has_visit<Subclass, Type>::value &&
         has_visit<Subclass, EffectRef>::value &&

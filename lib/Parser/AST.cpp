@@ -236,6 +236,8 @@ Optional<Type> AST::resolveTypeRef(const TypeRef &tr) const {
     // TODO: this won't scale well with many builtin types.
     if(tr.name == "String") {
         return Type(TypeDecl("String", SourceLocation()), {});
+    } else if(tr.name == "Int") {
+        return Type(TypeDecl("Int", SourceLocation()), {});
     }
 
     const auto &x = std::find_if(

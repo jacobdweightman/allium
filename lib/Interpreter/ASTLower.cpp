@@ -54,12 +54,18 @@ public:
         return interpreter::String(str.value);
     }
 
+    interpreter::String visit(const IntegerLiteral &i) {
+        assert(false && "not implemented: interpretation of integers");
+        return interpreter::String("not implemented");
+    }
+
     interpreter::Value visit(const Value &val, const TypeRef &tr) {
         return val.match<interpreter::Value>(
             [&](AnonymousVariable av) { return interpreter::Value(visit(av)); },
             [&](Variable v) { return interpreter::Value(visit(v)); },
             [&](ConstructorRef cr) { return interpreter::Value(visit(cr, tr)); },
-            [&](StringLiteral str) { return interpreter::Value(visit(str)); }
+            [&](StringLiteral str) { return interpreter::Value(visit(str)); },
+            [&](IntegerLiteral i) { return interpreter::Value(visit(i)); }
         );
     }
 
