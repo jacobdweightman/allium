@@ -169,7 +169,8 @@ static Value replaceUnboundVariableRefsWithPointers(
         [&](ConstructorRef cr2) {
             return replaceUnboundVariableRefsWithPointers(cr2, universalVariables);
         },
-        [](String str) { return Value(str); }, 
+        [](String str) { return Value(str); },
+        [](Int i) { return Value(i); },
         [](Value *vp) { return Value(vp); },
         [&](VariableRef vr) {
             if(vr.index == VariableRef::anonymousIndex)
@@ -218,9 +219,10 @@ bool match(
     }
 }
 
-bool match(
+template <typename T>
+static bool match(
     const VariableRef &vr,
-    const String &str,
+    const T &t,
     std::vector<Value> &existentialVariables,
     std::vector<Value> &universalVariables
 ) {
@@ -228,21 +230,35 @@ bool match(
     if(vr.isExistential) {
         assert(vr.index < existentialVariables.size());
         if(vr.isDefinition) {
-            existentialVariables[vr.index] = Value(str);
+            existentialVariables[vr.index] = Value(t);
             return true;
         } else {
-            return existentialVariables[vr.index] == Value(str);
+            return existentialVariables[vr.index] == Value(t);
         }
     } else {
         assert(vr.index < universalVariables.size());
         if(vr.isDefinition) {
-            universalVariables[vr.index] = Value(str);
+            universalVariables[vr.index] = Value(t);
             return true;
         } else {
-            return universalVariables[vr.index] == Value(str);
+            return universalVariables[vr.index] == Value(t);
         }
     }
 }
+
+template bool match(
+    const VariableRef &vr,
+    const String &str,
+    std::vector<Value> &existentialVariables,
+    std::vector<Value> &universalVariables
+);
+
+template bool match(
+    const VariableRef &vr,
+    const Int &i,
+    std::vector<Value> &existentialVariables,
+    std::vector<Value> &universalVariables
+);
 
 bool match(
     const ConstructorRef &cl,
@@ -272,6 +288,7 @@ bool match(
             return match(cl, cr, existentialVariables, universalVariables);
         },
         [](String) { return false; },
+        [](Int) { return false; },
         [&](Value *v) {
             return match(left, *v, existentialVariables, universalVariables);
         },
@@ -283,11 +300,24 @@ bool match(
         return right.match<bool>(
         [](ConstructorRef) { return false; },
         [&](String rstr) { return lstr == rstr; },
+        [&](Int) { return false; },
         [&](Value *v) {
             return match(left, *v, existentialVariables, universalVariables);
         },
         [&](VariableRef vr) {
             return match(vr, lstr, existentialVariables, universalVariables);
+        });
+    },
+    [&](Int i) {
+        return right.match<bool>(
+        [](ConstructorRef) { return false; },
+        [](String) { return false; },
+        [&](Int j) { return i == j; },
+        [&](Value *v) {
+            return match(Value(i), *v, existentialVariables, universalVariables);
+        },
+        [&](VariableRef vr) {
+            return match(vr, i, existentialVariables, universalVariables);
         });
     },
     [&](Value *v) {
@@ -300,6 +330,9 @@ bool match(
         },
         [&](String rstr) {
             return match(vl, rstr, existentialVariables, universalVariables);
+        },
+        [&](Int r) {
+            return match(vl, r, existentialVariables, universalVariables);
         },
         [&](Value *v) {
             return match(left, *v, existentialVariables, universalVariables);
@@ -343,6 +376,7 @@ static Value instantiate(
     return v.match<Value>(
     [&](ConstructorRef cr) { return instantiate(cr, variables); },
     [&](String) { return v; },
+    [&](Int) { return v; },
     [&](Value *vp) {
         // vp should always point to a variable in an enclosed scope, and
         // therefore can never contain references to variables in the current

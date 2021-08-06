@@ -75,6 +75,23 @@ struct String {
 
 std::ostream& operator<<(std::ostream &out, const String &str);
 
+/// Represents a value of the builtin type Int.
+struct Int {
+    Int(int64_t value): value(value) {}
+
+    friend bool operator==(const Int &lhs, const Int &rhs) {
+        return lhs.value == rhs.value;
+    }
+
+    friend bool operator!=(const Int &lhs, const Int &rhs) {
+        return !(lhs == rhs);
+    }
+
+    int64_t value;
+};
+
+std::ostream& operator<<(std::ostream &out, const Int &i);
+
 struct VariableRef {
     VariableRef(bool isTypeInhabited = true):
         index(anonymousIndex), isDefinition(false), isExistential(false),
@@ -117,11 +134,12 @@ struct VariableRef {
 
 std::ostream& operator<<(std::ostream &out, const VariableRef &vr);
 
-class Value : public TaggedUnion<ConstructorRef, String, Value *, VariableRef> {
+class Value : public TaggedUnion<ConstructorRef, String, Int, Value *, VariableRef> {
 public:
     using ValueBase = TaggedUnion<
         ConstructorRef,
         String,
+        Int,
         Value *,
         VariableRef
     >;

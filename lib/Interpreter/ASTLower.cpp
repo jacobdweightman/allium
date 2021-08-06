@@ -54,9 +54,8 @@ public:
         return interpreter::String(str.value);
     }
 
-    interpreter::String visit(const IntegerLiteral &i) {
-        assert(false && "not implemented: interpretation of integers");
-        return interpreter::String("not implemented");
+    interpreter::Int visit(const IntegerLiteral &i) {
+        return interpreter::Int(i.value);
     }
 
     interpreter::Value visit(const Value &val, const TypeRef &tr) {

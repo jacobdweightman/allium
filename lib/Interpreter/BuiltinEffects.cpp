@@ -11,6 +11,7 @@ static void printStringValue(
     v.switchOver(
     [](ConstructorRef) { assert(false && "IO.print expects a String!"); },
     [](String str) { std::cout << str << "\n"; },
+    [](Int i) { assert(false && "IO.print expects a String!"); },
     [&](Value *v) { printStringValue(*v, enclosingVariables); },
     [&](VariableRef vr) {
         assert(!vr.isDefinition);
