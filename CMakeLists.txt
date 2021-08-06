@@ -33,6 +33,7 @@ include(GenerateExportHeader)
 
 add_library(AlliumParse SHARED
   lib/Parser/AST.cpp
+  lib/Parser/Builtins.cpp
   lib/Parser/Lexer.cpp
   lib/Parser/Parser.cpp)
 
@@ -42,6 +43,7 @@ GENERATE_EXPORT_HEADER(AlliumParse)
 
 add_library(AlliumSemAna SHARED
   lib/SemAna/ASTPrinter.cpp
+  lib/SemAna/Builtins.cpp
   lib/SemAna/Predicates.cpp
   lib/SemAna/StaticError.cpp
   lib/SemAna/TypedAST.cpp

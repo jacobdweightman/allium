@@ -2,6 +2,8 @@
 #include <string>
 
 #include "Parser/AST.h"
+#include "Parser/Builtins.h"
+#include "SemAna/Builtins.h"
 #include "SemAna/Predicates.h"
 #include "SemAna/TypedAST.h"
 #include "Utils/VectorUtils.h"
@@ -225,8 +227,7 @@ public:
     }
 
     Optional<TypedAST::TypeDecl> visit(const TypeDecl &td) {
-        // Prevent user from overloading builtin types
-        if(td.name == "String" || td.name == "Int") {
+        if(nameIsBuiltinType(td.name)) {
             error.emit(
                 td.location,
                 ErrorMessage::builtin_redefined,
@@ -254,11 +255,8 @@ public:
     }
 
     Optional<TypedAST::TypeRef> visit(const TypeRef &typeRef) {
-        // Short-circuit for builtin types
-        if(typeRef.name == "String") {
-            return TypedAST::TypeRef("String");
-        } else if(typeRef.name == "Int") {
-            return TypedAST::TypeRef("Int");
+        if(nameIsBuiltinType(typeRef.name)) {
+            return TypedAST::TypeRef(typeRef.name.string());
         }
 
         if(!ast.resolveTypeRef(typeRef)) {
@@ -417,6 +415,7 @@ public:
             return Optional<TypedAST::Value>();
         }
 
+        // TODO: allow user-defined types to be representable as string literals
         if(type.declaration.name != "String") {
             error.emit(
                 str.location,
@@ -435,6 +434,7 @@ public:
             return Optional<TypedAST::Value>();
         }
 
+        // TODO: allow user-defined types to be representable as int literals
         if(type.declaration.name != "Int") {
             error.emit(
                 i.location,
@@ -539,22 +539,13 @@ public:
     }
 
     TypedAST::AST visit(const AST &ast) {
-        raisedTypes = {
-            TypedAST::Type(TypedAST::TypeDecl("String"), {})
-        };
+        raisedTypes = TypedAST::builtinTypes;
         raisedTypes += compactMap<Type, TypedAST::Type>(
             ast.types,
             [&](Type type) { return visit(type); }
         );
 
-        raisedEffects = {
-            TypedAST::Effect(
-                TypedAST::EffectDecl("IO"),
-                {
-                    TypedAST::EffectCtor("print", { TypedAST::TypeRef("String") })
-                }
-            )
-        };
+        raisedEffects = TypedAST::builtinEffects;
         raisedEffects += compactMap<Effect, TypedAST::Effect>(
             ast.effects,
             [&](Effect effect) { return visit(effect); }
