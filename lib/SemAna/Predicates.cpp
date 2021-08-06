@@ -62,8 +62,14 @@ public:
     }
 
     Optional<TypedAST::PredicateRef> visit(const PredicateRef &pr) {
-        Predicate predicate;
-        if(ast.resolvePredicateRef(pr).unwrapGuard(predicate)) {
+        Predicate enclosingPred;
+        if(enclosingPredicate.unwrapGuard(enclosingPred)) {
+            assert(enclosingPredicate && "enclosingPredicate not set!");
+            return Optional<TypedAST::PredicateRef>();
+        }
+
+        Predicate referencedPred;
+        if(ast.resolvePredicateRef(pr).unwrapGuard(referencedPred)) {
             error.emit(
                 pr.location,
                 ErrorMessage::undefined_predicate,
@@ -71,16 +77,40 @@ public:
             return Optional<TypedAST::PredicateRef>();
         }
 
-        if(predicate.name.parameters.size() != pr.arguments.size()) {
+        for(const auto &unhandledEffect : referencedPred.name.effects) {
+            bool handledInEnclosing = std::find_if(
+                enclosingPred.handlers.begin(),
+                enclosingPred.handlers.end(),
+                [&](const Handler &h) { return h.effectName == unhandledEffect.name; }
+            ) != enclosingPred.handlers.end();
+
+            bool handledAboveEnclosing = std::find(
+                enclosingPred.name.effects.begin(),
+                enclosingPred.name.effects.end(),
+                unhandledEffect
+            ) != enclosingPred.name.effects.end();
+            
+            if(!handledInEnclosing && !handledAboveEnclosing) {
+                error.emit(
+                    pr.location,
+                    ErrorMessage::effect_from_predicate_unhandled,
+                    enclosingPred.name.name.string(),
+                    unhandledEffect.name.string(),
+                    pr.name.string());
+                return Optional<TypedAST::PredicateRef>();
+            }
+        }
+
+        if(referencedPred.name.parameters.size() != pr.arguments.size()) {
             error.emit(
                 pr.location,
                 ErrorMessage::predicate_argument_count,
                 pr.name.string(),
-                std::to_string(predicate.name.parameters.size()));
+                std::to_string(referencedPred.name.parameters.size()));
             return Optional<TypedAST::PredicateRef>();
         }
 
-        auto parameter = predicate.name.parameters.begin();
+        auto parameter = referencedPred.name.parameters.begin();
         auto arguments = compactMap<Value, TypedAST::Value>(
             pr.arguments,
             [&](Value argument) {
@@ -222,8 +252,19 @@ public:
                 raisedImplications.push_back(impl);
             });
         }
+
+        std::vector<TypedAST::Handler> raisedHandlers;
+        for(const auto &h : p.handlers) {
+            visit(h).map([&](TypedAST::Handler h) {
+                raisedHandlers.push_back(h);
+            });
+        }
+
         enclosingPredicate = Optional<Predicate>();
-        return TypedAST::Predicate(*declaration, raisedImplications);
+        return TypedAST::Predicate(
+            *declaration,
+            raisedImplications,
+            raisedHandlers);
     }
 
     Optional<TypedAST::TypeDecl> visit(const TypeDecl &td) {
@@ -536,6 +577,11 @@ public:
         }
 
         return TypedAST::Effect(raisedDeclaration, raisedCtors);
+    }
+
+    Optional<TypedAST::Handler> visit(const Handler &h) {
+        assert(false && "Handlers aren't implemented yet!");
+        return TypedAST::Handler();
     }
 
     TypedAST::AST visit(const AST &ast) {

@@ -524,6 +524,43 @@ TEST_F(TestSemAnaPredicates, effect_argument_count) {
     checkAll(AST({}, es, ps), error);
 }
 
+TEST_F(TestSemAnaPredicates, predicate_proves_predicate_with_unhandled_effect) {
+    // effect Foo {}
+    // pred p: Foo {}
+    // pred q {
+    //     q <- p;
+    // }
+
+    SourceLocation errorLocation(4, 9);
+    std::vector<Effect> es = {
+        Effect(EffectDecl("Foo", SourceLocation(1, 7)), {})
+    };
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl(
+                "p",
+                {},
+                { EffectRef("Foo", SourceLocation(2, 8)) },
+                SourceLocation(2, 5)
+            ),
+            {}
+        ),
+        Predicate(
+            PredicateDecl("q", {}, {}, SourceLocation(3, 5)),
+            {
+                Implication(
+                    PredicateRef("q", SourceLocation(4, 4)),
+                    Expression(PredicateRef("p", errorLocation))
+                )
+            }
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::effect_from_predicate_unhandled, "q", "Foo", "p"));
+
+    checkAll(AST({}, es, ps), error);
+}
+
 TEST_F(TestSemAnaPredicates, effect_redefined) {
     // effect Foo {}
     // effect Foo {}

@@ -346,6 +346,19 @@ std::ostream& operator<<(std::ostream &out, const Effect &effect) {
     return out;
 }
 
+bool operator==(const Handler &lhs, const Handler &rhs) {
+    assert(false && "handlers aren't implemented yet!");
+    return true;
+}
+bool operator!=(const Handler &lhs, const Handler &rhs) {
+    return !(lhs == rhs);
+}
+
+std::ostream& operator<<(std::ostream &out, const Handler &h) {
+    ASTPrinter(out).visit(h);
+    return out;
+}
+
 bool operator==(const AST &lhs, const AST &rhs) {
     return lhs.types == rhs.types && lhs.predicates == rhs.predicates;
 }

@@ -48,6 +48,8 @@ struct Effect;
 struct EffectRef;
 struct EffectConstructor;
 
+struct Handler;
+
 /// Represents a truth value literal in the AST.
 struct TruthLiteral {
     TruthLiteral(): value(false), location(SourceLocation()) {}
@@ -212,6 +214,7 @@ struct Predicate {
 
     PredicateDecl name;
     std::vector<Implication> implications;
+    std::vector<Handler> handlers;
 };
 
 bool operator==(const Predicate &lhs, const Predicate &rhs);
@@ -397,6 +400,17 @@ bool operator==(const Effect &lhs, const Effect &rhs);
 bool operator!=(const Effect &lhs, const Effect &rhs);
 std::ostream& operator<<(std::ostream &out, const Effect &type);
 
+// TODO: model syntax for handlers
+struct Handler {
+    Handler(Name<Effect> effectName): effectName(effectName) {}
+
+    Name<Effect> effectName;
+};
+
+bool operator==(const Handler &lhs, const Handler &rhs);
+bool operator!=(const Handler &lhs, const Handler &rhs);
+std::ostream& operator<<(std::ostream &out, const Handler &type);
+
 /// An AST representing a complete source file.
 struct AST {
     AST() {}
@@ -456,6 +470,7 @@ constexpr bool has_all_visitors() {
     static_assert(has_visit<Subclass, EffectDecl>::value, "missing EffectDecl visitor");
     static_assert(has_visit<Subclass, EffectConstructor>::value, "missing EffectConstructor visitor");
     static_assert(has_visit<Subclass, Effect>::value, "missing Effect visitor");
+    static_assert(has_visit<Subclass, Handler>::value, "missing Handler visitor");
 
     return has_visit<Subclass, TruthLiteral>::value &&
         has_visit<Subclass, PredicateDecl>::value &&
@@ -476,7 +491,8 @@ constexpr bool has_all_visitors() {
         has_visit<Subclass, EffectRef>::value &&
         has_visit<Subclass, EffectDecl>::value &&
         has_visit<Subclass, EffectConstructor>::value &&
-        has_visit<Subclass, Effect>::value;
+        has_visit<Subclass, Effect>::value &&
+        has_visit<Subclass, Handler>::value;
 }
 
 } // namespace parser

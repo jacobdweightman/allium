@@ -9,6 +9,12 @@ enum class ErrorMessage {
     builtin_redefined,
     constructor_argument_count,
     effect_argument_count,
+
+    // A predicate uses another predicate in its subproof, but does not provide
+    // a handler for one of the subproof's unhandled effects.
+    effect_from_predicate_unhandled,
+
+    /// There are multiple definitions for a single effect type.
     effect_redefined,
 
     /// An effect type reference could not be matched to its definition.

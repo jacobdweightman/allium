@@ -11,6 +11,8 @@ std::string formatString(ErrorMessage msg) {
         return "Constructor \"%s\" of type %s expects %s arguments.";
     case ErrorMessage::effect_argument_count:
         return "Effect constructor \"%s\" of effect %s expects %s arguments.";
+    case ErrorMessage::effect_from_predicate_unhandled:
+        return "Predicate \"%s\" does not handle effect \"%s\" performed by \"%s\".";
     case ErrorMessage::effect_redefined:
         return "Effect \"%s\" was already defined at %s and cannot be redefined.";
     case ErrorMessage::effect_type_undefined:

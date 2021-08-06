@@ -19,6 +19,40 @@ bool operator!=(const Constructor &left, const Constructor &right) {
     return !(left == right);
 }
 
+bool operator==(const EffectDecl &left, const EffectDecl &right) {
+    return left.name == right.name;
+}
+
+bool operator!=(const EffectDecl &left, const EffectDecl &right) {
+    return !(left == right);
+}
+
+bool operator==(const EffectCtor &left, const EffectCtor &right) {
+    return left.name == right.name && left.parameters == right.parameters;
+}
+
+bool operator!=(const EffectCtor &left, const EffectCtor &right) {
+    return !(left == right);
+}
+
+bool operator==(const Effect &left, const Effect &right) {
+    return left.declaration == right.declaration &&
+        left.constructors == right.constructors;
+}
+
+bool operator!=(const Effect &left, const Effect &right) {
+    return !(left == right);
+}
+
+bool operator==(const Handler &left, const Handler &right) {
+    assert(false && "handlers not implemented yet!");
+    return true;
+}
+
+bool operator!=(const Handler &left, const Handler &right) {
+    return !(left == right);
+}
+
 PredicateRef::PredicateRef(std::string name, std::vector<Value> arguments):
     name(name), arguments(arguments) {}
 

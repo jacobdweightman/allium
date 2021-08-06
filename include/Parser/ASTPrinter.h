@@ -187,6 +187,10 @@ public:
         --depth;
     }
 
+    void visit(const Handler &h) {
+        assert(false && "Handlers aren't implemented yet!");
+    }
+
     void visit(const AST &ast) {
         indent();
         out << "<AST>\n";

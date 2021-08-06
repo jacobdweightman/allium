@@ -179,6 +179,12 @@ struct Effect {
 bool operator==(const Effect &left, const Effect &right);
 bool operator!=(const Effect &left, const Effect &right);
 
+// TODO: full implementation of handlers
+struct Handler {};
+
+bool operator==(const Handler &left, const Handler &right);
+bool operator!=(const Handler &left, const Handler &right);
+
 
 /*
  * Predicates
@@ -257,11 +263,16 @@ struct Implication {
 };
 
 struct Predicate {
-    Predicate(PredicateDecl declaration, std::vector<Implication> implications):
-        declaration(declaration), implications(implications) {}
+    Predicate(
+        PredicateDecl declaration,
+        std::vector<Implication> implications,
+        std::vector<Handler> handlers
+    ): declaration(declaration), implications(implications),
+        handlers(handlers) {}
 
     PredicateDecl declaration;
     std::vector<Implication> implications;
+    std::vector<Handler> handlers;
 };
 
 std::ostream& operator<<(std::ostream &out, const Value &val);
