@@ -171,7 +171,7 @@ TEST_F(TestSemAnaPredicates, constructor_argument_count_mismatch) {
         )
     };
 
-    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::constructor_argument_count, "s", "1"));
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::constructor_argument_count, "s", "Nat", "1"));
 
     checkAll(AST(ts, {}, ps), error);
 }

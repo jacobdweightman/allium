@@ -387,12 +387,13 @@ public:
             isExistential);
     }
 
-    Optional<TypedAST::ConstructorRef> visitNamedValueAsConstructorRef(const Constructor &ctor, const NamedValue &cr) {
+    Optional<TypedAST::ConstructorRef> visitNamedValueAsConstructorRef(const Type &t, const Constructor &ctor, const NamedValue &cr) {
         if(ctor.parameters.size() != cr.arguments.size()) {
             error.emit(
                 cr.location,
                 ErrorMessage::constructor_argument_count,
                 cr.name.string(),
+                t.declaration.name.string(),
                 std::to_string(ctor.parameters.size()));
             return Optional<TypedAST::ConstructorRef>();
         }
@@ -443,7 +444,7 @@ public:
                 });
             }
         } else {
-            return visitNamedValueAsConstructorRef(*ctor, val).map<TypedAST::Value>([](TypedAST::ConstructorRef cr) {
+            return visitNamedValueAsConstructorRef(type, *ctor, val).map<TypedAST::Value>([](TypedAST::ConstructorRef cr) {
                 return TypedAST::Value(cr);
             });
         }
