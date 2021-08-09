@@ -17,7 +17,7 @@ TEST(TestASTRaise, predicate_with_variable_of_builtin_type) {
         Predicate(
             PredicateDecl(
                 "p",
-                { TypeRef("String", SourceLocation()) },
+                { Parameter("String", false, SourceLocation()) },
                 {},
                 SourceLocation()
             ),

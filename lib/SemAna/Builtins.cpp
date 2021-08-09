@@ -11,7 +11,7 @@ std::vector<Effect> builtinEffects = {
     Effect(
         EffectDecl("IO"),
         {
-            EffectCtor("print", { TypeRef("String") })
+            EffectCtor("print", { Parameter("String", true) })
         }
     )
 };

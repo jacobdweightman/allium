@@ -37,14 +37,14 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
 
     Token next = lexer.peek_next();
 
-    // <predicate-name> := identifier "(" <comma-separated-arguments> ")" <effect-list>
+    // <predicate-name> := identifier "(" <comma-separated-parameters> ")" <effect-list>
     if(lexer.take(Token::Type::paren_l)) {
-        std::vector<TypeRef> parameters;
-        TypeRef pType;
+        std::vector<Parameter> parameters;
+        Parameter param;
 
         do {
-            if(parseTypeRef().unwrapInto(pType)) {
-                parameters.push_back(pType);
+            if(parseParameter().unwrapInto(param)) {
+                parameters.push_back(param);
             } else {
                 emitSyntaxError("Expected an additional argument after \",\" in parameter list.");
                 return rewindAndReturn();
@@ -390,13 +390,25 @@ Optional<TypeDecl> Parser::parseTypeDecl() {
     }
 }
 
-Optional<TypeRef> Parser::parseTypeRef() {
+Optional<Parameter> Parser::parseParameter() {
+    // <parameter> := <type-name>
     Token next = lexer.take_next();
     if(next.type == Token::Type::identifier) {
-        return TypeRef(next.text, next.location);
+        return Parameter(next.text, false, next.location);
     } else {
         lexer.rewind(next);
-        return Optional<TypeRef>();
+        return Optional<Parameter>();
+    }
+}
+
+Optional<CtorParameter> Parser::parseCtorParameter() {
+    // <ctor-parameter> := <type-name>
+    Token next = lexer.take_next();
+    if(next.type == Token::Type::identifier) {
+        return CtorParameter(next.text, next.location);
+    } else {
+        lexer.rewind(next);
+        return Optional<CtorParameter>();
     }
 }
 
@@ -419,17 +431,17 @@ Optional<Constructor> Parser::parseConstructor() {
     }
 
     // <constructor> :=
-    //     "ctor" <identifier> "(" <comma-separated-types> ")" ";"
+    //     "ctor" <identifier> "(" <comma-separated-ctor-parameters> ")" ";"
     lexer.rewind(next);
     if( lexer.take(Token::Type::kw_ctor) &&
         lexer.take_token(Token::Type::identifier).unwrapInto(identifier) &&
         lexer.take(Token::Type::paren_l)) {
 
-        std::vector<TypeRef> parameters;
-        TypeRef type;
+        std::vector<CtorParameter> parameters;
+        CtorParameter param;
         do {
-            if(parseTypeRef().unwrapInto(type)) {
-                parameters.push_back(type);
+            if(parseCtorParameter().unwrapInto(param)) {
+                parameters.push_back(param);
             } else {
                 emitSyntaxError("Expected an additional argument after \",\" in parameter list.");
                 return rewindAndReturn();
@@ -539,17 +551,17 @@ Optional<EffectConstructor> Parser::parseEffectConstructor() {
     }
 
     // <effect-constructor> :=
-    //     "ctor" <identifier> "(" <comma-separated-types> ")" ";"
+    //     "ctor" <identifier> "(" <comma-separated-parameters> ")" ";"
     lexer.rewind(next);
     if( lexer.take(Token::Type::kw_ctor) &&
         lexer.take_token(Token::Type::identifier).unwrapInto(identifier) &&
         lexer.take(Token::Type::paren_l)) {
 
-        std::vector<TypeRef> parameters;
-        TypeRef type;
+        std::vector<Parameter> parameters;
+        Parameter param;
         do {
-            if(parseTypeRef().unwrapInto(type)) {
-                parameters.push_back(type);
+            if(parseParameter().unwrapInto(param)) {
+                parameters.push_back(param);
             } else {
                 // requires a parameter
                 lexer.rewind(next);

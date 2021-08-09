@@ -46,9 +46,9 @@ public:
 
     Optional<TypedAST::PredicateDecl> visit(const PredicateDecl &pd) {
         return both(
-            fullMap<TypeRef, TypedAST::TypeRef>(
+            fullMap<Parameter, TypedAST::Parameter>(
                 pd.parameters,
-                [&](TypeRef tr) -> Optional<TypedAST::TypeRef> { return visit(tr); }
+                [&](Parameter tr) -> Optional<TypedAST::Parameter> { return visit(tr); }
             ),
             fullMap<EffectRef, TypedAST::EffectRef>(
                 pd.effects,
@@ -114,7 +114,7 @@ public:
         auto arguments = compactMap<Value, TypedAST::Value>(
             pr.arguments,
             [&](Value argument) {
-                inferredType = ast.resolveTypeRef(*parameter);
+                inferredType = ast.resolveTypeRef(parameter->name);
                 auto raisedArg = visit(argument);
                 inferredType = Optional<Type>();
                 ++parameter;
@@ -173,7 +173,7 @@ public:
         auto raisedArguments = compactMap<Value, TypedAST::Value>(
             ecr.arguments,
             [&](Value argument) -> Optional<TypedAST::Value> {
-                inferredType = ast.resolveTypeRef(*parameter);
+                inferredType = ast.resolveTypeRef(parameter->name);
                 Optional<TypedAST::Value> raisedArg = visit(argument);
                 inferredType = Optional<Type>();
                 ++parameter;
@@ -295,27 +295,42 @@ public:
         return TypedAST::TypeDecl(td.name.string());
     }
 
-    Optional<TypedAST::TypeRef> visit(const TypeRef &typeRef) {
-        if(nameIsBuiltinType(typeRef.name)) {
-            return TypedAST::TypeRef(typeRef.name.string());
+    Optional<TypedAST::Parameter> visit(const Parameter &cp) {
+        if(nameIsBuiltinType(cp.name)) {
+            return TypedAST::Parameter(cp.name.string(), cp.isInputOnly);
         }
 
-        if(!ast.resolveTypeRef(typeRef)) {
+        if(!ast.resolveTypeRef(cp.name)) {
             error.emit(
-                typeRef.location,
+                cp.location,
                 ErrorMessage::undefined_type,
-                typeRef.name.string());
-            return Optional<TypedAST::TypeRef>();
+                cp.name.string());
+            return Optional<TypedAST::Parameter>();
         }
-        return TypedAST::TypeRef(typeRef.name.string());
+        return TypedAST::Parameter(cp.name.string(), cp.isInputOnly);
+    }
+
+    Optional<TypedAST::CtorParameter> visit(const CtorParameter &cp) {
+        if(nameIsBuiltinType(cp.name)) {
+            return TypedAST::CtorParameter(cp.name.string());
+        }
+
+        if(!ast.resolveTypeRef(cp.name)) {
+            error.emit(
+                cp.location,
+                ErrorMessage::undefined_type,
+                cp.name.string());
+            return Optional<TypedAST::CtorParameter>();
+        }
+        return TypedAST::CtorParameter(cp.name.string());
     }
 
     Optional<TypedAST::Constructor> visit(const Constructor &ctor) {
-        return fullMap<TypeRef, TypedAST::TypeRef>(
+        return fullMap<CtorParameter, TypedAST::CtorParameter>(
             ctor.parameters,
-            [&](TypeRef param) { return visit(param); }
+            [&](CtorParameter param) { return visit(param); }
         ).map<TypedAST::Constructor>(
-            [&](std::vector<TypedAST::TypeRef> raisedParameters) {
+            [&](std::vector<TypedAST::CtorParameter> raisedParameters) {
                 return TypedAST::Constructor(ctor.name.string(), raisedParameters);
             }
         );
@@ -402,7 +417,7 @@ public:
         auto raisedArguments = compactMap<Value, TypedAST::Value>(
             cr.arguments,
             [&](Value argument) -> Optional<TypedAST::Value> {
-                inferredType = ast.resolveTypeRef(*parameter);
+                inferredType = ast.resolveTypeRef(parameter->name);
                 Optional<TypedAST::Value> raisedArg = visit(argument);
                 inferredType = Optional<Type>();
                 ++parameter;
@@ -421,7 +436,7 @@ public:
         }
 
         if(val.name.string() == "_") {
-            TypedAST::TypeRef tr(type.declaration.name.string());
+            Name<TypedAST::Type> tr(type.declaration.name.string());
             return TypedAST::Value(TypedAST::AnonymousVariable(tr));
         }
 
@@ -526,7 +541,7 @@ public:
                 er.location,
                 ErrorMessage::effect_type_undefined,
                 er.name.string());
-            return Optional<TypedAST::TypeRef>();
+            return Optional<TypedAST::EffectRef>();
         }
         return TypedAST::EffectRef(er.name.string());
     }
@@ -554,11 +569,11 @@ public:
     }
 
     Optional<TypedAST::EffectCtor> visit(const EffectConstructor &eCtor) {
-        return fullMap<TypeRef, TypedAST::TypeRef>(
+        return fullMap<Parameter, TypedAST::Parameter>(
             eCtor.parameters,
-            [&](TypeRef param) { return visit(param); }
+            [&](Parameter param) { return visit(param); }
         ).map<TypedAST::EffectCtor>(
-            [&](std::vector<TypedAST::TypeRef> raisedParameters) {
+            [&](std::vector<TypedAST::Parameter > raisedParameters) {
                 return TypedAST::EffectCtor(eCtor.name.string(), raisedParameters);
             }
         );

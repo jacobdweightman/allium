@@ -38,13 +38,13 @@ public:
 
     /// Note: To support type inference, this requires the additional
     /// context information of the type. 
-    interpreter::ConstructorRef visit(const ConstructorRef &cr, const TypeRef &tr) {
+    interpreter::ConstructorRef visit(const ConstructorRef &cr, const Name<Type> &tr) {
         size_t index = getConstructorIndex(tr, cr);
         const Constructor &ctor = ast.resolveConstructorRef(tr, cr);
 
         std::vector<interpreter::Value> arguments;
         for(int i=0; i<cr.arguments.size(); ++i) {
-            arguments.push_back(visit(cr.arguments[i], ctor.parameters[i]));
+            arguments.push_back(visit(cr.arguments[i], ctor.parameters[i].type));
         }
 
         return interpreter::ConstructorRef(index, arguments);
@@ -58,7 +58,7 @@ public:
         return interpreter::Int(i.value);
     }
 
-    interpreter::Value visit(const Value &val, const TypeRef &tr) {
+    interpreter::Value visit(const Value &val, const Name<Type> &tr) {
         return val.match<interpreter::Value>(
             [&](AnonymousVariable av) { return interpreter::Value(visit(av)); },
             [&](Variable v) { return interpreter::Value(visit(v)); },
@@ -78,7 +78,7 @@ public:
         std::vector<interpreter::Value> arguments;
         const Predicate &p = ast.resolvePredicateRef(pr);
         for(int i=0; i<p.declaration.parameters.size(); ++i) {
-            auto loweredCtorRef = visit(pr.arguments[i], p.declaration.parameters[i]);
+            auto loweredCtorRef = visit(pr.arguments[i], p.declaration.parameters[i].type);
             arguments.push_back(loweredCtorRef);
         }
         
@@ -91,7 +91,7 @@ public:
 
         std::vector<interpreter::Value> arguments;
         for(int i=0; i<eCtor.parameters.size(); ++i) {
-            auto loweredCtorRef = visit(ecr.arguments[i], eCtor.parameters[i]);
+            auto loweredCtorRef = visit(ecr.arguments[i], eCtor.parameters[i].type);
             arguments.push_back(loweredCtorRef);
         }
 
@@ -137,7 +137,7 @@ public:
 
     void visit(const TypeDecl &td) { assert(false && "not implemented"); };
 
-    void visit(const TypeRef &tr) { assert(false && "not implemented"); };
+    void visit(const CtorParameter &cp) { assert(false && "not implemented"); };
 
     void visit(const Constructor &ctor) { assert(false && "not implemented"); };
 
@@ -160,7 +160,7 @@ private:
         return x - ast.predicates.begin();
     }
 
-    size_t getConstructorIndex(const TypeRef &tr, const ConstructorRef &cr) {
+    size_t getConstructorIndex(const Name<Type> &tr, const ConstructorRef &cr) {
         auto type = std::find_if(
             ast.types.begin(),
             ast.types.end(),

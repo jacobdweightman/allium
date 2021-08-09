@@ -41,8 +41,8 @@ typedef TaggedUnion<
 std::ostream& operator<<(std::ostream &out, const Value &val);
 
 struct Predicate;
-struct TypeRef;
 struct Type;
+struct Parameter;
 
 struct Effect;
 struct EffectRef;
@@ -70,14 +70,14 @@ struct PredicateDecl {
     PredicateDecl() {}
     PredicateDecl(
         Name<Predicate> name,
-        std::vector<TypeRef> parameters,
+        std::vector<Parameter> parameters,
         std::vector<EffectRef> effects,
         SourceLocation location
     ): name(name), parameters(parameters), effects(effects),
         location(location) {}
 
     Name<Predicate> name;
-    std::vector<TypeRef> parameters;
+    std::vector<Parameter> parameters;
     std::vector<EffectRef> effects;
     SourceLocation location;
 };
@@ -235,35 +235,31 @@ bool operator==(const TypeDecl &lhs, const TypeDecl &rhs);
 bool operator!=(const TypeDecl &lhs, const TypeDecl &rhs);
 std::ostream& operator<<(std::ostream &out, const TypeDecl &td);
 
-/// Represents a reference to a type in the AST, for example in a predicate's
-/// signature definition.
-struct TypeRef {
-    TypeRef(): name(""), location(SourceLocation()) {}
+/// Represents a parameter to a type's constructor.
+struct CtorParameter {
+    CtorParameter(): name(""), location(SourceLocation()) {}
 
-    TypeRef(std::string name, SourceLocation location):
+    CtorParameter(std::string name, SourceLocation location):
         name(name), location(location) {}
-
-    TypeRef(const TypeRef &other):
-        name(other.name), location(other.location) {}
 
     Name<Type> name;
     SourceLocation location;
 };
 
-bool operator==(const TypeRef &lhs, const TypeRef &rhs);
-bool operator!=(const TypeRef &lhs, const TypeRef &rhs);
-std::ostream& operator<<(std::ostream &out, const TypeRef &typeRef);
+bool operator==(const CtorParameter &lhs, const CtorParameter &rhs);
+bool operator!=(const CtorParameter &lhs, const CtorParameter &rhs);
+std::ostream& operator<<(std::ostream &out, const CtorParameter &p);
 
 struct Constructor {
     Constructor() {}
     Constructor(
         std::string name,
-        std::vector<TypeRef> parameters,
+        std::vector<CtorParameter> parameters,
         SourceLocation location
     ): name(name), parameters(parameters), location(location) {}
 
     Name<Constructor> name;
-    std::vector<TypeRef> parameters;
+    std::vector<CtorParameter> parameters;
     SourceLocation location;
 };
 
@@ -369,16 +365,38 @@ bool operator==(const EffectDecl &lhs, const EffectDecl &rhs);
 bool operator!=(const EffectDecl &lhs, const EffectDecl &rhs);
 std::ostream& operator<<(std::ostream &out, const EffectDecl &type);
 
+/// Represents a parameter, as would occur in a predicate or effect.
+struct Parameter {
+    Parameter(): name(""), isInputOnly(true), location(SourceLocation()) {}
+
+    Parameter(std::string name, bool isInputOnly, SourceLocation location):
+        name(name), isInputOnly(isInputOnly), location(location) {}
+
+    /// The name of the parameter's type.
+    Name<Type> name;
+
+    /// True if this parameter's value must be an input; if false, then this
+    /// parameter cannot a variable definition.
+    /// TODO: are non-ground terms acceptable for `in` parameters?
+    bool isInputOnly;
+
+    SourceLocation location;
+};
+
+bool operator==(const Parameter &lhs, const Parameter &rhs);
+bool operator!=(const Parameter &lhs, const Parameter &rhs);
+std::ostream& operator<<(std::ostream &out, const Parameter &typeRef);
+
 struct EffectConstructor {
     EffectConstructor() {}
     EffectConstructor(
         std::string name,
-        std::vector<TypeRef> parameters,
+        std::vector<Parameter> parameters,
         SourceLocation location
     ): name(name), parameters(parameters), location(location) {}
 
     Name<EffectConstructor> name;
-    std::vector<TypeRef> parameters;
+    std::vector<Parameter> parameters;
     SourceLocation location;
 };
 
@@ -418,7 +436,7 @@ struct AST {
         std::vector<Predicate> predicates
     ): types(types), effects(effects), predicates(predicates) {}
 
-    Optional<Type> resolveTypeRef(const TypeRef &tr) const;
+    Optional<Type> resolveTypeRef(const Name<Type> &tr) const;
     Optional<const Effect*> resolveEffectRef(const EffectRef &er) const;
     Optional<Predicate> resolvePredicateRef(const PredicateRef &pr) const;
 
@@ -459,7 +477,7 @@ constexpr bool has_all_visitors() {
     static_assert(has_visit<Subclass, Implication>::value, "missing Implication visitor");
     static_assert(has_visit<Subclass, Predicate>::value, "missing Predicate visitor");
     static_assert(has_visit<Subclass, TypeDecl>::value, "missing TypeDecl visitor");
-    static_assert(has_visit<Subclass, TypeRef>::value, "missing TypeRef visitor");
+    static_assert(has_visit<Subclass, CtorParameter>::value, "missing Parameter visitor");
     static_assert(has_visit<Subclass, Constructor>::value, "missing Constructor visitor");
     static_assert(has_visit<Subclass, NamedValue>::value, "missing NamedValue visitor");
     static_assert(has_visit<Subclass, StringLiteral>::value, "missing StringLiteral visitor");
@@ -468,6 +486,7 @@ constexpr bool has_all_visitors() {
     static_assert(has_visit<Subclass, Type>::value, "missing Type visitor");
     static_assert(has_visit<Subclass, EffectRef>::value, "missing EffectRef visitor");
     static_assert(has_visit<Subclass, EffectDecl>::value, "missing EffectDecl visitor");
+    static_assert(has_visit<Subclass, Parameter>::value, "missing Parameter visitor");
     static_assert(has_visit<Subclass, EffectConstructor>::value, "missing EffectConstructor visitor");
     static_assert(has_visit<Subclass, Effect>::value, "missing Effect visitor");
     static_assert(has_visit<Subclass, Handler>::value, "missing Handler visitor");
@@ -481,7 +500,7 @@ constexpr bool has_all_visitors() {
         has_visit<Subclass, Implication>::value &&
         has_visit<Subclass, Predicate>::value &&
         has_visit<Subclass, TypeDecl>::value &&
-        has_visit<Subclass, TypeRef>::value &&
+        has_visit<Subclass, CtorParameter>::value &&
         has_visit<Subclass, Constructor>::value &&
         has_visit<Subclass, NamedValue>::value &&
         has_visit<Subclass, StringLiteral>::value &&
@@ -490,6 +509,7 @@ constexpr bool has_all_visitors() {
         has_visit<Subclass, Type>::value &&
         has_visit<Subclass, EffectRef>::value &&
         has_visit<Subclass, EffectDecl>::value &&
+        has_visit<Subclass, Parameter>::value &&
         has_visit<Subclass, EffectConstructor>::value &&
         has_visit<Subclass, Effect>::value &&
         has_visit<Subclass, Handler>::value;

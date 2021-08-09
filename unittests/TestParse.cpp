@@ -384,13 +384,13 @@ TEST(TestParser, parse_predicate_with_multiple_unhandled_effects) {
     );
 }
 
-TEST(TestParser, parse_type_ref) {
+TEST(TestParser, parse_parameter) {
     std::istringstream f("IceCreamFlavor");
     Parser p(f);
 
     EXPECT_EQ(
-        p.parseTypeRef(),
-        TypeRef("IceCreamFlavor", SourceLocation(1, 0))
+        p.parseParameter(),
+        Parameter("IceCreamFlavor", false, SourceLocation(1, 0))
     );
 }
 
@@ -404,7 +404,7 @@ TEST(TestParser, parse_constructor) {
     );
 }
 
-TEST(TestParser, parse_constructor_with_one) {
+TEST(TestParser, parse_constructor_with_one_parameter) {
     std::istringstream f("ctor s(Nat);");
     Parser p(f);
 
@@ -412,7 +412,7 @@ TEST(TestParser, parse_constructor_with_one) {
         p.parseConstructor(),
         Constructor(
             "s",
-            { TypeRef("Nat", SourceLocation(1, 7)) },
+            { CtorParameter("Nat", SourceLocation(1, 7)) },
             SourceLocation(1, 5)
         )
     );
@@ -427,8 +427,8 @@ TEST(TestParser, parse_constructor_with_multiple_parameters) {
         Constructor(
             "sundae",
             {
-                TypeRef("IceCream", SourceLocation(1, 12)),
-                TypeRef("Sauce", SourceLocation(1, 22))
+                CtorParameter("IceCream", SourceLocation(1, 12)),
+                CtorParameter("Sauce", SourceLocation(1, 22))
             },
             SourceLocation(1, 5)
         )
@@ -571,7 +571,7 @@ TEST(TestParser, parse_recursive_type) {
             {
                 Constructor("zero", {}, SourceLocation(2, 9)),
                 Constructor("s", {
-                    TypeRef("Nat", SourceLocation(3, 11))
+                    CtorParameter("Nat", SourceLocation(3, 11))
                 }, SourceLocation(3, 9))
             }
         )
@@ -622,14 +622,14 @@ TEST(TestParser, parse_effect_with_constructors_and_arguments) {
                 EffectConstructor(
                     "Open",
                     {
-                        TypeRef("String", SourceLocation(2, 14)),
-                        TypeRef("File", SourceLocation(2, 22))
+                        Parameter("String", false, SourceLocation(2, 14)),
+                        Parameter("File", false, SourceLocation(2, 22))
                     },
                     SourceLocation(2, 9)
                 ),
                 EffectConstructor(
                     "Close",
-                    { TypeRef("File", SourceLocation(3, 15)) },
+                    { Parameter("File", false, SourceLocation(3, 15)) },
                     SourceLocation(3, 9)
                 )
             }

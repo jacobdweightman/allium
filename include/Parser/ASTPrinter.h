@@ -94,10 +94,10 @@ public:
             td.location << ">\n";
     }
 
-    void visit(const TypeRef &typeRef) {
+    void visit(const CtorParameter &cp) {
         indent();
-        out << "<TypeRef \"" << typeRef.name << "\" line:" <<
-            typeRef.location << ">\n";
+        out << "<CtorParameter \"" << cp.name << "\" line:" <<
+            cp.location << ">\n";
     }
 
     void visit(const Constructor &ctor) {
@@ -163,6 +163,12 @@ public:
         indent();
         out << "<EffectDecl \"" << decl.name << "\" line:" <<
             decl.location << ">\n";
+    }
+
+    void visit(const Parameter &p) {
+        indent();
+        out << "<Parameter \"" << p.name << "\" " <<
+            (p.isInputOnly ? "in" : "") << "\" line:" << p.location << ">\n";
     }
 
     void visit(const EffectConstructor &ctor) {

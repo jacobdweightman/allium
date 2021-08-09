@@ -145,16 +145,16 @@ std::ostream& operator<<(std::ostream &out, const TypeDecl &td) {
     return out;
 }
 
-bool operator==(const TypeRef &lhs, const TypeRef &rhs) {
+bool operator==(const CtorParameter &lhs, const CtorParameter &rhs) {
     return lhs.name == rhs.name && lhs.location == rhs.location;
 }
 
-bool operator!=(const TypeRef &lhs, const TypeRef &rhs) {
+bool operator!=(const CtorParameter &lhs, const CtorParameter &rhs) {
     return !(lhs == rhs);
 }
 
-std::ostream& operator<<(std::ostream &out, const TypeRef &typeRef) {
-    out << typeRef.name;
+std::ostream& operator<<(std::ostream &out, const CtorParameter &cp) {
+    out << cp.name;
     return out;
 }
 
@@ -231,19 +231,19 @@ std::ostream& operator<<(std::ostream &out, const Type &type) {
     return out;
 }
 
-Optional<Type> AST::resolveTypeRef(const TypeRef &tr) const {
+Optional<Type> AST::resolveTypeRef(const Name<Type> &tr) const {
     // Type definitions for builtins
     // TODO: this won't scale well with many builtin types.
-    if(tr.name == "String") {
+    if(tr == "String") {
         return Type(TypeDecl("String", SourceLocation()), {});
-    } else if(tr.name == "Int") {
+    } else if(tr == "Int") {
         return Type(TypeDecl("Int", SourceLocation()), {});
     }
 
     const auto &x = std::find_if(
         types.begin(),
         types.end(),
-        [&](const Type &type) { return type.declaration.name == tr.name; });
+        [&](const Type &type) { return type.declaration.name == tr; });
     
     if(x == types.end()) {
         return Optional<Type>();
@@ -261,7 +261,7 @@ Optional<const Effect*> AST::resolveEffectRef(const EffectRef &er) const {
             {
                 EffectConstructor(
                     "print",
-                    { TypeRef("String", SourceLocation()) },
+                    { Parameter("String", true, SourceLocation()) },
                     SourceLocation()
                 )
             }
@@ -316,6 +316,20 @@ bool operator!=(const EffectDecl &lhs, const EffectDecl &rhs) {
 
 std::ostream& operator<<(std::ostream &out, const EffectDecl &decl) {
     return out << decl.name;
+}
+
+bool operator==(const Parameter &lhs, const Parameter &rhs) {
+    return lhs.name == rhs.name && lhs.isInputOnly == rhs.isInputOnly &&
+        lhs.location == rhs.location;
+}
+
+bool operator!=(const Parameter &lhs, const Parameter &rhs) {
+    return !(lhs == rhs);
+}
+
+std::ostream& operator<<(std::ostream &out, const Parameter &cp) {
+    out << (cp.isInputOnly ? "in " : "") << cp.name;
+    return out;
 }
 
 bool operator==(const EffectConstructor &lhs, const EffectConstructor &rhs) {

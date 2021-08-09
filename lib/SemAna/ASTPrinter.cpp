@@ -34,14 +34,20 @@ void ASTPrinter::visit(const Type &type) {
     depth--;
 }
 
-void ASTPrinter::visit(const TypeRef &tr) {
+void ASTPrinter::visit(const CtorParameter &cp) {
     indent();
-    out << "<TypeRef \"" << tr << "\">\n";
+    out << "<CtorParameter \"" << cp.type << "\">\n";
 }
 
 void ASTPrinter::visit(const EffectDecl &eDecl) {
     indent();
     out << "<EffectDecl \"" << eDecl.name << "\">\n";
+}
+
+void ASTPrinter::visit(const Parameter &p) {
+    indent();
+    out << "<Parameter \"" << p.type << "\" " <<
+        (p.isInputOnly ? "in " : "") << ">\n";
 }
 
 void ASTPrinter::visit(const EffectCtor &eCtor) {

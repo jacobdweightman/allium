@@ -10,10 +10,10 @@ TEST(TestASTLower, variables_of_uninhabited_types_are_marked) {
         {},
         {
             Predicate(
-                PredicateDecl("foo", { TypeRef("Void") }, {}),
+                PredicateDecl("foo", { Parameter("Void", false) }, {}),
                 {
                     Implication(
-                        PredicateRef("foo", { AnonymousVariable(TypeRef("Void")) }),
+                        PredicateRef("foo", { AnonymousVariable(Name<Type>("Void")) }),
                         TruthLiteral(true)
                     )
                 },
@@ -56,16 +56,16 @@ TEST(TestASTLower, existential_variables_are_uniquely_indexed) {
         {},
         {
             Predicate(
-                PredicateDecl("foo", { TypeRef("T"), TypeRef("T") }, {}),
+                PredicateDecl("foo", { Parameter("T", false), Parameter("T", false) }, {}),
                 {
                     Implication(
                         PredicateRef("foo", {
-                            AnonymousVariable(TypeRef("T")),
-                            AnonymousVariable(TypeRef("T"))
+                            AnonymousVariable(Name<Type>("T")),
+                            AnonymousVariable(Name<Type>("T"))
                         }),
                         Expression(PredicateRef("foo", {
-                            Value(Variable("x", TypeRef("T"), true, true)),
-                            Value(Variable("y", TypeRef("T"), true, true))
+                            Value(Variable("x", Name<Type>("T"), true, true)),
+                            Value(Variable("y", Name<Type>("T"), true, true))
                         }))
                     )
                 },

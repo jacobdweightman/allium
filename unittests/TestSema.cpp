@@ -110,7 +110,7 @@ TEST_F(TestSemAnaPredicates, predicate_argument_count_mismatch) {
     };
     std::vector<Predicate> ps = {
         Predicate(
-            PredicateDecl("p", { TypeRef("Foo", SourceLocation(2, 7)) }, {}, SourceLocation(2, 5)),
+            PredicateDecl("p", { Parameter("Foo", false, SourceLocation(2, 7)) }, {}, SourceLocation(2, 5)),
             {
                 Implication(
                     PredicateRef(
@@ -142,13 +142,13 @@ TEST_F(TestSemAnaPredicates, constructor_argument_count_mismatch) {
             TypeDecl("Nat", SourceLocation(1, 5)),
             {
                 Constructor("zero", {}, SourceLocation(1, 16)),
-                Constructor("s", { TypeRef("Nat", SourceLocation(1, 29)) }, SourceLocation(1, 27))
+                Constructor("s", { CtorParameter("Nat", SourceLocation(1, 29)) }, SourceLocation(1, 27))
             }
         )
     };
     std::vector<Predicate> ps = {
         Predicate(
-            PredicateDecl("p", { TypeRef("Nat", SourceLocation(2, 7)) }, {}, SourceLocation(2, 5)),
+            PredicateDecl("p", { Parameter("Nat", false, SourceLocation(2, 7)) }, {}, SourceLocation(2, 5)),
             {
                 Implication(
                     PredicateRef(
@@ -189,7 +189,7 @@ TEST_F(TestSemAnaPredicates, predicate_argument_with_arguments_type_mismatch) {
     };
     std::vector<Predicate> ps = {
         Predicate(
-            PredicateDecl("a", { TypeRef("foo", SourceLocation()) }, {}, SourceLocation(1, 4)),
+            PredicateDecl("a", { Parameter("foo", false, SourceLocation()) }, {}, SourceLocation(1, 4)),
             {
                 Implication(
                     PredicateRef(
@@ -231,7 +231,7 @@ TEST_F(TestSemAnaPredicates, predicate_argument_type_mismatch) {
     };
     std::vector<Predicate> ps = {
         Predicate(
-            PredicateDecl("a", { TypeRef("Foo", SourceLocation()) }, {}, SourceLocation(1, 4)),
+            PredicateDecl("a", { Parameter("Foo", false, SourceLocation()) }, {}, SourceLocation(1, 4)),
             {
                 Implication(
                     PredicateRef(
@@ -254,7 +254,7 @@ TEST_F(TestSemAnaPredicates, undefined_type) {
     SourceLocation errorLocation(1, 5);
     std::vector<Predicate> ps = {
         Predicate(
-            PredicateDecl("p", { TypeRef("Foo", errorLocation) }, {}, SourceLocation(3, 5)),
+            PredicateDecl("p", { Parameter("Foo", false, errorLocation) }, {}, SourceLocation(3, 5)),
             {}
         )
     };
@@ -271,7 +271,7 @@ TEST_F(TestSemAnaPredicates, string_builtin_does_not_require_definition) {
         Predicate(
             PredicateDecl(
                 "p",
-                { TypeRef("String", SourceLocation(1, 7)) },
+                { Parameter("String", false, SourceLocation(1, 7)) },
                 {},
                 SourceLocation(1, 5)
             ),
@@ -293,7 +293,10 @@ TEST_F(TestSemAnaPredicates, variable_redefinition) {
     std::vector<Predicate> ps = {
         Predicate(PredicateDecl(
             "p",
-            { TypeRef("Foo", SourceLocation(2, 7)), TypeRef("Foo", SourceLocation(2, 12)) },
+            {
+                Parameter("Foo", false, SourceLocation(2, 7)),
+                Parameter("Foo", false, SourceLocation(2, 12))
+            },
             {},
             SourceLocation(2, 5)
         ),
@@ -333,11 +336,11 @@ TEST_F(TestSemAnaPredicates, variable_type_mismatch) {
     };
     std::vector<Predicate> ps = {
         Predicate(
-            PredicateDecl("p", { TypeRef("Foo", SourceLocation(4, 7)) }, {}, SourceLocation(4, 5)),
+            PredicateDecl("p", { Parameter("Foo", false, SourceLocation(4, 7)) }, {}, SourceLocation(4, 5)),
             {}
         ),
         Predicate(
-            PredicateDecl("q", { TypeRef("Bar", SourceLocation(5, 7)) }, {}, SourceLocation(5, 5)),
+            PredicateDecl("q", { Parameter("Bar", false, SourceLocation(5, 7)) }, {}, SourceLocation(5, 5)),
             {
                 Implication(
                     PredicateRef("q", { NamedValue("x", true, SourceLocation(6, 10)) }, SourceLocation(6, 4)),
@@ -379,7 +382,7 @@ TEST_F(TestSemAnaPredicates, string_literal_not_convertible) {
     };
     std::vector<Predicate> ps = {
         Predicate(
-            PredicateDecl("p", { TypeRef("Void", SourceLocation(2, 7)) }, {}, SourceLocation(2, 5)),
+            PredicateDecl("p", { Parameter("Void", false, SourceLocation(2, 7)) }, {}, SourceLocation(2, 5)),
             {
                 Implication(
                     PredicateRef("p", { Value(StringLiteral("hi", errorLocation)) }, SourceLocation(3, 4)),
@@ -406,7 +409,7 @@ TEST_F(TestSemAnaPredicates, int_literal_not_convertible) {
     };
     std::vector<Predicate> ps = {
         Predicate(
-            PredicateDecl("p", { TypeRef("Void", SourceLocation(2, 7)) }, {}, SourceLocation(2, 5)),
+            PredicateDecl("p", { Parameter("Void", false, SourceLocation(2, 7)) }, {}, SourceLocation(2, 5)),
             {
                 Implication(
                     PredicateRef("p", { Value(IntegerLiteral(14, errorLocation)) }, SourceLocation(3, 4)),
@@ -490,8 +493,8 @@ TEST_F(TestSemAnaPredicates, effect_argument_count) {
                 EffectConstructor(
                     "bar",
                     {
-                        TypeRef("String", SourceLocation(2, 13)),
-                        TypeRef("String", SourceLocation(2, 21))
+                        Parameter("String", false, SourceLocation(2, 13)),
+                        Parameter("String", false, SourceLocation(2, 21))
                     },
                     SourceLocation(2, 9)
                 )

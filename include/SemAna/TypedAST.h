@@ -22,7 +22,7 @@ namespace TypedAST {
  */
 
 struct Type;
-typedef Name<Type> TypeRef;
+struct CtorParameter;
 
 struct TypeDecl {
     TypeDecl() {}
@@ -34,12 +34,21 @@ struct TypeDecl {
 bool operator==(const TypeDecl &left, const TypeDecl &right);
 bool operator!=(const TypeDecl &left, const TypeDecl &right);
 
+struct CtorParameter {
+    CtorParameter(std::string type): type(type) {}
+
+    Name<Type> type;
+};
+
+bool operator==(const CtorParameter &left, const CtorParameter &right);
+bool operator!=(const CtorParameter &left, const CtorParameter &right);
+
 struct Constructor {
-    Constructor(std::string name, std::vector<TypeRef> parameters):
+    Constructor(std::string name, std::vector<CtorParameter> parameters):
         name(name), parameters(parameters) {}
 
     Name<Constructor> name;
-    std::vector<TypeRef> parameters;
+    std::vector<CtorParameter> parameters;
 };
 
 bool operator==(const Constructor &left, const Constructor &right);
@@ -77,9 +86,9 @@ typedef TaggedUnion<
 class Value;
 
 struct AnonymousVariable {
-    AnonymousVariable(TypeRef type): type(type) {}
+    AnonymousVariable(Name<Type> type): type(type) {}
 
-    TypeRef type;
+    Name<Type> type;
 };
 
 bool operator==(AnonymousVariable left, AnonymousVariable right);
@@ -88,14 +97,14 @@ bool operator!=(AnonymousVariable left, AnonymousVariable right);
 struct Variable {
     Variable(
         std::string name,
-        TypeRef type,
+        Name<Type> type,
         bool isDefinition,
         bool isExistential
     ): name(name), type(type), isDefinition(isDefinition),
         isExistential(isExistential) {}
 
     Name<Variable> name;
-    TypeRef type;
+    Name<Type> type;
     bool isDefinition;
     bool isExistential;
 };
@@ -157,12 +166,23 @@ struct EffectDecl {
 bool operator==(const EffectDecl &left, const EffectDecl &right);
 bool operator!=(const EffectDecl &left, const EffectDecl &right);
 
+struct Parameter {
+    Parameter(std::string type, bool isInputOnly):
+        type(type), isInputOnly(isInputOnly) {}
+
+    Name<Type> type;
+    bool isInputOnly;
+};
+
+bool operator==(const Parameter &left, const Parameter &right);
+bool operator!=(const Parameter &left, const Parameter &right);
+
 struct EffectCtor {
-    EffectCtor(std::string name, std::vector<TypeRef> parameters):
+    EffectCtor(std::string name, std::vector<Parameter> parameters):
         name(name), parameters(parameters) {}
 
     Name<EffectCtor> name;
-    std::vector<TypeRef> parameters;
+    std::vector<Parameter> parameters;
 };
 
 bool operator==(const EffectCtor &left, const EffectCtor &right);
@@ -213,12 +233,12 @@ struct TruthLiteral {
 struct PredicateDecl {
     PredicateDecl(
         std::string name,
-        std::vector<TypeRef> parameters,
+        std::vector<Parameter> parameters,
         std::vector<EffectRef> effects
     ): name(name), parameters(parameters), effects(effects) {}
 
     Name<Predicate> name;
-    std::vector<TypeRef> parameters;
+    std::vector<Parameter> parameters;
     std::vector<EffectRef> effects;
 };
 
@@ -285,7 +305,7 @@ public:
         std::vector<Predicate> predicates
     ): types(types), effects(effects), predicates(predicates) {}
 
-    const Type &resolveTypeRef(const TypeRef &tr) const {
+    const Type &resolveTypeRef(const Name<Type> &tr) const {
         const auto x = std::find_if(
             types.begin(),
             types.end(),
@@ -295,7 +315,7 @@ public:
         return *x;
     }
 
-    const Constructor &resolveConstructorRef(const TypeRef &tr, const ConstructorRef &cr) const {
+    const Constructor &resolveConstructorRef(const Name<Type> &tr, const ConstructorRef &cr) const {
         const Type &type = resolveTypeRef(tr);
 
         const auto ctor = std::find_if(

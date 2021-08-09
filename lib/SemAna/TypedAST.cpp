@@ -10,6 +10,14 @@ bool operator!=(const TypeDecl &left, const TypeDecl &right) {
     return !(left == right);
 }
 
+bool operator==(const CtorParameter &left, const CtorParameter &right) {
+    return left.type == right.type;
+}
+
+bool operator!=(const CtorParameter &left, const CtorParameter &right) {
+    return !(left == right);
+}
+
 bool operator==(const Constructor &left, const Constructor &right) {
     return left.name == right.name &&
         left.parameters == right.parameters;
@@ -24,6 +32,14 @@ bool operator==(const EffectDecl &left, const EffectDecl &right) {
 }
 
 bool operator!=(const EffectDecl &left, const EffectDecl &right) {
+    return !(left == right);
+}
+
+bool operator==(const Parameter &left, const Parameter &right) {
+    return left.isInputOnly == right.isInputOnly && left.type == right.type;
+}
+
+bool operator!=(const Parameter &left, const Parameter &right) {
     return !(left == right);
 }
 

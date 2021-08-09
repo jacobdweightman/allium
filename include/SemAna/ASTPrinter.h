@@ -12,11 +12,12 @@ public:
     ASTPrinter(std::ostream &out): out(out) {}
 
     void visit(const TypeDecl &td);
+    void visit(const CtorParameter &tr);
     void visit(const Constructor &ctor);
     void visit(const ConstructorRef &cr);
     void visit(const Type &type);
-    void visit(const TypeRef &tr);
     void visit(const EffectDecl &eDecl);
+    void visit(const Parameter &p);
     void visit(const EffectCtor &eCtor);
     void visit(const Effect &e);
     void visit(const Predicate &p);

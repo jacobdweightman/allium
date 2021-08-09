@@ -30,7 +30,7 @@ std::vector<Effect> builtinEffects = {
         {
             EffectConstructor(
                 "print",
-                { TypeRef("String", SourceLocation()) },
+                { Parameter("String", true, SourceLocation()) },
                 SourceLocation()
             )
         }

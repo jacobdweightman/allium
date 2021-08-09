@@ -28,7 +28,8 @@ public:
     Optional<PredicateRef> parsePredicateRef();
     Optional<Expression> parseExpression();
     Optional<TypeDecl> parseTypeDecl();
-    Optional<TypeRef> parseTypeRef();
+    Optional<Parameter> parseParameter();
+    Optional<CtorParameter> parseCtorParameter();
     Optional<Constructor> parseConstructor();
     Optional<NamedValue> parseNamedValue();
     Optional<StringLiteral> parseStringLiteral();
