@@ -30,6 +30,11 @@ class SemAna {
     /// an implication.
     mutable bool inBody = false;
 
+    /// True if the current AST node must not contain variable definitions. This
+    /// should be true inside an argument passed to an `in` parameter outside of
+    /// the predicate definition/effect handler, and false otherwise.
+    mutable bool isInputOnly = false;
+
     /// The type definition enclosing the current AST node being analyzed, if there is one.
     mutable Optional<Type> enclosingType;
 
@@ -115,7 +120,9 @@ public:
             pr.arguments,
             [&](Value argument) {
                 inferredType = ast.resolveTypeRef(parameter->name);
+                isInputOnly = parameter->isInputOnly && enclosingPred.name.name != pr.name;
                 auto raisedArg = visit(argument);
+                isInputOnly = false;
                 inferredType = Optional<Type>();
                 ++parameter;
                 return raisedArg;
@@ -174,7 +181,9 @@ public:
             ecr.arguments,
             [&](Value argument) -> Optional<TypedAST::Value> {
                 inferredType = ast.resolveTypeRef(parameter->name);
+                isInputOnly = parameter->isInputOnly; // TODO: must be false if inside handler
                 Optional<TypedAST::Value> raisedArg = visit(argument);
+                isInputOnly = false;
                 inferredType = Optional<Type>();
                 ++parameter;
                 return raisedArg;
@@ -353,6 +362,11 @@ public:
         TypedAST::Scope *scope;
         if(enclosingScope.unwrapGuard(scope)) {
             assert(enclosingScope && "Scope not initialized!");
+            return Optional<TypedAST::Variable>();
+        }
+
+        if(isInputOnly && v.isDefinition) {
+            error.emit(v.location, ErrorMessage::input_only_argument_contains_variable_definition, v.name.string());
             return Optional<TypedAST::Variable>();
         }
  

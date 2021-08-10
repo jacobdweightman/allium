@@ -167,8 +167,8 @@ public:
 
     void visit(const Parameter &p) {
         indent();
-        out << "<Parameter \"" << p.name << "\" " <<
-            (p.isInputOnly ? "in" : "") << "\" line:" << p.location << ">\n";
+        out << "<Parameter \"" << p.name << "\"" <<
+            (p.isInputOnly ? " in" : "") << " line:" << p.location << ">\n";
     }
 
     void visit(const EffectConstructor &ctor) {

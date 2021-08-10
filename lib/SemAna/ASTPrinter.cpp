@@ -46,8 +46,8 @@ void ASTPrinter::visit(const EffectDecl &eDecl) {
 
 void ASTPrinter::visit(const Parameter &p) {
     indent();
-    out << "<Parameter \"" << p.type << "\" " <<
-        (p.isInputOnly ? "in " : "") << ">\n";
+    out << "<Parameter \"" << p.type << "\"" <<
+        (p.isInputOnly ? " in" : "") << ">\n";
 }
 
 void ASTPrinter::visit(const EffectCtor &eCtor) {

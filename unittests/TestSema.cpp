@@ -250,6 +250,107 @@ TEST_F(TestSemAnaPredicates, predicate_argument_type_mismatch) {
     checkAll(AST(ts, {}, ps), error);
 }
 
+TEST_F(TestSemAnaPredicates, existential_variable_as_input_only_parameter) {
+    // pred p(in String) {}
+    // pred q {
+    //     q <- p(let x);
+    // }
+
+    SourceLocation errorLocation(3, 11);
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl(
+                "p",
+                { Parameter("String", true, SourceLocation(1, 7)) },
+                {},
+                SourceLocation(1, 5)
+            ),
+            {}
+        ),
+        Predicate(
+            PredicateDecl("q", {}, {}, SourceLocation(2, 5)),
+            {
+                Implication(
+                    PredicateRef("q", SourceLocation(3, 4)),
+                    Expression(PredicateRef(
+                        "p",
+                        { Value(NamedValue("x", true, errorLocation)) },
+                        SourceLocation(3, 9)
+                    ))
+                )
+            }
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::input_only_argument_contains_variable_definition, "x"));
+
+    checkAll(AST({}, {}, ps), error);
+}
+
+TEST_F(TestSemAnaPredicates, existential_variable_inside_constructor_as_input_only_parameter) {
+    // type Nat {
+    //     ctor Z;
+    //     ctor S(Nat);
+    // }
+    // pred p(in Nat) {}
+    // pred q {
+    //     q <- p(S(S(let x)));
+    // }
+
+    SourceLocation errorLocation(7, 15);
+    std::vector<Type> ts = {
+        Type(
+            TypeDecl("Nat", SourceLocation(1, 5)),
+            {
+                Constructor("Z", {}, SourceLocation(2, 9)),
+                Constructor("S", { CtorParameter("Nat", SourceLocation(3, 11)) }, SourceLocation(2, 9))
+            }
+        )
+    };
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl(
+                "p",
+                { Parameter("Nat", true, SourceLocation(5, 7)) },
+                {},
+                SourceLocation(5, 5)
+            ),
+            {}
+        ),
+        Predicate(
+            PredicateDecl("q", {}, {}, SourceLocation(6, 5)),
+            {
+                Implication(
+                    PredicateRef("q", SourceLocation(7, 4)),
+                    Expression(PredicateRef(
+                        "p",
+                        { 
+                            Value(NamedValue(
+                                "S",
+                                {
+                                    NamedValue(
+                                        "S",
+                                        {
+                                            NamedValue("x", true, errorLocation)
+                                        },
+                                        SourceLocation(7, 13)
+                                    )
+                                },
+                                SourceLocation(7, 11)
+                            ))
+                        },
+                        SourceLocation(7, 9)
+                    ))
+                )
+            }
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::input_only_argument_contains_variable_definition, "x"));
+
+    checkAll(AST(ts, {}, ps), error);
+}
+
 TEST_F(TestSemAnaPredicates, undefined_type) {
     SourceLocation errorLocation(1, 5);
     std::vector<Predicate> ps = {
