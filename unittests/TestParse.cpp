@@ -394,6 +394,16 @@ TEST(TestParser, parse_parameter) {
     );
 }
 
+TEST(TestParser, parse_input_only_parameter) {
+    std::istringstream f("in String");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseParameter(),
+        Parameter("String", true, SourceLocation(1, 0))
+    );
+}
+
 TEST(TestParser, parse_constructor) {
     std::istringstream f("ctor vanilla;");
     Parser p(f);
@@ -432,6 +442,16 @@ TEST(TestParser, parse_constructor_with_multiple_parameters) {
             },
             SourceLocation(1, 5)
         )
+    );
+}
+
+TEST(TestParser, constructor_parameter_cannot_be_marked_input_only) {
+    std::istringstream f("ctor sundae(in IceCream, Sauce);");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseConstructor(),
+        Optional<Constructor>()
     );
 }
 

@@ -392,13 +392,27 @@ Optional<TypeDecl> Parser::parseTypeDecl() {
 
 Optional<Parameter> Parser::parseParameter() {
     // <parameter> := <type-name>
+    // <parameter> := "in" <type-name>
     Token next = lexer.take_next();
-    if(next.type == Token::Type::identifier) {
-        return Parameter(next.text, false, next.location);
-    } else {
+
+    auto rewindAndReturn = [&]() {
         lexer.rewind(next);
         return Optional<Parameter>();
+    };
+
+    if(next.type == Token::Type::identifier) {
+        return Parameter(next.text, false, next.location);
+    } else if(next.type == Token::Type::kw_in) {
+        Token identifier;
+        if(lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
+            return Parameter(identifier.text, true, next.location);
+        } else {
+            emitSyntaxError("Expected type name after keyword \"in.\"");
+            return rewindAndReturn();
+        }
     }
+
+    return rewindAndReturn();
 }
 
 Optional<CtorParameter> Parser::parseCtorParameter() {

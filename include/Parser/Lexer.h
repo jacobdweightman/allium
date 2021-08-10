@@ -24,6 +24,7 @@ struct Token {
         kw_ctor,
         kw_do,
         kw_effect,
+        kw_in,
         kw_let,
         kw_pred,
         kw_type,

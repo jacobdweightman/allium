@@ -25,6 +25,7 @@ std::ostream& operator<<(std::ostream& out, const Token::Type value) {
     case Token::Type::integer_literal: return out << "Type::integer_literal";
     case Token::Type::kw_ctor: return out << "Type::kw_ctor";
     case Token::Type::kw_do: return out << "Type::kw_do";
+    case Token::Type::kw_in: return out << "Type::kw_in";
     case Token::Type::kw_let: return out << "Type::kw_let";
     case Token::Type::kw_pred: return out << "Type::kw_predicate";
     case Token::Type::kw_type: return out << "Type::kw_type";
@@ -116,6 +117,7 @@ Token Lexer::take_next() {
     if(word == "do") return makeToken(Token::Type::kw_do, word);
     if(word == "ctor") return makeToken(Token::Type::kw_ctor, word);
     if(word == "effect") return makeToken(Token::Type::kw_effect, word);
+    if(word == "in") return makeToken(Token::Type::kw_in, word);
     if(word == "true") return makeToken(Token::Type::true_literal, word);
     else if(word == "false") return makeToken(Token::Type::false_literal, word);
     else if(word == "<-") return makeToken(Token::Type::implied_by, word);
