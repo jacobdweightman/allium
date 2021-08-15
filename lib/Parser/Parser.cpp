@@ -32,6 +32,7 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
     };
 
     if(identifier.type != Token::Type::identifier) {
+        emitSyntaxError("Expected predicate name in predicate definition.");
         return rewindAndReturn();
     }
 
@@ -46,7 +47,12 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
             if(parseParameter().unwrapInto(param)) {
                 parameters.push_back(param);
             } else {
-                emitSyntaxError("Expected an additional argument after \",\" in parameter list.");
+                if (parameters.size() == 0) {
+                    emitSyntaxError("Parentheses must not appear after predicate name for predicates with zero arguments.");
+                } else {
+                    emitSyntaxError("Expected an additional argument after \",\" in parameter list.");
+                }
+
                 return rewindAndReturn();
             }
         } while(lexer.take(Token::Type::comma));
@@ -263,7 +269,7 @@ Optional<Expression> Parser::parseAtom() {
     // <atom> := <truth-literal>
     if(parseTruthLiteral().unwrapInto(tl)) {
         return Optional(Expression(tl));
-    
+
     // <atom> := <predicate-name>
     } else if(parsePredicateRef().unwrapInto(p)) {
         return Optional(Expression(p));
@@ -359,7 +365,6 @@ Optional<Predicate> Parser::parsePredicate() {
     }
 
     if(parsePredicateDecl().unwrapGuard(decl)) {
-        emitSyntaxError("Expected predicate name in predicate definition.");
         return rewindAndReturn();
     }
 
