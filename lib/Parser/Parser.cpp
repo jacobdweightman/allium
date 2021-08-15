@@ -32,6 +32,7 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
     };
 
     if(identifier.type != Token::Type::identifier) {
+        emitSyntaxError("Expected predicate name in predicate definition.");
         return rewindAndReturn();
     }
 
@@ -364,7 +365,6 @@ Optional<Predicate> Parser::parsePredicate() {
     }
 
     if(parsePredicateDecl().unwrapGuard(decl)) {
-        emitSyntaxError("Expected predicate name in predicate definition.");
         return rewindAndReturn();
     }
 
