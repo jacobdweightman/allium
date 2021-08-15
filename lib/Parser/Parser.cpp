@@ -48,7 +48,7 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
                 parameters.push_back(param);
             } else {
                 if (parameters.size() == 0) {
-                    emitSyntaxError("Empty parentheses should not be included for predicates with no arguments.");
+                    emitSyntaxError("Parentheses must not appear after predicate name for predicates with zero arguments.");
                 } else {
                     emitSyntaxError("Expected an additional argument after \",\" in parameter list.");
                 }
