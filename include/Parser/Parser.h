@@ -44,6 +44,7 @@ private:
     Optional<EffectConstructor> parseEffectConstructor();
 
     void emitSyntaxError(std::string message);
+    void emitSyntaxError(std::string message, Token errorToken);
 
     Lexer lexer;
     std::ostream &out;

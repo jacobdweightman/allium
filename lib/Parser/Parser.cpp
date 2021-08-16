@@ -381,8 +381,8 @@ Optional<Predicate> Parser::parsePredicate() {
             return rewindAndReturn();
         }
     } else {
-        Token val = lexer.take_next();
-        emitSyntaxError("Unexpected token \"" + val.text + "\" between predicate name and \"{\".");
+        Token unexpectedToken = lexer.take_next();
+        emitSyntaxError("Unexpected token \"" + unexpectedToken.text + "\" between predicate name and \"{\".", unexpectedToken);
         return rewindAndReturn();
     }
 }
@@ -519,8 +519,8 @@ Optional<Type> Parser::parseType() {
             return rewindAndReturn();
         }
     } else {
-        Token val = lexer.take_next();
-        emitSyntaxError("Unexpected token \"" + val.text + "\" between type name and \"{\".");
+        Token unexpectedToken = lexer.take_next();
+        emitSyntaxError("Unexpected token \"" + unexpectedToken.text + "\" between type name and \"{\".", unexpectedToken);
         return rewindAndReturn();
     }
 }
@@ -660,7 +660,8 @@ Optional<AST> Parser::parseAST() {
         } else {
             Token unexpectedToken = lexer.take_next();
             if(!(unexpectedToken.type == Token::Type::end_of_file)) {
-                emitSyntaxError("Unexpected token \"" + unexpectedToken.text + "\".");
+                emitSyntaxError("Unexpected token \"" + unexpectedToken.text + "\".", unexpectedToken);
+                changed = true;
             }
         }
     } while(changed);
@@ -674,6 +675,12 @@ Optional<AST> Parser::parseAST() {
 
 void Parser::emitSyntaxError(std::string message) {
     out << "syntax error " << lexer.peek_next().location <<
+        " - " << message << "\n";
+    foundSyntaxError = true;
+}
+
+void Parser::emitSyntaxError(std::string message, Token errorToken) {
+    out << "syntax error " << errorToken.location <<
         " - " << message << "\n";
     foundSyntaxError = true;
 }
