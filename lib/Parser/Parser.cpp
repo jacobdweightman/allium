@@ -382,7 +382,7 @@ Optional<Predicate> Parser::parsePredicate() {
         }
     } else {
         Token val = lexer.take_next();
-        emitSyntaxError("Unexpected token \"" + val.text + "\" between predicate name and \"{\"");
+        emitSyntaxError("Unexpected token \"" + val.text + "\" between predicate name and \"{\".");
         return rewindAndReturn();
     }
 }
@@ -520,7 +520,7 @@ Optional<Type> Parser::parseType() {
         }
     } else {
         Token val = lexer.take_next();
-        emitSyntaxError("Unexpected token \"" + val.text + "\" between type name and \"{\"");
+        emitSyntaxError("Unexpected token \"" + val.text + "\" between type name and \"{\".");
         return rewindAndReturn();
     }
 }
@@ -651,16 +651,17 @@ Optional<AST> Parser::parseAST() {
         if(parsePredicate().unwrapInto(p)) {
             predicates.push_back(p);
             changed = true;
-        }
-
-        if(parseType().unwrapInto(t)) {
+        } else if(parseType().unwrapInto(t)) {
             types.push_back(t);
             changed = true;
-        }
-
-        if(parseEffect().unwrapInto(e)) {
+        } else if(parseEffect().unwrapInto(e)) {
             effects.push_back(e);
             changed = true;
+        } else {
+            Token unexpectedToken = lexer.take_next();
+            if(!(unexpectedToken.type == Token::Type::end_of_file)) {
+                emitSyntaxError("Unexpected token \"" + unexpectedToken.text + "\".");
+            }
         }
     } while(changed);
 
