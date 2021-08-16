@@ -32,7 +32,6 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
     };
 
     if(identifier.type != Token::Type::identifier) {
-        emitSyntaxError("Expected predicate name in predicate definition.");
         return rewindAndReturn();
     }
 
@@ -48,7 +47,7 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
                 parameters.push_back(param);
             } else {
                 if (parameters.size() == 0) {
-                    emitSyntaxError("Parentheses must not appear after predicate name for predicates with zero arguments.");
+                    emitSyntaxError("Empty parentheses should not be included for predicates with no arguments.");
                 } else {
                     emitSyntaxError("Expected an additional argument after \",\" in parameter list.");
                 }
@@ -365,6 +364,7 @@ Optional<Predicate> Parser::parsePredicate() {
     }
 
     if(parsePredicateDecl().unwrapGuard(decl)) {
+
         return rewindAndReturn();
     }
 
@@ -381,6 +381,8 @@ Optional<Predicate> Parser::parsePredicate() {
             return rewindAndReturn();
         }
     } else {
+        Token val = lexer.take_next();
+        emitSyntaxError("Unexpected token \"" + val.text + "\" between predicate name and \"{\"");
         return rewindAndReturn();
     }
 }
@@ -517,6 +519,8 @@ Optional<Type> Parser::parseType() {
             return rewindAndReturn();
         }
     } else {
+        Token val = lexer.take_next();
+        emitSyntaxError("Unexpected token \"" + val.text + "\" between type name and \"{\"");
         return rewindAndReturn();
     }
 }
