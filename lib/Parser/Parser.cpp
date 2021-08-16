@@ -661,7 +661,6 @@ Optional<AST> Parser::parseAST() {
             Token unexpectedToken = lexer.take_next();
             if(!(unexpectedToken.type == Token::Type::end_of_file)) {
                 emitSyntaxError("Unexpected token \"" + unexpectedToken.text + "\".", unexpectedToken);
-                changed = true;
             }
         }
     } while(changed);
