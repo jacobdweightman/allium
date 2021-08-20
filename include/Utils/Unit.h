@@ -1,3 +1,5 @@
+#ifndef UNIT_H
+#define UNIT_H
 
 /// Represents a type with one possible value.
 ///
@@ -9,3 +11,5 @@ struct Unit {
     /// This type has one possible value, which is trivially equal to itself.
     bool operator==(const Unit right) const { return true; }
 };
+
+#endif // UNIT_H
