@@ -635,26 +635,24 @@ Optional<AST> Parser::parseAST() {
     Effect e;
 
     try {
-        bool changed;
+        bool reached_eof = false;
 
         do {
-            changed = false;
             if(parsePredicate().unwrapInto(p)) {
                 predicates.push_back(p);
-                changed = true;
             } else if(parseType().unwrapInto(t)) {
                 types.push_back(t);
-                changed = true;
             } else if(parseEffect().unwrapInto(e)) {
                 effects.push_back(e);
-                changed = true;
             } else {
                 Token unexpectedToken = lexer.peek_next();
-                if(!(unexpectedToken.type == Token::Type::end_of_file)) {
+                if(unexpectedToken.type == Token::Type::end_of_file) {
+                    reached_eof = true;
+                } else {
                     throw(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\"."));
                 }
             }
-        } while(changed);
+        } while(!reached_eof);
 
         return AST(types, effects, predicates);
     } catch (SyntaxError& se) {
