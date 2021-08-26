@@ -381,7 +381,7 @@ Optional<Predicate> Parser::parsePredicate() {
             throw(SyntaxError("Expected \"}\" at the end of a predicate definition."));
         }
     } else {
-        Token unexpectedToken = lexer.take_next();
+        Token unexpectedToken = lexer.peek_next();
         throw(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\" between predicate name and \"{\"."));
     }
 }
@@ -513,7 +513,7 @@ Optional<Type> Parser::parseType() {
             throw(SyntaxError("Closing \"}\" is missing from type definition."));
         }
     } else {
-        Token unexpectedToken = lexer.take_next();
+        Token unexpectedToken = lexer.peek_next();
         throw(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\" between type name and \"{\"."));
     }
 }
