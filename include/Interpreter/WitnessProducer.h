@@ -1,3 +1,6 @@
+#ifndef INTERPRETER_WITNESS_PRODUCER_H
+#define INTERPRETER_WITNESS_PRODUCER_H
+
 #include "Interpreter/Program.h"
 #include "Utils/Generator.h"
 #include "Utils/Unit.h"
@@ -72,3 +75,5 @@ Generator<Unit> witnesses(
 );
 
 } // namespace interpreter
+
+#endif // INTERPRETER_WITNESS_PRODUCER_H

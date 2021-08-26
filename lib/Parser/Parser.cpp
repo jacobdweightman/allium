@@ -45,6 +45,7 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
     };
 
     if(identifier.type != Token::Type::identifier) {
+        emitSyntaxError("Expected predicate name in predicate definition.");
         return rewindAndReturn();
     }
 
@@ -60,7 +61,7 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
                 parameters.push_back(param);
             } else {
                 if (parameters.size() == 0) {
-                    throw(SyntaxError("Empty parentheses should not be included for predicates with no arguments."));
+                    throw(SyntaxError("Parentheses must not appear after predicate name for predicates with zero arguments."));
                 } else {
                     throw(SyntaxError("Expected an additional argument after \",\" in parameter list."));
                 }
@@ -365,7 +366,6 @@ Optional<Predicate> Parser::parsePredicate() {
     }
 
     if(parsePredicateDecl().unwrapGuard(decl)) {
-
         return rewindAndReturn();
     }
 

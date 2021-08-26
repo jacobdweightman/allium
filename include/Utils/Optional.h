@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <utility>
+#include <tuple>
 
 /// Represents a value which may or may not have a value, and may be accessed
 /// in a type-safe way.
@@ -177,19 +178,41 @@ public:
         return !wrapped.has_value();
     }
 
-    // TODO: this function should only be defined if T implements <<.
-    friend std::ostream& operator<<(std::ostream& out, const Optional<T> o) {
-        if(o.wrapped.has_value()) {
-            return out << "some(" << o.wrapped.value() << ")";
-        } else {
-            return out << "none";
-        }
-    }
 private:
     std::optional<T> wrapped;
 };
 
+/// This type trait checks that there is an overload of operator<< which is
+/// compatible with an ostream& and T. This will be replaced when C++20
+/// concepts are more widely supported.
+template <typename T>
+struct is_printable {
+    template <typename U>
+    static constexpr decltype(operator<<(std::declval<std::ostream&>(), std::declval<U>()), true)
+    find_print(int) {
+        return true;
+    }
+
+    template <typename U>
+    static constexpr bool find_print(...) {
+        return false;
+    }
+
+    static constexpr bool value = find_print<T>(0);
+};
+
+template <typename T>
+typename std::enable_if<is_printable<T>::value, std::ostream&>::type
+operator<<(std::ostream& out, const Optional<T> o) {
+    return o.template switchOver<std::ostream&>(
+    [&](T t) -> std::ostream& { return out << "some(" << t << ")"; },
+    [&]() -> std::ostream& { return out << "none"; }
+    );
+}
+
 /// Returns the pair of the values from two Optionals iff both have values.
+///
+/// This is a special case of `all`.
 template <typename T, typename U>
 Optional<std::pair<T, U>> both(const Optional<T> &t, const Optional<U> &u) {
     return t.template flatMap<std::pair<T, U>>([&](T tt) {
@@ -197,6 +220,30 @@ Optional<std::pair<T, U>> both(const Optional<T> &t, const Optional<U> &u) {
             return std::make_pair(tt, uu);
         });
     });
+}
+
+/// This helper is an implementation detail of `all`.
+///
+/// Do not use it in any other context.
+template <typename T>
+struct opt_pack {
+    typedef Optional<T> type;
+};
+
+/// Returns a tuple of the values of all of the given optionals iff they all
+/// have values.
+template <typename T, typename ...Ts>
+Optional<std::tuple<T, Ts...>> all(const Optional<T> &t, typename opt_pack<Ts>::type... ts) {
+    return t.template flatMap<std::tuple<T, Ts...>>([&](T ut) {
+        return all<Ts...>(ts...).template map<std::tuple<T, Ts...>>([&](auto uts) {
+            return std::tuple_cat(std::make_tuple(ut), uts);
+        });
+    });
+}
+
+template <typename T>
+Optional<std::tuple<T>> all(const Optional<T> &t) {
+    return t.template map<std::tuple<T>>(std::make_tuple<T>);
 }
 
 #endif // OPTIONAL_H

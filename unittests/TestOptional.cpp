@@ -163,3 +163,36 @@ TEST(TestOptional, unwrapGuard) {
 
     EXPECT_TRUE(Optional<int>().unwrapGuard(x));
 }
+
+TEST(TestOptional, all_with_all_values) {
+    auto result = all<int,int,int>(
+        Optional<int>(2),
+        Optional<int>(5),
+        Optional<int>(14));
+
+    EXPECT_EQ(
+        result,
+        std::make_tuple(2, 5, 14)
+    );
+}
+
+TEST(TestOptional, all_with_missing_values) {
+    using Result = Optional<std::tuple<int,int,int>>;
+
+    // Since EXPECT_EQ is a macro, it doesn't like templates with multiple
+    // template parameters to occur inside of it.
+    Result x = all<int,int,int>(Optional<int>(), Optional<int>(5), Optional<int>(14));
+    EXPECT_EQ(x, Result());
+    x = all<int,int,int>(Optional<int>(2), Optional<int>(), Optional<int>(14));
+    EXPECT_EQ(x, Result());
+    x = all<int,int,int>(Optional<int>(2), Optional<int>(5), Optional<int>());
+    EXPECT_EQ(x, Result());
+    x = all<int,int,int>(Optional<int>(), Optional<int>(), Optional<int>(14));
+    EXPECT_EQ(x, Result());
+    x = all<int,int,int>(Optional<int>(2), Optional<int>(), Optional<int>());
+    EXPECT_EQ(x, Result());
+    x = all<int,int,int>(Optional<int>(), Optional<int>(5), Optional<int>());
+    EXPECT_EQ(x, Result());
+    x = all<int,int,int>(Optional<int>(), Optional<int>(), Optional<int>());
+    EXPECT_EQ(x, Result());
+}

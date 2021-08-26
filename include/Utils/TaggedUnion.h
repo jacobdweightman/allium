@@ -21,8 +21,6 @@ struct matcher {
     typedef std::function<U(T)> type;
 };
 
-template<class T> struct dependent_false : std::false_type {};
-
 template <typename ... Ts>
 class TaggedUnion {
     std::variant<Ts...> wrapped;
