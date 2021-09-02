@@ -1,3 +1,6 @@
+#ifndef UTILS_VECTOR_UTILS_H
+#define UTILS_VECTOR_UTILS_H
+
 #include <functional>
 #include <vector>
 
@@ -46,3 +49,5 @@ template <typename T>
 void operator+=(std::vector<T> &a, std::vector<T> &&b) {
     a.insert(a.end(), b.begin(), b.end());
 }
+
+#endif // UTILS_VECTOR_UTILS_H

@@ -64,6 +64,28 @@ target_link_libraries(AlliumInterpreter PUBLIC AlliumSemAna)
 GENERATE_EXPORT_HEADER(AlliumInterpreter)
 
 #############################
+# LSP Server
+#############################
+
+add_library(AlliumLS SHARED
+  lib/LSPServer/JSON.cpp
+  lib/LSPServer/LSPServer.cpp
+  lib/LSPServer/LSPTypes.cpp)
+
+target_include_directories(AlliumLS PUBLIC include)
+
+add_executable(allium-lsp
+  lib/LSPServer/main.cpp)
+
+target_include_directories(allium-lsp PUBLIC include)
+target_link_libraries(allium-lsp PUBLIC AlliumParse)
+target_link_libraries(allium-lsp PUBLIC AlliumSemAna)
+target_link_libraries(allium-lsp PUBLIC AlliumLS)
+
+add_test(NAME language-server-functional-tests
+  COMMAND python ${CMAKE_SOURCE_DIR}/tests/languageserver.py $<TARGET_FILE:allium-lsp>)
+
+#############################
 # unit tests
 #############################
 
@@ -72,6 +94,7 @@ add_executable(unittests
   unittests/TestASTRaise.cpp
   unittests/TestGenerator.cpp
   unittests/TestInterpreter.cpp
+  unittests/TestLanguageServerDecoding.cpp
   unittests/TestOptional.cpp
   unittests/TestParse.cpp
   unittests/TestSema.cpp
@@ -86,6 +109,7 @@ target_link_libraries(unittests gmock)
 target_link_libraries(unittests AlliumParse)
 target_link_libraries(unittests AlliumSemAna)
 target_link_libraries(unittests AlliumInterpreter)
+target_link_libraries(unittests AlliumLS)
 
 #############################
 # functional tests
