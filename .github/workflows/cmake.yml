@@ -46,7 +46,7 @@ jobs:
     - name: Build Tests
       working-directory: ${{github.workspace}}/build
       shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target unittests
+      run: cmake --build . --config $BUILD_TYPE --target unittests allium-ls-unittests
 
     - name: Test
       working-directory: ${{github.workspace}}/build

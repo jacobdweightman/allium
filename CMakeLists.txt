@@ -17,7 +17,10 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   add_compile_options("-fcoroutines")
 endif()
 
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
 add_subdirectory(allium)
+add_subdirectory(allium-ls)
 
 #############################
 # googletest

@@ -1,8 +1,7 @@
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-
 add_executable(allium lib/driver.cpp)
 
-target_include_directories(allium PUBLIC include)
+include_directories(include)
+
 target_link_libraries(allium PUBLIC AlliumParse)
 target_link_libraries(allium PUBLIC AlliumSemAna)
 target_link_libraries(allium PUBLIC AlliumInterpreter)
@@ -19,7 +18,6 @@ add_library(AlliumParse SHARED
   lib/Parser/Lexer.cpp
   lib/Parser/Parser.cpp)
 
-include_directories(include)
 GENERATE_EXPORT_HEADER(AlliumParse)
 
 
@@ -33,6 +31,7 @@ add_library(AlliumSemAna SHARED
 
 target_link_libraries(AlliumSemAna PUBLIC AlliumParse)
 GENERATE_EXPORT_HEADER(AlliumSemAna)
+
 
 add_library(AlliumInterpreter SHARED
   lib/Interpreter/ASTLower.cpp
@@ -70,10 +69,5 @@ target_link_libraries(unittests AlliumInterpreter)
 # functional tests
 #############################
 
-#add_custom_target(functionaltests
-#  COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/tests/runner.py $<TARGET_FILE:allium>)
 add_test(NAME functionaltests
   COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/tests/runner.py $<TARGET_FILE:allium>)
-
-# set_target_properties(functionaltests PROPERTIES
-#   EXCLUDE_FROM_ALL TRUE)
