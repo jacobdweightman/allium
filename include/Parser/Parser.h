@@ -10,6 +10,18 @@
 
 namespace parser {
 
+/// Custom error class representing any syntax errors encountered during parsing.
+/// The parser terminates and returns an empty AST on the first syntax error it encounters.
+class SyntaxError {
+public:
+   SyntaxError(const std::string& msg) : msg_(msg) {}
+  ~SyntaxError() {}
+
+   std::string getMessage() const {return(msg_);};
+private:
+   std::string msg_;
+};
+
 class Parser {
 public:
     Parser(std::istream &f, std::ostream &out = std::cout):

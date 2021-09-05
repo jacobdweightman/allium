@@ -8,7 +8,7 @@ using namespace parser;
 TEST(TestParser, parse_true_as_truth_literal) {
     std::istringstream f("true");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parseTruthLiteral(),
         TruthLiteral(true, SourceLocation(1, 0))
@@ -18,7 +18,7 @@ TEST(TestParser, parse_true_as_truth_literal) {
 TEST(TestParser, parse_false_as_truth_literal) {
     std::istringstream f("false");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parseTruthLiteral(),
         TruthLiteral(false, SourceLocation(1, 0))
@@ -28,7 +28,7 @@ TEST(TestParser, parse_false_as_truth_literal) {
 TEST(TestParser, lexer_ignores_comments) {
     std::istringstream f("// comment\ntrue");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parseTruthLiteral(),
         TruthLiteral(true, SourceLocation(2, 0))
@@ -38,7 +38,7 @@ TEST(TestParser, lexer_ignores_comments) {
 TEST(TestParser, lexer_ignores_consecutive_comments) {
     std::istringstream f("// comment 1\n// comment 2\ntrue");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parseTruthLiteral(),
         TruthLiteral(true, SourceLocation(3, 0))
@@ -48,7 +48,7 @@ TEST(TestParser, lexer_ignores_consecutive_comments) {
 TEST(TestParser, lexer_ignores_consecutive_comments_with_leading_whitespace) {
     std::istringstream f("  // comment 1\n  // comment 2\ntrue");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parseTruthLiteral(),
         TruthLiteral(true, SourceLocation(3, 0))
@@ -58,7 +58,7 @@ TEST(TestParser, lexer_ignores_consecutive_comments_with_leading_whitespace) {
 TEST(TestParser, parse_invalid_truth_literal) {
     std::istringstream f("tralse");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parseTruthLiteral(),
         Optional<TruthLiteral>()
@@ -68,7 +68,7 @@ TEST(TestParser, parse_invalid_truth_literal) {
 TEST(TestParser, parse_simple_predicate_name) {
     std::istringstream f("open");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parsePredicateRef(),
         PredicateRef("open", SourceLocation(1, 0))
@@ -78,7 +78,7 @@ TEST(TestParser, parse_simple_predicate_name) {
 TEST(TestParser, parse_snake_case_predicate_name) {
     std::istringstream f("is_open");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parsePredicateRef(),
         PredicateRef("is_open", SourceLocation(1, 0))
@@ -88,7 +88,7 @@ TEST(TestParser, parse_snake_case_predicate_name) {
 TEST(TestParser, parse_predicate_name_does_not_match_whitespace) {
     std::istringstream f("open closed");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parsePredicateRef(),
         PredicateRef("open", SourceLocation(1, 0))
@@ -98,7 +98,7 @@ TEST(TestParser, parse_predicate_name_does_not_match_whitespace) {
 TEST(TestParser, parse_predicate_ignores_semicolon) {
     std::istringstream f("open;");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parsePredicateRef(),
         PredicateRef("open", SourceLocation(1, 0))
@@ -167,7 +167,7 @@ TEST(TestParser, lex_peek_beginning) {
 TEST(TestParser, parse_truth_literal_as_expression) {
     std::istringstream f("false;");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parseExpression(),
         Expression(TruthLiteral(false, SourceLocation(1, 0)))
@@ -449,9 +449,9 @@ TEST(TestParser, constructor_parameter_cannot_be_marked_input_only) {
     std::istringstream f("ctor sundae(in IceCream, Sauce);");
     Parser p(f);
 
-    EXPECT_EQ(
+    EXPECT_THROW(
         p.parseConstructor(),
-        Optional<Constructor>()
+        SyntaxError
     );
 }
 
