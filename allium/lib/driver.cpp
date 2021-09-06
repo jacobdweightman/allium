@@ -81,6 +81,11 @@ int main(int argc, char *argv[]) {
     std::ifstream file(arguments.filePaths.front());
     ErrorEmitter errorEmitter(std::cout);
 
+    if (!file.is_open()) {
+        std::cout << "Unable to read the specified input file (" << arguments.filePaths.front() << ")\n";
+        exit(1);
+    }
+
     parser::Parser(file).parseAST().then([&](const parser::AST &ast) {
         if(arguments.printAST == Arguments::PrintASTMode::SYNTACTIC) {
             parser::ASTPrinter(std::cout).visit(ast);
