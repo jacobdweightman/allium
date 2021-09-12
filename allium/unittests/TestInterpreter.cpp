@@ -291,6 +291,32 @@ TEST_F(TestMatching, matching_unbound_existentially_and_universally_quantified_v
         )
     );
 
+    EXPECT_EQ(existentialVariables[0], Value(&universalVariables[0]));
+    EXPECT_EQ(universalVariables[0], Value(VariableRef(0, true, true)));
+}
+
+TEST_F(TestMatching, variables_are_properly_bound_after_binding_to_each_other) {
+    // If two unbound variables are unified, they can subsequently be bound to
+    // a value.
+    std::vector<Value> universalVariables(1), existentialVariables(1);
+
+    match(
+        VariableRef(0, true, true),
+        VariableRef(0, true, false),
+        existentialVariables,
+        universalVariables
+    );
+
+    EXPECT_TRUE(
+        match(
+            VariableRef(0, false, false),
+            ConstructorRef(1, {}),
+            existentialVariables,
+            universalVariables
+        )
+    );
+
+    EXPECT_EQ(existentialVariables[0], ConstructorRef(1, {}));
     EXPECT_EQ(universalVariables[0], Value(VariableRef(0, true, true)));
 }
 

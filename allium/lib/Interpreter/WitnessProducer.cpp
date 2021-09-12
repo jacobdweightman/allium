@@ -241,7 +241,17 @@ static bool match(
             universalVariables[vr.index] = Value(t);
             return true;
         } else {
-            return universalVariables[vr.index] == Value(t);
+            auto v = universalVariables[vr.index];
+            VariableRef tmp;
+            if(v.as_a<VariableRef>().unwrapInto(tmp)) {
+                if(tmp.isExistential) {
+                    return match(existentialVariables[tmp.index], Value(t), existentialVariables, universalVariables);
+                } else {
+                    return match(universalVariables[tmp.index], Value(t), existentialVariables, universalVariables);
+                }
+            } else {
+                return v == Value(t);
+            }
         }
     }
 }

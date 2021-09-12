@@ -1,0 +1,14 @@
+type StrList {
+    ctor Nil;
+    ctor Cons(String, StrList);
+}
+
+pred in(String, StrList) {
+    in(let str, Cons(str, _)) <- true;
+    in(let str, Cons(_, let tail)) <- in(str, tail);
+}
+
+pred main: IO {
+    main <- in(let x, Cons("a", Cons("b", Cons("c", Nil)))),
+        do print(x);
+}
