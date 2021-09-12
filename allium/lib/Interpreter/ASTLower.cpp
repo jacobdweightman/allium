@@ -2,6 +2,7 @@
 #include <limits>
 
 #include "Interpreter/ASTLower.h"
+#include "SemAna/InhabitableAnalysis.h"
 #include "SemAna/TypedAST.h"
 #include "SemAna/VariableAnalysis.h"
 #include "Utils/VectorUtils.h"
@@ -15,7 +16,9 @@ class ASTLowerer {
     Optional<Implication> enclosingImplication;
 
 public:
-    ASTLowerer(const AST &ast): ast(ast) {}
+    ASTLowerer(
+        const AST &ast
+    ): ast(ast), inhabitableTypes(getInhabitableTypes(ast.types)) {}
 
     interpreter::VariableRef visit(const AnonymousVariable &av) {
         bool isTypeInhabited = ast.resolveTypeRef(av.type).constructors.size() > 0;
@@ -28,7 +31,7 @@ public:
             assert(false && "implication not set!");
         }
         size_t index = getVariableIndex(*impl, v);
-        bool isTypeInhabited = ast.resolveTypeRef(v.type).constructors.size() > 0;
+        bool isTypeInhabited = inhabitableTypes.contains(v.type);
         return interpreter::VariableRef(
             index,
             v.isDefinition,
@@ -208,6 +211,7 @@ private:
     }
 
     const AST &ast;
+    const std::set<Name<Type>> inhabitableTypes;
 };
 
 // TODO: new assert for TypedAST

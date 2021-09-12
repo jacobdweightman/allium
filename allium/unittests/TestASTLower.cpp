@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "Interpreter/ASTLower.h"
+#include "SemAna/Builtins.h"
 
 using namespace TypedAST;
 
@@ -43,6 +44,30 @@ TEST(TestASTLower, variables_of_uninhabited_types_are_marked) {
             Optional<interpreter::PredicateReference>()
         )
     );
+}
+
+TEST(TestASTLower, string_is_not_uninhabited) {
+    AST ast(
+        TypedAST::builtinTypes,
+        {},
+        {
+            Predicate(
+                PredicateDecl("p", { Parameter("String", false) }, {}),
+                {
+                    Implication(
+                        PredicateRef("p", {
+                            Value(Variable("x", Name<Type>("String"), true, false))
+                        }),
+                        Expression(TruthLiteral(true))
+                    )
+                },
+                {}
+            )
+        }
+    );
+
+    interpreter::Value v = lower(ast).getPredicate(0).implications[0].head.arguments[0];
+    EXPECT_EQ(v, interpreter::Value(interpreter::VariableRef(0, true, false, true)));
 }
 
 TEST(TestASTLower, existential_variables_are_uniquely_indexed) {
