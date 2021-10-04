@@ -22,10 +22,10 @@ public:
             //     c(s(let x)) <- c(x);
             // }
             Predicate({
-                Implication(PredicateReference(2, { ConstructorRef(0, {}) }), TruthValue(true), 0),
+                Implication(PredicateReference(2, { MatcherValue(MatcherCtorRef(0, {})) }), TruthValue(true), 0),
                 Implication(
-                    PredicateReference(2, { ConstructorRef(1, { Value(VariableRef(0, true, false)) }) }),
-                    Expression(PredicateReference(2, { Value(VariableRef(0, false, false)) })),
+                    PredicateReference(2, { MatcherValue(MatcherCtorRef(1, { MatcherValue(MatcherVariable(0)) })) }),
+                    Expression(PredicateReference(2, { MatcherValue(MatcherVariable(0)) })),
                     1
                 )
             }),
@@ -34,7 +34,7 @@ public:
             // }
             Predicate({
                 Implication(
-                    PredicateReference(3, { ConstructorRef(1, { ConstructorRef(0, {}) }) }),
+                    PredicateReference(3, { MatcherValue(MatcherCtorRef(1, { MatcherValue(MatcherCtorRef(0, {})) })) }),
                     TruthValue(true),
                     0
                 )
@@ -45,7 +45,7 @@ public:
             Predicate({
                 Implication(
                     PredicateReference(4, {}),
-                    Expression(PredicateReference(2, { Value(VariableRef(0, true, true)) })),
+                    Expression(PredicateReference(2, { MatcherValue(MatcherVariable(0)) })),
                     1
                 )
             })
@@ -65,19 +65,19 @@ TEST_F(TestInterpreter, prove_predicate) {
 }
 
 TEST_F(TestInterpreter, prove_predicate_with_arguments) {
-    EXPECT_TRUE(program.prove(Expression(PredicateReference(2, { ConstructorRef(0, {}) }))));
+    EXPECT_TRUE(program.prove(Expression(PredicateReference(2, { MatcherValue(MatcherCtorRef(0, {})) }))));
     EXPECT_TRUE(program.prove(Expression(PredicateReference(2,
-        { ConstructorRef(1, { ConstructorRef(0, {}) }) }
+        { MatcherValue(MatcherCtorRef(1, { MatcherValue(MatcherCtorRef(0, {})) })) }
     ))));
     EXPECT_TRUE(program.prove(Expression(PredicateReference(2,
-        { ConstructorRef(1, { ConstructorRef(1, { ConstructorRef(0, {}) }) }) }
+        { MatcherValue(MatcherCtorRef(1, { MatcherValue(MatcherCtorRef(1, { MatcherValue(MatcherCtorRef(0, {})) })) })) }
     ))));
 }
 
 TEST_F(TestInterpreter, cannot_prove_predicate_with_nonmatching_implication) {
     EXPECT_FALSE(
         program.prove(
-            Expression(PredicateReference(3, { ConstructorRef(0, {}) }))
+            Expression(PredicateReference(3, { MatcherValue(MatcherCtorRef(0, {})) }))
         )
     );
 }
@@ -121,25 +121,25 @@ public:
 
     // p(zero) <- true;
     Implication impl = Implication(
-        PredicateReference(0, { ConstructorRef(0, {}) }),
+        PredicateReference(0, { MatcherValue(MatcherCtorRef(0, {})) }),
         Expression(TruthValue(true)),
         0
     );
     // p(s(let x)) <- p(x);
     Implication impl2 = Implication(
-        PredicateReference(0, { ConstructorRef(1, { Value(VariableRef(0, true, false)) }) }),
-        Expression(PredicateReference(0, { Value(VariableRef(0, false, false)) })),
+        PredicateReference(0, { MatcherValue(MatcherCtorRef(1, { MatcherValue(MatcherVariable(0)) })) }),
+        Expression(PredicateReference(0, { MatcherValue(MatcherVariable(0)) })),
         1
     );
 };
 
 TEST_F(TestMatching, match_base_constructor) {
-    std::vector<Value> existentialVariables, universalVariables;
+    Context existentialVariables, universalVariables;
 
     EXPECT_TRUE(
         match(
-            ConstructorRef(0, {}),
-            ConstructorRef(0, {}),
+            MatcherCtorRef(0, {}),
+            MatcherCtorRef(0, {}),
             existentialVariables,
             universalVariables
         )
@@ -147,8 +147,8 @@ TEST_F(TestMatching, match_base_constructor) {
 
     EXPECT_FALSE(
         match(
-            ConstructorRef(0, {}),
-            ConstructorRef(1, {}),
+            MatcherCtorRef(0, {}),
+            MatcherCtorRef(1, {}),
             existentialVariables,
             universalVariables
         )
@@ -156,12 +156,12 @@ TEST_F(TestMatching, match_base_constructor) {
 }
 
 TEST_F(TestMatching, match_constructor_with_parameter) {
-    std::vector<Value> existentialVariables, universalVariables;
+    Context existentialVariables, universalVariables;
 
     EXPECT_TRUE(
         match(
-            ConstructorRef(1, { ConstructorRef(0, {}) }),
-            ConstructorRef(1, { ConstructorRef(0, {}) }),
+            MatcherCtorRef(1, { MatcherValue(MatcherCtorRef(0, {})) }),
+            MatcherCtorRef(1, { MatcherValue(MatcherCtorRef(0, {})) }),
             existentialVariables,
             universalVariables
         )
@@ -169,8 +169,8 @@ TEST_F(TestMatching, match_constructor_with_parameter) {
 
     EXPECT_FALSE(
         match(
-            ConstructorRef(0, { ConstructorRef(0, {}) }),
-            ConstructorRef(0, { ConstructorRef(1, {}) }),
+            MatcherCtorRef(0, { MatcherValue(MatcherCtorRef(0, {})) }),
+            MatcherCtorRef(0, { MatcherValue(MatcherCtorRef(1, {})) }),
             existentialVariables,
             universalVariables
         )
@@ -178,12 +178,12 @@ TEST_F(TestMatching, match_constructor_with_parameter) {
 }
 
 TEST_F(TestMatching, match_constructor_with_multiple_parameters) {
-    std::vector<Value> existentialVariables, universalVariables;
+    Context existentialVariables, universalVariables;
 
     EXPECT_TRUE(
         match(
-            ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(1, {}) }),
-            ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(1, {}) }),
+            MatcherCtorRef(0, { MatcherValue(MatcherCtorRef(0, {})), MatcherValue(MatcherCtorRef(1, {})) }),
+            MatcherCtorRef(0, { MatcherValue(MatcherCtorRef(0, {})), MatcherValue(MatcherCtorRef(1, {})) }),
             existentialVariables,
             universalVariables
         )
@@ -191,210 +191,160 @@ TEST_F(TestMatching, match_constructor_with_multiple_parameters) {
 
     EXPECT_FALSE(
         match(
-            ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(1, {}) }),
-            ConstructorRef(0, { ConstructorRef(0, {}), ConstructorRef(0, {}) }),
+            MatcherCtorRef(0, { MatcherValue(MatcherCtorRef(0, {})), MatcherValue(MatcherCtorRef(1, {})) }),
+            MatcherCtorRef(0, { MatcherValue(MatcherCtorRef(0, {})), MatcherValue(MatcherCtorRef(0, {})) }),
             existentialVariables,
             universalVariables
         )
     );
 }
 
-TEST_F(TestMatching, matching_universally_quantified_variable_definition_sets_its_value) {
-    std::vector<Value> existentialVariables, universalVariables;
-    universalVariables.resize(1);
+TEST_F(TestMatching, matching_undefined_local_variable_sets_its_value) {
+    Context parentContext, localContext;
+    localContext.resize(1);
 
     EXPECT_TRUE(
         match(
-            VariableRef(0, true, false),
-            ConstructorRef(1, {}),
-            existentialVariables,
-            universalVariables
+            MatcherCtorRef(1, {}),
+            MatcherVariable(0),
+            parentContext,
+            localContext
         )
     );
 
-    EXPECT_EQ(universalVariables[0], ConstructorRef(1, {}));
+    EXPECT_EQ(localContext[0], RuntimeValue(RuntimeCtorRef(1, {})));
 }
 
-TEST_F(TestMatching, matching_existentially_quantified_variable_definition_sets_its_value) {
-    std::vector<Value> existentialVariables, universalVariables;
-    existentialVariables.resize(1);
+TEST_F(TestMatching, matching_nonlocal_variable_definition_sets_its_value) {
+    Context parentContext, localContext;
+    parentContext.resize(1);
 
     EXPECT_TRUE(
         match(
-            VariableRef(0, true, true),
-            ConstructorRef(1, {}),
-            existentialVariables,
-            universalVariables
+            MatcherVariable(0),
+            MatcherCtorRef(1, {}),
+            parentContext,
+            localContext
         )
     );
 
-    EXPECT_EQ(existentialVariables[0], ConstructorRef(1, {}));
+    EXPECT_EQ(parentContext[0], RuntimeValue(RuntimeCtorRef(1, {})));
 }
 
-TEST_F(TestMatching, matching_universally_quantified_variable_use_matches_its_value) {
-    std::vector<Value> existentialVariables, universalVariables = {
-        ConstructorRef(1, {})
+TEST_F(TestMatching, matching_defined_local_variable_matches_its_value) {
+    Context parentContext, localContext = {
+        RuntimeValue(RuntimeCtorRef(1, {}))
     };
 
     EXPECT_TRUE(
         match(
-            VariableRef(0, false, false),
-            ConstructorRef(1, {}),
-            existentialVariables,
-            universalVariables
+            MatcherCtorRef(1, {}),
+            MatcherVariable(0),
+            parentContext,
+            localContext
         )
     );
 
     EXPECT_FALSE(
         match(
-            VariableRef(0, false, false),
-            ConstructorRef(2, {}),
-            existentialVariables,
-            universalVariables
+            MatcherCtorRef(2, {}),
+            MatcherVariable(0),
+            parentContext,
+            localContext
         )
     );
 }
 
-TEST_F(TestMatching, matching_existentially_quantified_variable_use_matches_its_value) {
-    std::vector<Value> universalVariables, existentialVariables = {
-        ConstructorRef(1, {})
+TEST_F(TestMatching, matching_defined_nonlocal_variable_matches_its_value) {
+    Context localContext, parentContext = {
+        RuntimeValue(RuntimeCtorRef(1, {}))
     };
 
     EXPECT_TRUE(
         match(
-            VariableRef(0, false, true),
-            ConstructorRef(1, {}),
-            existentialVariables,
-            universalVariables
+            MatcherVariable(0),
+            MatcherCtorRef(1, {}),
+            parentContext,
+            localContext
         )
     );
 
     EXPECT_FALSE(
         match(
-            VariableRef(0, false, true),
-            ConstructorRef(2, {}),
-            existentialVariables,
-            universalVariables
+            MatcherVariable(0),
+            MatcherCtorRef(2, {}),
+            parentContext,
+            localContext
         )
     );
 }
 
-TEST_F(TestMatching, matching_unbound_existentially_and_universally_quantified_variables_sets_latter_to_former) {
-    std::vector<Value> universalVariables(1), existentialVariables(1);
+TEST_F(TestMatching, matching_unbound_nonlocal_and_local_variables_sets_latter_to_former) {
+    Context universalVariables(1), existentialVariables(1);
 
     EXPECT_TRUE(
         match(
-            VariableRef(0, true, true),
-            VariableRef(0, true, false),
+            MatcherVariable(0),
+            MatcherVariable(0),
             existentialVariables,
             universalVariables
         )
     );
 
-    EXPECT_EQ(existentialVariables[0], Value(&universalVariables[0]));
-    EXPECT_EQ(universalVariables[0], Value(VariableRef(0, true, true)));
+    EXPECT_EQ(existentialVariables[0], RuntimeValue(&universalVariables[0]));
 }
 
 TEST_F(TestMatching, variables_are_properly_bound_after_binding_to_each_other) {
     // If two unbound variables are unified, they can subsequently be bound to
     // a value.
-    std::vector<Value> universalVariables(1), existentialVariables(1);
+    Context parentContext(1), localContext(1);
 
     match(
-        VariableRef(0, true, true),
-        VariableRef(0, true, false),
-        existentialVariables,
-        universalVariables
+        MatcherVariable(0),
+        MatcherVariable(0),
+        parentContext,
+        localContext
     );
 
     EXPECT_TRUE(
         match(
-            VariableRef(0, false, false),
-            ConstructorRef(1, {}),
-            existentialVariables,
-            universalVariables
+            MatcherVariable(0),
+            MatcherCtorRef(1, {}),
+            parentContext,
+            localContext
         )
     );
 
-    EXPECT_EQ(existentialVariables[0], ConstructorRef(1, {}));
-    EXPECT_EQ(universalVariables[0], Value(VariableRef(0, true, true)));
+    // Even though parentContext[0] was matched with the constructor, the
+    // interpreter should "look through" the pointer that's already there and
+    // store the constructor in localContext.
+    EXPECT_EQ(parentContext[0], RuntimeValue(&localContext[0]));
+    EXPECT_EQ(localContext[0], RuntimeValue(RuntimeCtorRef(1, {})));
 }
 
-TEST_F(TestMatching, instantiation) {
-    std::vector<Value> variables = {
-        ConstructorRef(5, {})
-    };
+TEST_F(TestMatching, variables_are_properly_bound_after_binding_to_each_other2) {
+    // If two unbound variables are unified, they can subsequently be bound to
+    // a value.
+    Context parentContext(1), localContext(1);
 
-    EXPECT_EQ(
-        instantiate(impl2.body, variables),
-        Expression(PredicateReference(0, { Value(ConstructorRef(5, {})) }))
+    match(
+        MatcherVariable(0),
+        MatcherVariable(0),
+        parentContext,
+        localContext
     );
-}
 
-TEST_F(TestMatching, instantiate_universally_quantified_variable_in_constructor) {
-    std::vector<Value> variables = {
-        ConstructorRef(4, {})
-    };
-
-    EXPECT_EQ(
-        instantiate(
-            Expression(
-                PredicateReference(
-                    0,
-                    { ConstructorRef(1, { Value(VariableRef(0, false, false)) }) }
-                )
-            ),
-            variables
-        ),
-        Expression(
-            PredicateReference(
-                0,
-                { ConstructorRef(1, { ConstructorRef(4, {}) }) }
-            )
+    EXPECT_TRUE(
+        match(
+            MatcherCtorRef(1, {}),
+            MatcherVariable(0),
+            parentContext,
+            localContext
         )
     );
-}
 
-TEST_F(TestMatching, instantiate_ignores_existentially_quantified_variables) {
-    std::vector<Value> variables;
-
-    EXPECT_EQ(
-        instantiate(
-            Expression(
-                PredicateReference(
-                    0,
-                    { Value(VariableRef(1, true, true)) }
-                )
-            ),
-            variables
-        ),
-        Expression(
-            PredicateReference(
-                0,
-                { Value(VariableRef(1, true, true)) }
-            )
-        )
-    );
-}
-
-TEST_F(TestMatching, instantiate_ignores_existentially_quantified_variables_in_constructors) {
-    std::vector<Value> variables = { ConstructorRef(1, {}) };
-
-    EXPECT_EQ(
-        instantiate(
-            Expression(
-                PredicateReference(
-                    0,
-                    { Value(ConstructorRef(0, { Value(VariableRef(0, true, true)) })) }
-                )
-            ),
-            variables
-        ),
-        Expression(
-            PredicateReference(
-                0,
-                { Value(ConstructorRef(0, { Value(VariableRef(0, true, true)) })) }
-            )
-        )
-    );
+    // The result should be the same as the last test, even though the local
+    // variable was bound to the constructor this time.
+    EXPECT_EQ(parentContext[0], RuntimeValue(&localContext[0]));
+    EXPECT_EQ(localContext[0], RuntimeValue(RuntimeCtorRef(1, {})));
 }

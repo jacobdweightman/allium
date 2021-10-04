@@ -23,12 +23,9 @@ TEST(TestASTLower, variables_of_uninhabited_types_are_marked) {
         }
     );
 
-    interpreter::Value anon((interpreter::VariableRef(
-        interpreter::VariableRef::anonymousIndex,
-        false,
-        false,
-        false
-    )));
+    interpreter::MatcherValue anon((interpreter::MatcherVariable(
+        interpreter::MatcherVariable::anonymousIndex, false)
+    ));
     EXPECT_EQ(
         lower(ast),
         interpreter::Program(
@@ -66,8 +63,8 @@ TEST(TestASTLower, string_is_not_uninhabited) {
         }
     );
 
-    interpreter::Value v = lower(ast).getPredicate(0).implications[0].head.arguments[0];
-    EXPECT_EQ(v, interpreter::Value(interpreter::VariableRef(0, true, false, true)));
+    const interpreter::MatcherValue v = lower(ast).getPredicate(0).implications[0].head.arguments[0];
+    EXPECT_EQ(v, interpreter::MatcherValue(interpreter::MatcherVariable(0, true)));
 }
 
 TEST(TestASTLower, existential_variables_are_uniquely_indexed) {
@@ -99,7 +96,9 @@ TEST(TestASTLower, existential_variables_are_uniquely_indexed) {
         }
     );
 
-    interpreter::Value anon((interpreter::VariableRef()));
+    interpreter::MatcherValue anon((interpreter::MatcherVariable(
+        interpreter::MatcherVariable::anonymousIndex
+    )));
     EXPECT_EQ(
         lower(ast),
         interpreter::Program(
@@ -110,8 +109,8 @@ TEST(TestASTLower, existential_variables_are_uniquely_indexed) {
                         interpreter::Expression(interpreter::PredicateReference(
                             0,
                             {
-                                interpreter::Value(interpreter::VariableRef(0, true, true, true)),
-                                interpreter::Value(interpreter::VariableRef(1, true, true, true))
+                                interpreter::MatcherValue(interpreter::MatcherVariable(0, true)),
+                                interpreter::MatcherValue(interpreter::MatcherVariable(1, true))
                             }
                         )),
                         2

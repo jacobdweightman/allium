@@ -8,43 +8,45 @@
 namespace interpreter {
 
 bool match(
-    const PredicateReference &pr,
-    const PredicateReference &matcher,
-    std::vector<Value> &existentialVariables,
-    std::vector<Value> &universalVariables
+    const PredicateReference &goalPred,
+    const PredicateReference &matcherPred,
+    Context &parentContext,
+    Context &localContext
 );
 
 bool match(
-    const VariableRef &vr,
-    const VariableRef &matcher,
-    std::vector<Value> &existentialVariables,
-    std::vector<Value> &universalVariables
+    const MatcherVariable &goalVar,
+    const MatcherVariable &matcherVar,
+    Context &parentContext,
+    Context &localContext
 );
 
 bool match(
-    const VariableRef &vr,
-    const ConstructorRef &cr,
-    std::vector<Value> &existentialVariables,
-    std::vector<Value> &universalVariables
+    const MatcherVariable &goalVar,
+    const MatcherCtorRef &matcherCtor,
+    Context &parentContext,
+    Context &localContext
 );
 
 bool match(
-    const ConstructorRef &cl,
-    const ConstructorRef &cr,
-    std::vector<Value> &existentialVariables,
-    std::vector<Value> &universalVariables
+    const MatcherCtorRef &goalCtor,
+    const MatcherVariable &matcherVar,
+    Context &parentContext,
+    Context &localContext
 );
 
 bool match(
-    const Value &left,
-    const Value &right,
-    std::vector<Value> &existentialVariables,
-    std::vector<Value> &universalVariables
+    const MatcherCtorRef &goalCtor,
+    const MatcherCtorRef &matcherCtor,
+    Context &parentContext,
+    Context &localContext
 );
 
-Expression instantiate(
-    const Expression &expr,
-    const std::vector<Value> &variables
+bool match(
+    const MatcherValue &goalVal,
+    const MatcherValue &matcherVal,
+    Context &parentContext,
+    Context &localContext
 );
 
 /**
@@ -57,7 +59,7 @@ Expression instantiate(
 Generator<Unit> witnesses(
     const Program &prog,
     const Expression expr,
-    std::vector<Value> &variables
+    Context &context
 );
 
 Generator<Unit> witnesses(const TruthValue &tv);
@@ -65,13 +67,13 @@ Generator<Unit> witnesses(const TruthValue &tv);
 Generator<Unit> witnesses(
     const Program &prog,
     const PredicateReference &pr,
-    std::vector<Value> &enclosingVariables
+    Context &context
 );
 
 Generator<Unit> witnesses(
     const Program &prog,
     const Conjunction conj,
-    std::vector<Value> &variables
+    Context &context
 );
 
 } // namespace interpreter

@@ -20,37 +20,35 @@ public:
         const AST &ast
     ): ast(ast), inhabitableTypes(getInhabitableTypes(ast.types)) {}
 
-    interpreter::VariableRef visit(const AnonymousVariable &av) {
+    interpreter::MatcherVariable visit(const AnonymousVariable &av) {
         bool isTypeInhabited = ast.resolveTypeRef(av.type).constructors.size() > 0;
-        return interpreter::VariableRef(isTypeInhabited);
+        return interpreter::MatcherVariable(
+            interpreter::MatcherVariable::anonymousIndex,
+            isTypeInhabited);
     }
 
-    interpreter::VariableRef visit(const Variable &v) {
+    interpreter::MatcherVariable visit(const Variable &v) {
         std::unique_ptr<Implication> impl;
         if(enclosingImplication.unwrapGuard(impl)) {
             assert(false && "implication not set!");
         }
         size_t index = getVariableIndex(*impl, v);
         bool isTypeInhabited = inhabitableTypes.contains(v.type);
-        return interpreter::VariableRef(
-            index,
-            v.isDefinition,
-            v.isExistential,
-            isTypeInhabited);
+        return interpreter::MatcherVariable(index, isTypeInhabited);
     }
 
     /// Note: To support type inference, this requires the additional
     /// context information of the type. 
-    interpreter::ConstructorRef visit(const ConstructorRef &cr, const Name<Type> &tr) {
+    interpreter::MatcherCtorRef visit(const ConstructorRef &cr, const Name<Type> &tr) {
         size_t index = getConstructorIndex(tr, cr);
         const Constructor &ctor = ast.resolveConstructorRef(tr, cr);
 
-        std::vector<interpreter::Value> arguments;
+        std::vector<interpreter::MatcherValue> arguments;
         for(int i=0; i<cr.arguments.size(); ++i) {
             arguments.push_back(visit(cr.arguments[i], ctor.parameters[i].type));
         }
 
-        return interpreter::ConstructorRef(index, arguments);
+        return interpreter::MatcherCtorRef(index, arguments);
     }
 
     interpreter::String visit(const StringLiteral &str) {
@@ -61,13 +59,13 @@ public:
         return interpreter::Int(i.value);
     }
 
-    interpreter::Value visit(const Value &val, const Name<Type> &tr) {
-        return val.match<interpreter::Value>(
-            [&](AnonymousVariable av) { return interpreter::Value(visit(av)); },
-            [&](Variable v) { return interpreter::Value(visit(v)); },
-            [&](ConstructorRef cr) { return interpreter::Value(visit(cr, tr)); },
-            [&](StringLiteral str) { return interpreter::Value(visit(str)); },
-            [&](IntegerLiteral i) { return interpreter::Value(visit(i)); }
+    interpreter::MatcherValue visit(const Value &val, const Name<Type> &tr) {
+        return val.match<interpreter::MatcherValue>(
+            [&](AnonymousVariable av) { return interpreter::MatcherValue(visit(av)); },
+            [&](Variable v) { return interpreter::MatcherValue(visit(v)); },
+            [&](ConstructorRef cr) { return interpreter::MatcherValue(visit(cr, tr)); },
+            [&](StringLiteral str) { return interpreter::MatcherValue(visit(str)); },
+            [&](IntegerLiteral i) { return interpreter::MatcherValue(visit(i)); }
         );
     }
 
@@ -78,7 +76,7 @@ public:
     interpreter::PredicateReference visit(const PredicateRef &pr) {
         size_t predicateIndex = getPredicateIndex(pr.name);
 
-        std::vector<interpreter::Value> arguments;
+        std::vector<interpreter::MatcherValue> arguments;
         const Predicate &p = ast.resolvePredicateRef(pr);
         for(int i=0; i<p.declaration.parameters.size(); ++i) {
             auto loweredCtorRef = visit(pr.arguments[i], p.declaration.parameters[i].type);
@@ -92,7 +90,7 @@ public:
         const EffectCtor &eCtor = ast.resolveEffectCtorRef(ecr);
         auto [effectIndex, eCtorIndex] = getEffectIndices(ecr);
 
-        std::vector<interpreter::Value> arguments;
+        std::vector<interpreter::MatcherValue> arguments;
         for(int i=0; i<eCtor.parameters.size(); ++i) {
             auto loweredCtorRef = visit(ecr.arguments[i], eCtor.parameters[i].type);
             arguments.push_back(loweredCtorRef);

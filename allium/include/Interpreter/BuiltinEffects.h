@@ -5,9 +5,13 @@
 
 #include "Interpreter/Program.h"
 
+namespace interpreter {
+
 void handleDefaultIO(
-    const interpreter::EffectCtorRef &ecr,
-    std::vector<interpreter::Value> &enclosingVariables
+    const EffectCtorRef &ecr,
+    Context &context
 );
+
+}
 
 #endif // INTERPRETER_BUILTIN_EFFECTS_H

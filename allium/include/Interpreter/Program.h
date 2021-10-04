@@ -37,26 +37,77 @@ typedef TaggedUnion<
 
 std::ostream& operator<<(std::ostream &out, const Expression &expr);
 
-class Value;
+class MatcherValue;
+class RuntimeValue;
 
-struct ConstructorRef {
-    ConstructorRef(): index(std::numeric_limits<size_t>::max()) {}
-    ConstructorRef(size_t index, std::vector<Value> arguments):
+/// Represents a constructor value for the sake of pattern matching.
+struct MatcherCtorRef {
+    MatcherCtorRef(): index(std::numeric_limits<size_t>::max()) {}
+    MatcherCtorRef(size_t index, std::vector<MatcherValue> arguments):
         index(index), arguments(arguments) {}
 
-    friend bool operator==(const ConstructorRef &lhs, const ConstructorRef &rhs) {
+    friend bool operator==(const MatcherCtorRef &lhs, const MatcherCtorRef &rhs) {
         return lhs.index == rhs.index && lhs.arguments == rhs.arguments;
     }
 
-    friend bool operator!=(const ConstructorRef &lhs, const ConstructorRef &rhs) {
+    friend bool operator!=(const MatcherCtorRef &lhs, const MatcherCtorRef &rhs) {
         return !(lhs == rhs);
     }
 
     size_t index;
-    std::vector<Value> arguments;
+    std::vector<MatcherValue> arguments;
 };
 
-std::ostream& operator<<(std::ostream &out, const ConstructorRef &ctor);
+std::ostream& operator<<(std::ostream &out, const MatcherCtorRef &mCtor);
+
+/// Represents a variable value for the sake of pattern matching.
+struct MatcherVariable {
+    MatcherVariable(
+        size_t index,
+        bool isTypeInhabited = true
+    ): index(index), isTypeInhabited(isTypeInhabited) {}
+
+    friend bool operator==(const MatcherVariable &lhs, const MatcherVariable &rhs) {
+        return lhs.index == rhs.index &&
+            lhs.isTypeInhabited == rhs.isTypeInhabited;
+    }
+
+    friend bool operator!=(const MatcherVariable &lhs, const MatcherVariable &rhs) {
+        return !(lhs == rhs);
+    }
+
+    static const size_t anonymousIndex = std::numeric_limits<size_t>::max();
+
+    /// The index of this variable within the witness producer's variable table.
+    size_t index;
+
+    /// Whether or not this variable's type is inhabited. In an existence proof
+    /// where a variable is never bound, we must not produce a witness of an
+    /// uninhabited type. This information must be propagated from the TypedAST.
+    bool isTypeInhabited;
+};
+
+std::ostream& operator<<(std::ostream &out, const MatcherVariable &mv);
+
+/// Represents a constructor value which could be the value of a variable.
+struct RuntimeCtorRef {
+    RuntimeCtorRef(): index(std::numeric_limits<size_t>::max()) {}
+    RuntimeCtorRef(size_t index, std::vector<RuntimeValue> arguments):
+        index(index), arguments(arguments) {}
+
+    friend bool operator==(const RuntimeCtorRef &lhs, const RuntimeCtorRef &rhs) {
+        return lhs.index == rhs.index && lhs.arguments == rhs.arguments;
+    }
+
+    friend bool operator!=(const RuntimeCtorRef &lhs, const RuntimeCtorRef &rhs) {
+        return !(lhs == rhs);
+    }
+
+    size_t index;
+    std::vector<RuntimeValue> arguments;
+};
+
+std::ostream& operator<<(std::ostream &out, const RuntimeCtorRef &ctor);
 
 /// Represents a value of the builtin type String.
 struct String {
@@ -92,68 +143,88 @@ struct Int {
 
 std::ostream& operator<<(std::ostream &out, const Int &i);
 
-struct VariableRef {
-    VariableRef(bool isTypeInhabited = true):
-        index(anonymousIndex), isDefinition(false), isExistential(false),
-        isTypeInhabited(isTypeInhabited) {}
-    VariableRef(
-        size_t index,
-        bool isDefinition,
-        bool isExistential,
-        bool isTypeInhabited = true
-    ): index(index), isDefinition(isDefinition), isExistential(isExistential),
-        isTypeInhabited(isTypeInhabited) {}
+typedef std::variant<
+    std::monostate,
+    RuntimeCtorRef,
+    String,
+    Int,
+    RuntimeValue *
+> RuntimeValueBase;
 
-    friend bool operator==(const VariableRef &lhs, const VariableRef &rhs) {
-        return lhs.index == rhs.index && lhs.isDefinition == rhs.isDefinition &&
-            lhs.isExistential == rhs.isExistential &&
-            lhs.isTypeInhabited == rhs.isTypeInhabited;
+class RuntimeValue {
+    RuntimeValueBase wrapped;
+
+public:
+    RuntimeValue(): wrapped() {}
+    RuntimeValue(RuntimeValueBase wrapped): wrapped(wrapped) {}
+
+    template <typename ...Visitors>
+    decltype(auto) visit(Visitors... visitors) const {
+        RuntimeValueBase wr = wrapped;
+        return std::visit(overloaded {visitors...}, wr);
     }
 
-    friend bool operator!=(const VariableRef &lhs, const VariableRef &rhs) {
+    constexpr bool isDefined() const {
+        return wrapped.index() != 0;
+    }
+
+    MatcherValue lift() const;
+
+    RuntimeValue &getValue();
+
+    friend bool operator==(const RuntimeValue &lhs, const RuntimeValue &rhs) {
+        return lhs.wrapped == rhs.wrapped;
+    }
+
+    friend bool operator!=(const RuntimeValue &lhs, const RuntimeValue &rhs) {
         return !(lhs == rhs);
     }
-
-    static const size_t anonymousIndex = std::numeric_limits<size_t>::max();
-
-    /// The index of this variable within the witness producer's variable table.
-    size_t index;
-
-    /// Whether or not the variable is defined by this reference.
-    bool isDefinition;
-
-    /// True if the variable is existentially quantified, false if it is
-    /// universally quantified.
-    bool isExistential;
-
-    /// Whether or not this variable's type is inhabited. In an existence proof
-    /// where a variable is never bound, we must not produce a witness of an
-    /// uninhabited type. This information must be propagated from the TypedAST.
-    bool isTypeInhabited;
 };
 
-std::ostream& operator<<(std::ostream &out, const VariableRef &vr);
+std::ostream& operator<<(std::ostream &out, const RuntimeValue &val);
 
-class Value : public TaggedUnion<ConstructorRef, String, Int, Value *, VariableRef> {
+/// Represents the values of all variables local to a particular context.
+typedef std::vector<RuntimeValue> Context;
+
+typedef std::variant<
+    std::monostate,
+    MatcherCtorRef,
+    String,
+    Int,
+    MatcherVariable
+> MatcherValueBase;
+
+class MatcherValue {
+    MatcherValueBase wrapped;
+
 public:
-    using ValueBase = TaggedUnion<
-        ConstructorRef,
-        String,
-        Int,
-        Value *,
-        VariableRef
-    >;
-    using ValueBase::ValueBase;
-    Value(): ValueBase(VariableRef()) {}
+    MatcherValue(): wrapped() {}
+    MatcherValue(MatcherValueBase wrapped): wrapped(wrapped) {}
+
+    template <typename ...Visitors>
+    decltype(auto) visit(Visitors... visitors) const {
+        MatcherValueBase wr = wrapped;
+        return std::visit(overloaded {visitors...}, wr);
+    }
+
+    RuntimeValue lower(Context &context) const;
+
+    friend bool operator==(const MatcherValue &lhs, const MatcherValue &rhs) {
+        return lhs.wrapped == rhs.wrapped;
+    }
+
+    friend bool operator!=(const MatcherValue &lhs, const MatcherValue &rhs) {
+        return !(lhs == rhs);
+    }
 };
 
-std::ostream& operator<<(std::ostream &out, const Value &val);
+std::ostream& operator<<(std::ostream &out, const MatcherValue &val);
 
 struct EffectCtorRef {
     EffectCtorRef(
         size_t effectIndex,
         size_t effectCtorIndex,
-        std::vector<Value> arguments
+        std::vector<MatcherValue> arguments
     ): effectIndex(effectIndex), effectCtorIndex(effectCtorIndex),
         arguments(arguments) {}
 
@@ -176,7 +247,7 @@ struct EffectCtorRef {
     size_t effectCtorIndex;
 
     /// The arguments which should be passed to the effect handler.
-    std::vector<Value> arguments;
+    std::vector<MatcherValue> arguments;
 };
 
 std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr);
@@ -198,7 +269,7 @@ struct TruthValue {
 std::ostream& operator<<(std::ostream &out, const TruthValue &tv);
 
 struct PredicateReference {
-    PredicateReference(size_t index, std::vector<Value> arguments): 
+    PredicateReference(size_t index, std::vector<MatcherValue> arguments): 
         index(index), arguments(arguments) {}
 
     friend bool operator==(const PredicateReference &left, const PredicateReference &right) {
@@ -212,7 +283,7 @@ struct PredicateReference {
     /// The index into the program's predicate list.
     size_t index;
 
-    std::vector<Value> arguments;
+    std::vector<MatcherValue> arguments;
 };
 
 std::ostream& operator<<(std::ostream &out, const PredicateReference &pr);
@@ -327,11 +398,11 @@ public:
 protected:
     bool match(
         const Implication &impl,
-        const VariableRef &vr,
-        const ConstructorRef &cr) const;
-    bool match(const VariableRef &vl, const VariableRef &vr) const;
-    bool match(const ConstructorRef &cl, const ConstructorRef &cr) const;
-    bool match(const Value &left, const Value &right) const;
+        const MatcherVariable &mv,
+        const MatcherCtorRef &mCtor) const;
+    bool match(const MatcherVariable &vl, const MatcherVariable &vr) const;
+    bool match(const MatcherCtorRef &cl, const MatcherCtorRef &cr) const;
+    bool match(const MatcherValue &left, const MatcherValue &right) const;
 
     /// A collection of the predicates defined in the program. Predicates
     /// refer to each other through their indices in this vector.

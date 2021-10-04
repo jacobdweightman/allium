@@ -2,29 +2,26 @@
 
 #include "Interpreter/Program.h"
 
-using namespace interpreter;
+namespace interpreter {
 
-static void printStringValue(
-    const Value &v,
-    std::vector<Value> &enclosingVariables
-) {
-    v.switchOver(
-    [](ConstructorRef) { assert(false && "IO.print expects a String!"); },
-    [](String str) { std::cout << str << "\n"; },
-    [](Int i) { assert(false && "IO.print expects a String!"); },
-    [&](Value *v) { printStringValue(*v, enclosingVariables); },
-    [&](VariableRef vr) {
-        assert(!vr.isDefinition);
-        printStringValue(enclosingVariables[vr.index], enclosingVariables);
-    });
+static void printStringValue(const RuntimeValue &v) {
+    v.visit(
+        [](std::monostate&) { assert(false && "Argument to print must be ground!"); },
+        [](RuntimeCtorRef&) { assert(false && "IO.print expects a String!"); },
+        [](String &str) { std::cout << str << "\n"; },
+        [](Int&) { assert(false && "IO.print expects a String!"); },
+        [](RuntimeValue *v) { printStringValue(*v); }
+    );
 }
 
 void handleDefaultIO(
     const EffectCtorRef &ecr,
-    std::vector<Value> &enclosingVariables
+    Context &context
 ) {
     if(ecr.effectCtorIndex == 0) {
         // IO.print(String)
-        printStringValue(ecr.arguments[0], enclosingVariables);
+        printStringValue(ecr.arguments[0].lower(context));
     }
+}
+
 }
