@@ -81,7 +81,7 @@ std::ostream& operator<<(std::ostream &out, const MatcherVariable &vr) {
 }
 
 MatcherValue RuntimeValue::lift() const {
-    return visit(
+    return match<MatcherValue>(
         [](std::monostate) { assert(false); return MatcherValue(); },
         [&](RuntimeCtorRef &cr) {
             return MatcherValue(
@@ -101,17 +101,17 @@ MatcherValue RuntimeValue::lift() const {
 }
 
 RuntimeValue &RuntimeValue::getValue() {
-    return visit(overloaded {
+    return match<RuntimeValue&>(
         [&](std::monostate) -> RuntimeValue& { return *this; },
         [&](RuntimeCtorRef&) -> RuntimeValue& { return *this; },
         [&](String&) -> RuntimeValue& { return *this; },
         [&](Int) -> RuntimeValue& { return *this; },
         [](RuntimeValue *v) -> RuntimeValue& { return v->getValue(); }
-    });
+    );
 }
 
 std::ostream& operator<<(std::ostream &out, const RuntimeValue &v) {
-    v.visit(
+    v.switchOver(
         [&](std::monostate) { out << "undefined"; },
         [&](RuntimeCtorRef &rcr) { out << rcr; },
         [&](String &str) { out << str; },
@@ -122,7 +122,7 @@ std::ostream& operator<<(std::ostream &out, const RuntimeValue &v) {
 }
 
 RuntimeValue MatcherValue::lower(Context &context) const {
-    return visit(
+    return match<RuntimeValue>(
         [](std::monostate) { assert(false); return RuntimeValue(); },
         [&](MatcherCtorRef &mCtor) {
             return RuntimeValue(
@@ -142,7 +142,7 @@ RuntimeValue MatcherValue::lower(Context &context) const {
 }
 
 std::ostream& operator<<(std::ostream &out, const MatcherValue &val) {
-    val.visit(
+    val.switchOver(
         [&](std::monostate) { assert(false); },
         [&](MatcherCtorRef &cr) { out << cr; },
         [&](String &str) { out << str; },

@@ -250,10 +250,10 @@ bool match(
     Context &localContext
 ) {
 
-    return goalVal.visit(
+    return goalVal.match<bool>(
         [](std::monostate) { assert(false); return false; },
         [&](MatcherCtorRef &lctor) {
-            return matcherVal.visit(
+            return matcherVal.match<bool>(
                 [](std::monostate) { assert(false); return false; },
                 [&](MatcherCtorRef &rctor) { return match(lctor, rctor, parentContext, localContext); },
                 [](String &rstr) { return false; },
@@ -262,7 +262,7 @@ bool match(
             );
         },
         [&](String &lstr) {
-            return matcherVal.visit(
+            return matcherVal.match<bool>(
                 [](std::monostate) { assert(false); return false; },
                 [](MatcherCtorRef) { return false; },
                 [&](String &rstr) { return lstr == rstr; },
@@ -271,7 +271,7 @@ bool match(
             );
         },
         [&](Int lint) {
-            return matcherVal.visit(
+            return matcherVal.match<bool>(
                 [](std::monostate) { assert(false); return false; },
                 [](MatcherCtorRef) { return false; },
                 [](String &rstr) { return false; },
@@ -280,7 +280,7 @@ bool match(
             );
         },
         [&](MatcherVariable &lmv) {
-            return matcherVal.visit(
+            return matcherVal.match<bool>(
                 [](std::monostate) { assert(false); return false; },
                 [&](MatcherCtorRef &rctor) { return match(lmv, rctor, parentContext, localContext); },
                 [&](String &rstr) { return match(lmv, rstr, parentContext); },

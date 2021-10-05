@@ -143,7 +143,7 @@ struct Int {
 
 std::ostream& operator<<(std::ostream &out, const Int &i);
 
-typedef std::variant<
+typedef TaggedUnion<
     std::monostate,
     RuntimeCtorRef,
     String,
@@ -151,18 +151,10 @@ typedef std::variant<
     RuntimeValue *
 > RuntimeValueBase;
 
-class RuntimeValue {
-    RuntimeValueBase wrapped;
-
+class RuntimeValue : public RuntimeValueBase {
 public:
-    RuntimeValue(): wrapped() {}
-    RuntimeValue(RuntimeValueBase wrapped): wrapped(wrapped) {}
-
-    template <typename ...Visitors>
-    decltype(auto) visit(Visitors... visitors) const {
-        RuntimeValueBase wr = wrapped;
-        return std::visit(overloaded {visitors...}, wr);
-    }
+    using RuntimeValueBase::RuntimeValueBase;
+    RuntimeValue(): RuntimeValueBase(std::monostate {}) {}
 
     constexpr bool isDefined() const {
         return wrapped.index() != 0;
@@ -186,7 +178,7 @@ std::ostream& operator<<(std::ostream &out, const RuntimeValue &val);
 /// Represents the values of all variables local to a particular context.
 typedef std::vector<RuntimeValue> Context;
 
-typedef std::variant<
+typedef TaggedUnion<
     std::monostate,
     MatcherCtorRef,
     String,
@@ -194,18 +186,10 @@ typedef std::variant<
     MatcherVariable
 > MatcherValueBase;
 
-class MatcherValue {
-    MatcherValueBase wrapped;
-
+class MatcherValue : public MatcherValueBase {
 public:
-    MatcherValue(): wrapped() {}
-    MatcherValue(MatcherValueBase wrapped): wrapped(wrapped) {}
-
-    template <typename ...Visitors>
-    decltype(auto) visit(Visitors... visitors) const {
-        MatcherValueBase wr = wrapped;
-        return std::visit(overloaded {visitors...}, wr);
-    }
+    using MatcherValueBase::MatcherValueBase;
+    MatcherValue(): MatcherValueBase(std::monostate {}) {}
 
     RuntimeValue lower(Context &context) const;
 

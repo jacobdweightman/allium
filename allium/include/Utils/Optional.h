@@ -1,7 +1,6 @@
 #ifndef OPTIONAL_H
 #define OPTIONAL_H
 
-#include <algorithm>
 #include <functional>
 #include <iostream>
 #include <memory>

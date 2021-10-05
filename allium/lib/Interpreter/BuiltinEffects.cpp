@@ -5,7 +5,7 @@
 namespace interpreter {
 
 static void printStringValue(const RuntimeValue &v) {
-    v.visit(
+    v.switchOver(
         [](std::monostate&) { assert(false && "Argument to print must be ground!"); },
         [](RuntimeCtorRef&) { assert(false && "IO.print expects a String!"); },
         [](String &str) { std::cout << str << "\n"; },

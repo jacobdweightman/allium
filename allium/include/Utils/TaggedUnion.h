@@ -13,12 +13,12 @@
 /// Exposes the type of a handler for a given associated value type.
 template <typename T>
 struct handler {
-    typedef std::function<void(T)> type;
+    typedef std::function<void(T&)> type;
 };
 
 template <typename T, typename U>
 struct matcher {
-    typedef std::function<U(T)> type;
+    typedef std::function<U(T&)> type;
 };
 
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
@@ -26,6 +26,7 @@ template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 template <typename ... Ts>
 class TaggedUnion {
+protected:
     std::variant<Ts...> wrapped;
 
 public:
@@ -40,28 +41,19 @@ public:
         return !(lhs == rhs);
     }
 
-    template <typename T, size_t N = 0>
+    template <typename T>
     T match(typename matcher<Ts, T>::type... matchers) const {
-        auto matchers_tuple = std::make_tuple(matchers...);
-        if(N == wrapped.index()) {
-            auto matcher = std::get<N>(matchers_tuple);
-            return matcher(std::get<N>(wrapped));
-        }
-        if constexpr (N + 1 < std::tuple_size_v<decltype(matchers_tuple)>) {
-            return match<T, N+1>(matchers...);
-        }
-        throw "impossible!";
+        // Without storing wrapped into a temporary, std::visit complains that
+        // the matchers are non-exhaustive (at least in Clang).
+        auto wr = wrapped;
+        return std::visit(overloaded { matchers... }, wr);
     }
 
-    template <size_t N = 0>
     void switchOver(typename handler<Ts>::type... handlers) const {
-        auto handlers_tuple = std::make_tuple(handlers...);
-        if(N == wrapped.index()) {
-            auto handler = std::get<N>(handlers_tuple);
-            handler(std::get<N>(wrapped));
-        } else if constexpr (N + 1 < std::tuple_size_v<decltype(handlers_tuple)>) {
-            switchOver<N+1>(handlers...);
-        }
+        // Without storing wrapped into a temporary, std::visit complains that
+        // the matchers are non-exhaustive (at least in Clang).
+        auto wr = wrapped;
+        return std::visit(overloaded { handlers... }, wr);
     }
 
     template <typename T>
