@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -15,6 +16,10 @@
 #include "SemAna/StaticError.h"
 #include "SemAna/Predicates.h"
 #include "Utils/Optional.h"
+
+static std::string defaultObjName(std::string sourceName) {
+    return std::filesystem::path(sourceName).stem().string() + ".o";
+}
 
 struct Arguments {
     /// Represents the possible ways for Allium to execute
@@ -37,6 +42,7 @@ struct Arguments {
     };
 
     enum class Error {
+        FILE_EXTENSION,
         NO_INPUT_FILES,
         PRINT_MULTIPLE_ASTS,
         MIXED_COMPILE_AND_INTERPRET_ARGS,
@@ -54,15 +60,19 @@ struct Arguments {
     interpreter::Config interpreterConfig;
 
     static void issueError(Error error) {
+        std::cout << "Error: ";
         switch(error) {
+        case Error::FILE_EXTENSION:
+            std::cout << "Allium source files must have the \".allium\" extension.\n";
+            break;
         case Error::NO_INPUT_FILES:
-            std::cout << "Error: expected an argument specifying the file to compile.\n";
+            std::cout << "expected an argument specifying the file to compile.\n";
             break;
         case Error::PRINT_MULTIPLE_ASTS:
-            std::cout << "Error: --print-ast or --print-syntactic-ast may only occur once.\n";
+            std::cout << "--print-ast or --print-syntactic-ast may only occur once.\n";
             break;
         case Error::MIXED_COMPILE_AND_INTERPRET_ARGS:
-            std::cout << "Error: compiler-only flags cannot be used when running the Allium interpreter.\n";
+            std::cout << "compiler-only flags cannot be used when running the Allium interpreter.\n";
             break;
         }
         exit(2);
@@ -114,6 +124,12 @@ struct Arguments {
             else if(arg == "-o") {
                 arguments.compilerOnly();
                 arguments.compilerConfig.outputFile = std::string(argv[++i]);
+            } else if(arg == "-c") {
+                arguments.compilerOnly();
+                arguments.compilerConfig.outputType = compiler::OutputType::OBJECT;
+            } else if(arg == "--emit-llvm") {
+                arguments.compilerOnly();
+                arguments.compilerConfig.emitLLVMIR = true;
             }
             #endif
             else if(arg == "-i") {
@@ -123,6 +139,10 @@ struct Arguments {
                 arguments.interpreterConfig.debugLevel =
                     static_cast<interpreter::Config::LogLevel>(std::stoi(&arg.c_str()[12]));
             } else {
+                if(!arg.ends_with(".allium")) {
+                    std::cout << "Attempted to compile or interpret " << arg << "\n";
+                    issueError(Error::FILE_EXTENSION);
+                }
                 arguments.filePaths.push_back(arg);
             }
         }
@@ -138,6 +158,19 @@ struct Arguments {
 
         if(arguments.filePaths.size() == 0)
             issueError(Error::NO_INPUT_FILES);
+        
+        #ifdef ENABLE_COMPILER
+        if(arguments.compilerConfig.outputFile.empty()) {
+            switch(arguments.compilerConfig.outputType) {
+            case compiler::OutputType::EXECUTABLE:
+                arguments.compilerConfig.outputFile = "a.out";
+                break;
+            case compiler::OutputType::OBJECT:
+                arguments.compilerConfig.outputFile = defaultObjName(arguments.filePaths[0]);
+                break;
+            }
+        }
+        #endif
 
         return arguments;
     }

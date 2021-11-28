@@ -5,9 +5,15 @@
 
 namespace compiler {
 
+enum class OutputType {
+    EXECUTABLE,
+    OBJECT,
+};
+
 // A container for configuration parameters of the program.
 struct Config {
     bool emitLLVMIR = false;
+    OutputType outputType = OutputType::EXECUTABLE;
     std::string outputFile;
 };
 

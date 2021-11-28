@@ -114,13 +114,22 @@ void cgProgram(const TypedAST::AST &ast, compiler::Config config) {
 
     LLVMCodeGen cg(tm);
     cg.lower(ast);
-    // cg.mod.print(llvm::outs(), nullptr);
 
-    char objFileName[L_tmpnam];
-    if(!std::tmpnam(objFileName)) {
-        std::cout << "Failed to create temporary object file!" << std::endl;
-        exit(3);
+    if(config.emitLLVMIR) {
+        cg.mod.print(llvm::outs(), nullptr);
     }
+
+    std::string objFileName;
+    if(config.outputType == compiler::OutputType::OBJECT) {
+        objFileName = config.outputFile;
+    } else {
+        char objTmpName[L_tmpnam];
+        if(!std::tmpnam(objTmpName)) {
+            std::cout << "Failed to create temporary object file!" << std::endl;
+            exit(2);
+        }
+        objFileName = std::string(objTmpName);
+    }   
 
     std::error_code ec;
     raw_fd_ostream dest(objFileName, ec);
@@ -141,6 +150,4 @@ void cgProgram(const TypedAST::AST &ast, compiler::Config config) {
         (std::string("ld64.lld -arch x86_64 -platform_version macos 11.0.0 11.0 -o ") +
         config.outputFile + " " + std::string(objFileName) +
         std::string(" -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.0.sdk -lSystem")).c_str());
-    
-    outs() << "Wrote " << config.outputFile << "\n";
 }
