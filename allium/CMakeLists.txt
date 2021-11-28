@@ -45,6 +45,7 @@ add_library(AlliumSemAna SHARED
   lib/SemAna/Predicates.cpp
   lib/SemAna/StaticError.cpp
   lib/SemAna/TypedAST.cpp
+  lib/SemAna/TypeRecursionAnalysis.cpp
   lib/SemAna/VariableAnalysis.cpp)
 
 target_link_libraries(AlliumSemAna PUBLIC AlliumParse)
