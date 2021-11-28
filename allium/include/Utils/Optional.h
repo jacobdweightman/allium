@@ -92,6 +92,49 @@ public:
         return *this;
     }
 
+    void branch(
+        bool condition,
+        std::function<void(T)> trueBranch,
+        std::function<void(T)> falseBranch
+    ) const {
+        if(condition) {
+            return map(trueBranch);
+        } else {
+            return map(falseBranch);
+        }
+    }
+
+    /// Applies one of two transformations depending on the value of condition.
+    ///
+    /// This makes it possible to write conditional code without breaking a
+    /// reactive chain. For example:
+    /// ```
+    /// Optional<T> x, y;
+    /// x = someOptional.map(A).flatMap(B);
+    /// if(condition) {
+    ///     y = x.map(C).flatMap(E);
+    /// } else {
+    ///     y = x.map(D).flatMap(E);
+    /// }
+    /// ```
+    /// Can instead be written more concisely as
+    /// ```
+    /// Optional<T> y = someOptional.map(A).flatMap(B)
+    ///     .branch(condition, C, D).flatMap(E);
+    /// ```
+    template <typename U>
+    Optional<U> branch(
+        bool condition,
+        std::function<U(T)> trueBranch,
+        std::function<U(T)> falseBranch
+    ) const {
+        if(condition) {
+            return map(trueBranch);
+        } else {
+            return map(falseBranch);
+        }
+    }
+
     template <typename U>
     U switchOver(std::function<U(T)> handleValue, std::function<U(void)> handleNone) const {
         if(wrapped.has_value()) {

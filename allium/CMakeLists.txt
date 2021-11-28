@@ -1,3 +1,15 @@
+
+# Add a flag to control whether Allium should be built as a compiler or an
+# interpreter. Setting this to OFF (default) will build just the interpreter,
+# with the old CLI. This makes it possible to build Allium without LLVM, and
+# is a stopgap while the new LLVM-based code generation capabilities catch up with
+# the old interpreter.
+option(BUILD_COMPILER "Whether or not to build Allium as a compiler (rather than an interpreter)" OFF)
+
+#############################
+# Allium
+#############################
+
 add_executable(allium lib/driver.cpp)
 
 include_directories(include)
@@ -5,6 +17,11 @@ include_directories(include)
 target_link_libraries(allium PUBLIC AlliumParse)
 target_link_libraries(allium PUBLIC AlliumSemAna)
 target_link_libraries(allium PUBLIC AlliumInterpreter)
+
+if(BUILD_COMPILER)
+  add_compile_definitions("ENABLE_COMPILER")
+  target_link_libraries(allium PUBLIC AlliumLLVMCodeGen)
+endif()
 
 #############################
 # libraries
@@ -42,6 +59,10 @@ add_library(AlliumInterpreter SHARED
 
 target_link_libraries(AlliumInterpreter PUBLIC AlliumSemAna)
 GENERATE_EXPORT_HEADER(AlliumInterpreter)
+
+if(BUILD_COMPILER)
+  add_subdirectory(lib/LLVMCodeGen)
+endif()
 
 #############################
 # unit tests
