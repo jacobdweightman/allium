@@ -12,7 +12,7 @@ enum class OutputType {
 
 // A container for configuration parameters of the program.
 struct Config {
-    bool emitLLVMIR = false;
+    bool printLLVMIR = false;
     OutputType outputType = OutputType::EXECUTABLE;
     std::string outputFile;
 };

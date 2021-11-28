@@ -115,7 +115,7 @@ void cgProgram(const TypedAST::AST &ast, compiler::Config config) {
     LLVMCodeGen cg(tm);
     cg.lower(ast);
 
-    if(config.emitLLVMIR) {
+    if(config.printLLVMIR) {
         cg.mod.print(llvm::outs(), nullptr);
     }
 

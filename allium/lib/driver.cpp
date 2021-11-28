@@ -127,9 +127,9 @@ struct Arguments {
             } else if(arg == "-c") {
                 arguments.compilerOnly();
                 arguments.compilerConfig.outputType = compiler::OutputType::OBJECT;
-            } else if(arg == "--emit-llvm") {
+            } else if(arg == "--print-llvm") {
                 arguments.compilerOnly();
-                arguments.compilerConfig.emitLLVMIR = true;
+                arguments.compilerConfig.printLLVMIR = true;
             }
             #endif
             else if(arg == "-i") {
