@@ -1,4 +1,4 @@
-#include <map>
+#include <vector>
 
 #include "TypedAST.h"
 
@@ -6,6 +6,6 @@ namespace TypedAST {
 
 /// Returns the variables and their types which are defined inside of the given
 /// implication.
-Scope getVariables(const AST &ast, const Implication &impl);
+std::vector<Name<Variable>> getVariables(const Implication &impl);
 
 }

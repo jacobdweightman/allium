@@ -121,7 +121,7 @@ public:
         auto body = visit(impl.body);
         enclosingImplication = Optional<Implication>();
 
-        size_t variableCount = getVariables(ast, impl).size();
+        size_t variableCount = getVariables(impl).size();
         return interpreter::Implication(head, body, variableCount);
     }
 
@@ -181,11 +181,9 @@ private:
     /// Computes the implication's variable list and returns the variable's
     /// index within it.
     size_t getVariableIndex(const Implication &impl, const Variable &v) {
-        Scope scope = getVariables(ast, impl);
-        size_t index = 0;
-        auto vIter = scope.find(v.name);
-        for(; vIter != scope.begin(); --vIter) ++index;
-        return index;
+        auto variables = getVariables(impl);
+        auto var = std::find(variables.begin(), variables.end(), v.name);
+        return var - variables.begin();
     }
 
     std::pair<size_t, size_t> getEffectIndices(const EffectCtorRef &ecr) {
