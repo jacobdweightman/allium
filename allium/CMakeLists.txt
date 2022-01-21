@@ -93,4 +93,4 @@ target_link_libraries(unittests AlliumInterpreter)
 #############################
 
 add_test(NAME functionaltests
-  COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/tests/runner.py $<TARGET_FILE:allium>)
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/runner.py $<TARGET_FILE:allium> ${FILE_CHECK})

@@ -44,5 +44,5 @@ target_link_libraries(allium-ls-unittests gtest_main)
 # the test for now.
 if(NOT MSVC)
 add_test(NAME language-server-functional-tests
-  COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/tests/languageserver.py $<TARGET_FILE:allium-ls>)
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/languageserver.py $<TARGET_FILE:allium-ls>)
 endif()

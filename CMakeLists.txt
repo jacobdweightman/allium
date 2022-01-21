@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 
 project(allium VERSION 0.0.1)
 
@@ -18,6 +18,9 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
+find_package(Python3 COMPONENTS Interpreter)
+message("python: ${Python3_EXECUTABLE}")
 
 add_subdirectory(allium)
 add_subdirectory(allium-ls)
