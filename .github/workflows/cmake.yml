@@ -27,6 +27,11 @@ jobs:
         clang++-12 --version
         echo "CXX=clang++-12" >> $GITHUB_ENV
       if: matrix.os == 'ubuntu-latest'
+    
+    - name: Add FileCheck to path (Windows)
+      shell: bash
+      run: echo "${{github.workspace}}/bin" >> $GITHUB_PATH
+      if: matrix.os == 'windows-latest'
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{github.workspace}}/build

@@ -16,7 +16,7 @@ Generator<Unit> witnesses(
     Context &context
 ) {
     if(prog.config.debugLevel >= Config::LogLevel::LOUD)
-        std::cout << "prove: " << pr << "\n";
+        std::cout << "prove: " << prog.asDebugString(pr) << "\n";
 
     // Save the original context so that mutations from pattern matching don't
     // persist beyond backtracking.

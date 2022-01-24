@@ -9,3 +9,8 @@ pred q {
 pred main {
     main <- p, q;
 }
+
+// CHECK: prove: main()
+// CHECK: prove: p()
+// CHECK: prove: q()
+// CHECK: Exit code: 0

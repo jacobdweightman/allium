@@ -25,3 +25,13 @@ pred reverseHelper(SymbolList, SymbolList, SymbolList) {
     reverseHelper(Cons(let head, let tail), let y, let z) <-
         reverseHelper(tail, y, Cons(head, z));
 }
+
+// CHECK: prove: main()
+// CHECK: prove: palindrome(1(0(), 1(1(), 1(1(), 1(0(), 0(), ), ), ), ), )
+// CHECK: prove: reverse(var 0, var 0, )
+// CHECK: prove: reverseHelper(var 0, var 1, 0(), )
+// CHECK: prove: reverseHelper(var 1, var 2, 1(var 0, var 3, ), )
+// CHECK: prove: reverseHelper(var 1, var 2, 1(var 0, var 3, ), )
+// CHECK: prove: reverseHelper(var 1, var 2, 1(var 0, var 3, ), )
+// CHECK: prove: reverseHelper(var 1, var 2, 1(var 0, var 3, ), )
+// CHECK: Exit code: 0

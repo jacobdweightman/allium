@@ -12,3 +12,9 @@ pred main: IO {
     main <- in(let x, Cons("a", Cons("b", Cons("c", Nil)))),
         do print(x);
 }
+
+// CHECK: prove: main()
+// CHECK: prove: in(var 0, 1(a, 1(b, 1(c, 0(), ), ), ), )
+// CHECK: handle effect: do 0.0
+// CHECK: a
+// CHECK: Exit code: 0

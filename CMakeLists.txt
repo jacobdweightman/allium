@@ -22,6 +22,9 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 find_package(Python3 COMPONENTS Interpreter)
 message("python: ${Python3_EXECUTABLE}")
 
+find_program(FILE_CHECK NAMES FileCheck FileCheck-12)
+message("file check: ${FILE_CHECK}")
+
 add_subdirectory(allium)
 add_subdirectory(allium-ls)
 

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 
 #include "Interpreter/Program.h"
 #include "Interpreter/WitnessProducer.h"
@@ -41,6 +42,13 @@ bool operator==(const Program &left, const Program &right) {
 
 bool operator!=(const Program &left, const Program &right) {
     return !(left == right);
+}
+
+std::string Program::asDebugString(const PredicateReference &pr) const {
+    std::stringstream argstring;
+    for(const auto &arg : pr.arguments) argstring << arg << ", ";
+
+    return predicateNameTable[pr.index] + "(" + argstring.str() + ")";
 }
 
 std::ostream& operator<<(std::ostream &out, const Expression &expr) {

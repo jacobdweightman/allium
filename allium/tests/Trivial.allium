@@ -1,3 +1,6 @@
 pred main {
     main <- true;
 }
+
+// CHECK: prove: main()
+// CHECK: Exit code: 0

@@ -8,3 +8,9 @@ pred main {
         saysHello(x),
         saysHello("Hello world!");
 }
+
+// CHECK: prove: main()
+// CHECK: prove: saysHello(var 0, )
+// CHECK: prove: saysHello(var 0, )
+// CHECK: prove: saysHello(Hello world!, )
+// CHECK: Exit code: 0

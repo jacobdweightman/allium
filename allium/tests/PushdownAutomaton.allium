@@ -33,3 +33,11 @@ pred simulate(State, Stack, Input) {
 pred main {
     main <- simulate(ReadA, Nil, Cons(A, Cons(A, Cons(B, Cons(B, Nil)))));
 }
+
+// CHECK: prove: main()
+// CHECK: prove: simulate(0(), 0(), 1(0(), 1(0(), 1(1(), 1(1(), 0(), ), ), ), ), )
+// CHECK: prove: simulate(0(), 1(0(), var 0, ), var 1, )
+// CHECK: prove: simulate(0(), 1(0(), var 0, ), var 1, )
+// CHECK: prove: simulate(1(), var 0, var 1, )
+// CHECK: prove: simulate(1(), var 0, var 1, )
+// CHECK: Exit code: 0

@@ -219,12 +219,17 @@ interpreter::Program lower(const AST &ast, interpreter::Config config) {
     std::vector<interpreter::Predicate> loweredPredicates;
     loweredPredicates.reserve(ast.predicates.size());
 
+    std::vector<std::string> predicateNameTable;
+    predicateNameTable.reserve(ast.predicates.size());
+
     Optional<interpreter::PredicateReference> main;
 
     size_t i = 0;
     for(const auto &p : ast.predicates) {
         interpreter::Predicate lowered = lowerer.visit(p);
         loweredPredicates.push_back(lowered);
+
+        predicateNameTable.push_back(p.declaration.name.string());
 
         if(p.declaration.name == Name<Predicate>("main"))
             // If main did take arguments, this would be the place to
@@ -233,5 +238,9 @@ interpreter::Program lower(const AST &ast, interpreter::Config config) {
         ++i;
     }
 
-    return interpreter::Program(loweredPredicates, main, config);
+    return interpreter::Program(
+        loweredPredicates,
+        main,
+        predicateNameTable,
+        config);
 }

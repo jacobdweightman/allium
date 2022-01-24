@@ -48,3 +48,24 @@ pred simulate(State, Symbol, HalfTape, HalfTape) {
 pred main {
     main <- simulate(MarkA, A, Nil, Cons(A, Cons(B, Cons(B, Cons(C, Cons(C, Nil))))));
 }
+
+// CHECK: prove: main()
+// CHECK: prove: simulate(0(), 0(), 0(), 1(0(), 1(1(), 1(1(), 1(2(), 1(2(), 0(), ), ), ), ), ), )
+// CHECK: prove: simulate(1(), var 1, 1(3(), var 0, ), var 2, )
+// CHECK: prove: simulate(1(), var 1, 1(0(), var 0, ), var 2, )
+// CHECK: prove: simulate(2(), var 1, 1(4(), var 0, ), var 2, )
+// CHECK: prove: simulate(2(), var 1, 1(1(), var 0, ), var 2, )
+// CHECK: prove: simulate(3(), var 0, var 1, 1(5(), var 2, ), )
+// CHECK: prove: simulate(3(), var 1, var 2, 1(var 0, var 3, ), )
+// CHECK: prove: simulate(3(), var 1, var 2, 1(var 0, var 3, ), )
+// CHECK: prove: simulate(3(), var 1, var 2, 1(var 0, var 3, ), )
+// CHECK: prove: simulate(0(), var 1, 1(3(), var 0, ), var 2, )
+// CHECK: prove: simulate(1(), var 1, 1(3(), var 0, ), var 2, )
+// CHECK: prove: simulate(1(), var 1, 1(4(), var 0, ), var 2, )
+// CHECK: prove: simulate(2(), var 1, 1(4(), var 0, ), var 2, )
+// CHECK: prove: simulate(2(), var 1, 1(5(), var 0, ), var 2, )
+// CHECK: prove: simulate(4(), var 0, var 1, 1(5(), 0(), ), )
+// CHECK: prove: simulate(4(), var 0, var 1, 1(5(), var 2, ), )
+// CHECK: prove: simulate(4(), var 0, var 1, 1(4(), var 2, ), )
+// CHECK: prove: simulate(4(), var 0, var 1, 1(4(), var 2, ), )
+// CHECK: Exit code: 0

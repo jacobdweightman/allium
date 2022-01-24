@@ -24,33 +24,63 @@ pred mul(Nat, Nat, Nat) {
 }
 
 pred testEven {
-    testEven <- even(S(S(S(S(S(S(Zero)))))));
+    // CHECK: prove: testEven()
+    testEven <-
+        // CHECK: prove: even(1(1(1(1(1(1(0(), ), ), ), ), ), ), )
+        // CHECK-COUNT-3: prove: even(var 0, )
+        even(S(S(S(S(S(S(Zero)))))));
 }
 
 pred testAdd {
+    // CHECK: testAdd()
     testAdd <-
+        // CHECK: prove: add(1(1(0(), ), ), 1(1(1(0(), ), ), ), 1(1(1(1(1(0(), ), ), ), ), ), )
+        // CHECK-COUNT-3: prove: add(var 0, var 1, var 2, )
         add(S(S(Zero)), S(S(S(Zero))), S(S(S(S(S(Zero)))))),
 
+        // CHECK: prove: add(1(1(0(), ), ), 1(1(1(0(), ), ), ), var 0, )
+        // CHECK-COUNT-3: prove: add(var 0, var 1, var 2, )
         add(S(S(Zero)), S(S(S(Zero))), let five),
         eqNat(five, S(S(S(S(S(Zero)))))),
 
+        // CHECK: prove: add(1(1(0(), ), ), var 1, 1(1(1(1(1(0(), ), ), ), ), ), )
+        // CHECK-COUNT-3: prove: add(var 0, var 1, var 2, )
         add(S(S(Zero)), let three, S(S(S(S(S(Zero)))))),
         eqNat(three, S(S(S(Zero)))),
 
+        // CHECK: prove: add(var 2, 1(1(1(0(), ), ), ), 1(1(1(1(1(0(), ), ), ), ), ), )
+        // CHECK-COUNT-3: prove: add(var 0, var 1, var 2, )
         add(let two, S(S(S(Zero))), S(S(S(S(S(Zero)))))),
         eqNat(two, S(S(Zero)));
 }
 
 pred testMul {
+    // CHECK: prove: testMul()
     testMul <-
+        // CHECK: prove: mul(1(1(0(), ), ), 1(1(1(0(), ), ), ), 1(1(1(1(1(1(0(), ), ), ), ), ), ), )
+        // CHECK-COUNT-3: prove: mul(var 0, var 1, var 3, )
+        // CHECK-COUNT-9: prove: add(
         mul(S(S(Zero)), S(S(S(Zero))), S(S(S(S(S(S(Zero))))))),
 
+        // CHECK: prove: mul(1(1(0(), ), ), 1(1(1(0(), ), ), ), var 0, )
+        // CHECK-COUNT-3: prove: mul(var 0, var 1, var 3, )
+        // CHECK-COUNT-9: prove: add(
         mul(S(S(Zero)), S(S(S(Zero))), let six),
         eqNat(six, S(S(S(S(S(S(Zero))))))),
-        
+
+        // CHECK: prove: mul(1(1(0(), ), ), var 1, 1(1(1(1(1(1(0(), ), ), ), ), ), ), )
+        // CHECK: prove: mul(var 0, var 1, var 3, )
+        // CHECK-COUNT-3: prove: add(
+        // CHECK: prove: mul(var 0, var 1, var 3, )
+        // CHECK-COUNT-6: prove: add(
+        // CHECK: prove: mul(var 0, var 1, var 3, )
+        // CHECK-COUNT-9: prove: add(
         mul(S(S(Zero)), let three, S(S(S(S(S(S(Zero))))))),
         eqNat(three, S(S(S(Zero)))),
 
+        // CHECK: prove: mul(var 2, 1(1(1(0(), ), ), ), 1(1(1(1(1(1(0(), ), ), ), ), ), ), )
+        // CHECK-COUNT-3: prove: mul(
+        // CHECK-COUNT-15: prove: add(
         mul(let two, S(S(S(Zero))), S(S(S(S(S(S(Zero))))))),
         eqNat(two, S(S(Zero)));
 }
@@ -61,3 +91,5 @@ pred main {
         testAdd,
         testMul;
 }
+
+// CHECK: Exit code: 0

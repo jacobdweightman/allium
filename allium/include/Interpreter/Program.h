@@ -358,8 +358,10 @@ public:
     Program(
         std::vector<Predicate> ps,
         Optional<PredicateReference> main,
+        std::vector<std::string> predicateNameTable = {},
         Config config = Config()
-    ): predicates(ps), entryPoint(main), config(config) {}
+    ): predicates(ps), entryPoint(main), predicateNameTable(predicateNameTable),
+        config(config) {}
     
     friend bool operator==(const Program &, const Program &);
     friend bool operator!=(const Program &, const Program &);
@@ -375,6 +377,9 @@ public:
         assert(index < predicates.size());
         return predicates[index];
     }
+
+    /// Writes a representation of the predicate reference for debugging.
+    std::string asDebugString(const PredicateReference &pr) const;
 
     /// The program's configuration parameters.
     const Config config;
@@ -398,6 +403,8 @@ protected:
     /// There may be no such value if the program doesn't define `main`.
     /// Such a program always rejects.
     Optional<PredicateReference> entryPoint;
+
+    const std::vector<std::string> predicateNameTable;
 };
 
 } // namespace interpreter

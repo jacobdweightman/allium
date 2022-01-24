@@ -32,3 +32,6 @@ pred hasVanilla(Sundae) {
 pred main {
     main <- hasVanilla(Sundae(Vanilla, Raspberry));
 }
+
+// CHECK: prove: main()
+// CHECK: prove: hasVanilla(0(1(), 2(), ), )

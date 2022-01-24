@@ -41,3 +41,7 @@ pred main {
     main <-
         containsChocolate(Sundae(let iceCream, let sauce));
 }
+
+// CHECK: prove: main()
+// CHECK: prove: containsChocolate(0(var 0, var 1, ), )
+// CHECK: Exit code: 0

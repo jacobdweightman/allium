@@ -17,3 +17,7 @@ pred main {
         Cons(A, Cons(B, Cons(A, Cons(A, Nil)))),
         B);
 }
+
+// CHECK: prove: main()
+// CHECK: prove: second(1(0(), 1(1(), 1(0(), 1(0(), 0(), ), ), ), ), 1(), )
+// CHECK: Exit code: 0
