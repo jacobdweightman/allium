@@ -6,6 +6,12 @@
 #include "Utils/ParserValues.h"
 
 enum class ErrorMessage {
+    /// An argument that must be a ground value is possibly not a ground value.
+    argument_is_not_ground,
+
+    /// An argument that must be ground contains an anonymous variable.
+    argument_is_not_ground_anonymous,
+
     builtin_redefined,
     constructor_argument_count,
     effect_argument_count,

@@ -5,6 +5,10 @@
 
 std::string formatString(ErrorMessage msg) {
     switch(msg) {
+    case ErrorMessage::argument_is_not_ground:
+        return "Arguments with the \"in\" modifier must not contain free variables, but the variable \"%s\" is not sufficiently instantiated on all code paths.";
+    case ErrorMessage::argument_is_not_ground_anonymous:
+        return "Arguments with the \"in\" modifier must not contain anonymous variables.";
     case ErrorMessage::builtin_redefined:
         return "Allium builtin \"%s\" cannot be redefined.";
     case ErrorMessage::constructor_argument_count:

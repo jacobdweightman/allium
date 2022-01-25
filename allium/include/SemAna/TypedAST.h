@@ -253,12 +253,15 @@ struct EffectCtorRef {
     EffectCtorRef(
         std::string effectName,
         std::string ctorName,
-        std::vector<Value> arguments
-    ): effectName(effectName), ctorName(ctorName), arguments(arguments) {}
+        std::vector<Value> arguments,
+        SourceLocation location
+    ): effectName(effectName), ctorName(ctorName), arguments(arguments),
+        location(location) {}
 
     Name<Effect> effectName;
     Name<EffectCtor> ctorName;
     std::vector<Value> arguments;
+    SourceLocation location;
 };
 
 struct Conjunction {

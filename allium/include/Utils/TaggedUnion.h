@@ -37,10 +37,6 @@ public:
         return lhs.wrapped == rhs.wrapped;
     }
 
-    friend inline bool operator!=(const TaggedUnion &lhs, const TaggedUnion &rhs) {
-        return !(lhs == rhs);
-    }
-
     template <typename T>
     T match(typename matcher<Ts, T>::type... matchers) const {
         // Without storing wrapped into a temporary, std::visit complains that

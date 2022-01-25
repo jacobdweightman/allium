@@ -1,0 +1,19 @@
+pred unbound(String) {
+    unbound(_) <- true;
+}
+
+pred unbound2(String) {
+    unbound2(let t) <- true;
+}
+
+pred main: IO {
+    // CHECK: error 12:11
+    main <- unbound(let s),
+        do print(s);
+
+    // CHECK: error 16:11
+    main <- unbound2(let s),
+        do print(s);
+}
+
+// CHECK: Exit code: 1

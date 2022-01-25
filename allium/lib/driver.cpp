@@ -13,6 +13,7 @@
 #include "Parser/Lexer.h"
 #include "Parser/Parser.h"
 #include "SemAna/ASTPrinter.h"
+#include "SemAna/GroundAnalysis.h"
 #include "SemAna/StaticError.h"
 #include "SemAna/Predicates.h"
 #include "Utils/Optional.h"
@@ -200,6 +201,8 @@ int main(int argc, char *argv[]) {
 
     .map<TypedAST::AST>([&](parser::AST ast) {
         return checkAll(ast, errorEmitter);
+    }).then([&](TypedAST::AST ast) {
+        checkGroundParameters(ast, errorEmitter);
     }).then([&](TypedAST::AST) {
         unsigned errors = errorEmitter.getErrors();
         if(errors > 0) {

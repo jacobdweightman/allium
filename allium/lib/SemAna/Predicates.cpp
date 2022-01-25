@@ -193,7 +193,8 @@ public:
         return TypedAST::EffectCtorRef(
             effect->name.string(),
             eCtor->name.string(),
-            raisedArguments);
+            raisedArguments,
+            ecr.location);
     }
 
     Optional<TypedAST::Conjunction> visit(const Conjunction &conj) {
