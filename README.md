@@ -8,6 +8,7 @@ It currently runs on Linux, MacOS, and Windows.
 
 ## Getting Started
 
+Some documentation is available in the [docs](docs/README.md) directory.
 Coming soon: documentation and a tutorial on programming in Allium!
 
 ## Developing Allium
@@ -19,6 +20,7 @@ Build Allium with Cmake:
 $ git clone https://github.com/jacobdweightman/allium.git
 $ cd allium
 $ mkdir build
+$ cd build
 $ cmake .. -DCMAKE_BUILD_TYPE=Release
 $ cmake --build . --config $BUILD_TYPE
 ```
@@ -28,8 +30,8 @@ Run the interpreter:
 $ ./allium path/to/file.allium
 ```
 
-Run the unit tests:
+Running the automated regression tests requires an LLVM development installation. In particular, LLVM's FileCheck must be in your path. All of the tests can be built and run like this:
 ```
-$ cmake --build . --target unittests
-$ ./unittests
+$ cmake --build . --config $BUILD_TYPE --target unittests allium-ls-unittests
+$ ctest --verbose
 ```
