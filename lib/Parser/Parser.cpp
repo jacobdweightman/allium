@@ -23,7 +23,7 @@ Optional<TruthLiteral> Parser::parseTruthLiteral() {
 /// Consumes an identifier from the lexer, and produces an AST node to match.
 ///
 /// Note: rewinds the lexer on failure.
-Optional<PredicateDecl> Parser::parsePredicateDecl() {
+Result<PredicateDecl> Parser::parsePredicateDecl() {
     Token identifier = lexer.take_next();
 
     auto rewindAndReturn = [&]() {
@@ -32,8 +32,8 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
     };
 
     if(identifier.type != Token::Type::identifier) {
-        throw(SyntaxError("Expected predicate name in predicate definition."));
-        return rewindAndReturn();
+        std::vector<SyntaxError> errorVector { SyntaxError("Expected predicate name in predicate definition.") };
+        return Result<PredicateDecl>(errorVector);
     }
 
     Token next = lexer.peek_next();
@@ -48,15 +48,18 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
                 parameters.push_back(param);
             } else {
                 if (parameters.size() == 0) {
-                    throw(SyntaxError("Parentheses must not appear after predicate name for predicates with zero arguments."));
+                    std::vector<SyntaxError> errorVector { SyntaxError("Parentheses must not appear after predicate name for predicates with zero arguments.") };
+                    return Result<PredicateDecl>(errorVector);
                 } else {
-                    throw(SyntaxError("Expected an additional argument after \",\" in parameter list."));
+                    std::vector<SyntaxError> errorVector { SyntaxError("Expected an additional argument after \",\" in parameter list.") };
+                    return Result<PredicateDecl>(errorVector);
                 }
             }
         } while(lexer.take(Token::Type::comma));
 
         if(!lexer.take(Token::Type::paren_r)) {
-            throw(SyntaxError("Expected a \",\" or \")\" after parameter."));
+            std::vector<SyntaxError> errorVector { SyntaxError("Expected a \",\" or \")\" after parameter.") };
+            return Result<PredicateDecl>(errorVector);
         }
 
         std::vector<EffectRef> effects;
@@ -64,11 +67,12 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
             rewindAndReturn();
         }
 
-        return PredicateDecl(
+        return Result<PredicateDecl>(
+          Optional(PredicateDecl(
             Name<Predicate>(identifier.text),
             parameters,
             effects,
-            identifier.location);
+            identifier.location)));
     }
 
     // <predicate-name> := identifier <effect-list>
@@ -79,8 +83,8 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
         rewindAndReturn();
     }
 
-    return Optional(PredicateDecl(
-        Name<Predicate>(identifier.text), {}, effects, identifier.location));
+    return Result<PredicateDecl>(Optional<PredicateDecl>(PredicateDecl(
+        Name<Predicate>(identifier.text), {}, effects, identifier.location)));
 }
 
 Optional<NamedValue> Parser::parseNamedValue() {

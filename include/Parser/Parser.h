@@ -22,6 +22,12 @@ private:
    std::string msg_;
 };
 
+// Class representing either a success or failure for a particular parse method.
+// In the success case, contains the parsed result. Otherwise, contains a std::vector
+// of the stack of syntax errors that resulted in the failure.
+template <typename T>
+using Result = TaggedUnion <Optional<T>, std::vector<SyntaxError>>;
+
 class Parser {
 public:
     Parser(std::istream &f, std::ostream &out = std::cout):
@@ -36,7 +42,7 @@ public:
     // Exposed for test
     // TODO: guard these declarations with a compile flag.
     Optional<TruthLiteral> parseTruthLiteral();
-    Optional<PredicateDecl> parsePredicateDecl();
+    Result<PredicateDecl> parsePredicateDecl();
     Optional<PredicateRef> parsePredicateRef();
     Optional<Expression> parseExpression();
     Optional<TypeDecl> parseTypeDecl();
