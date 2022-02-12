@@ -23,6 +23,7 @@ struct matcher {
 
 template <typename ... Ts>
 class TaggedUnion {
+protected:
     std::variant<Ts...> wrapped;
 
 public:
