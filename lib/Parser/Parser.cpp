@@ -339,12 +339,12 @@ Optional<Implication> Parser::parseImplication() {
     }
 }
 
-Optional<Predicate> Parser::parsePredicate() {
+Result<Predicate> Parser::parsePredicate() {
     Token first = lexer.peek_next();
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(first);
-        return Optional<Predicate>();
+        return Result<Predicate>(Optional<Predicate>());
     };
 
     PredicateDecl decl;
@@ -356,8 +356,17 @@ Optional<Predicate> Parser::parsePredicate() {
         return rewindAndReturn();
     }
 
-    if(parsePredicateDecl().unwrapGuard(decl)) {
-        return rewindAndReturn();
+    Result<PredicateDecl> parseResult = parsePredicateDecl();
+    if (parseResult.as_a<std::vector<SyntaxError>>()) {
+        std::vector<SyntaxError> vec;
+        parseResult.as_a<std::vector<SyntaxError>>().unwrapInto(vec);
+        return Result<Predicate>(vec);
+    } else if(parseResult.as_a<Optional<Predicate>>()) {
+        Optional<Optional<PredicateDecl>> opt;
+        parseResult.as_a<Optional<PredicateDecl>>().unwrapInto(opt);
+        if (opt.unwrapGuard(decl)) {
+            return rewindAndReturn();
+        }
     }
 
     if(lexer.take(Token::Type::brace_l)) {
@@ -367,13 +376,15 @@ Optional<Predicate> Parser::parsePredicate() {
         }
 
         if(lexer.take(Token::Type::brace_r)) {
-            return Predicate(decl, implications);
+            return Result<Predicate>(Predicate(decl, implications));
         } else {
-            throw(SyntaxError("Expected \"}\" at the end of a predicate definition."));
+            std::vector<SyntaxError> errorVector { SyntaxError("Expected \"}\" at the end of a predicate definition.") };
+            return Result<Predicate>(errorVector);
         }
     } else {
         Token unexpectedToken = lexer.peek_next();
-        throw(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\" between predicate name and \"{\"."));
+        std::vector<SyntaxError> errorVector { SyntaxError("Unexpected token \"" + unexpectedToken.text + "\" between predicate name and \"{\".") };
+        return Result<Predicate>(errorVector);
     }
 }
 

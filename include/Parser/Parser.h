@@ -26,7 +26,9 @@ private:
 // In the success case, contains the parsed result. Otherwise, contains a std::vector
 // of the stack of syntax errors that resulted in the failure.
 template <typename T>
-using Result = TaggedUnion <Optional<T>, std::vector<SyntaxError>>;
+class Result: public TaggedUnion<Optional<T>, std::vector<SyntaxError>> {
+    using TaggedUnion<Optional<T>, std::vector<SyntaxError>>::TaggedUnion;
+};
 
 class Parser {
 public:
@@ -34,7 +36,7 @@ public:
         lexer(f), out(std::cout) {}
 
     Optional<Implication> parseImplication();
-    Optional<Predicate> parsePredicate();
+    Result<Predicate> parsePredicate();
     Optional<Type> parseType();
     Optional<Effect> parseEffect();
     Optional<AST> parseAST();
