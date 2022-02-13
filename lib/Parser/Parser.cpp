@@ -64,7 +64,7 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
         }
 
         std::vector<EffectRef> effects;
-        if(parseEffectList().unwrapResultInto(effects, errors)) {
+        if(parseEffectList().unwrapResultGuard(effects, errors)) {
             rewindAndReturn();
         }
 
@@ -80,7 +80,7 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
     lexer.rewind(next);
 
     std::vector<EffectRef> effects;
-    if(parseEffectList().unwrapResultInto(effects, errors)) {
+    if(parseEffectList().unwrapResultGuard(effects, errors)) {
         rewindAndReturn();
     }
 
@@ -350,7 +350,7 @@ Result<Implication> Parser::parseImplication() {
         }
 
         Expression expr;
-        if(parseExpression().unwrapGuard(expr)) {
+        if(parseExpression().unwrapResultGuard(expr, errors)) {
             errors.push_back(SyntaxError("Expected an expression after \"<-\" in an implication."));
             return Result<Implication>(errors);
         }
@@ -388,7 +388,7 @@ Result<Predicate> Parser::parsePredicate() {
         return rewindAndReturn();
     }
 
-    if (!parsePredicateDecl().unwrapResultInto(decl, errors)) {
+    if (!parsePredicateDecl().unwrapResultGuard(decl, errors)) {
         return rewindAndReturn();
     }
 
@@ -534,7 +534,7 @@ Result<Type> Parser::parseType() {
         return rewindAndReturn();
     }
 
-    if(parseTypeDecl().unwrapGuard(declaration)) {
+    if(parseTypeDecl().unwrapResultGuard(declaration, errors)) {
         errors.push_back(SyntaxError("Type name is missing from type declaration."));
         return Result<Type>(errors);
     }

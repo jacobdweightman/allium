@@ -39,6 +39,16 @@ public:
         }
     }
 
+    bool unwrapResultGuard(T& val, std::vector<SyntaxError> errorsList) {
+        if (errored()) {
+            std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
+            errorsList.insert(std::end(errorsList), std::begin(resultErrors), std::end(resultErrors));
+            return true;
+        } else {
+            return std::get<Optional<T>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped).unwrapGuard(val);
+        }
+    }
+
 private:
     bool errored() {
         return std::holds_alternative<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
