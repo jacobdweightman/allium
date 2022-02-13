@@ -90,6 +90,7 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
 
 Result<NamedValue> Parser::parseNamedValue() {
     Token next = lexer.peek_next();
+    std::vector<SyntaxError> errors;
     Token identifier;
 
     // <value> := "let" <identifier>
@@ -114,9 +115,9 @@ Result<NamedValue> Parser::parseNamedValue() {
                 arguments.push_back(arg);
             },
             [&]() {
-                std::vector<SyntaxError> errorVector { SyntaxError("Expected argument after \",\" in argument list.") };
-                return errorVector;
-            });
+                errors.push_back(SyntaxError("Expected argument after \",\" in argument list."));
+                return Result<NamedValue>(errors);
+            }, errors);
         } while(lexer.take(Token::Type::comma));
 
         if(lexer.take(Token::Type::paren_r)) {
@@ -125,8 +126,8 @@ Result<NamedValue> Parser::parseNamedValue() {
                 arguments,
                 identifier.location));
         } else {
-            std::vector<SyntaxError> errorVector { SyntaxError("Expected a \",\" or \")\" after argument.") };
-            return Result<NamedValue>(errorVector);
+            errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument."));
+            return Result<NamedValue>(errors);
         }
     } else {
         return Optional(NamedValue(identifier.text, {}, identifier.location));
@@ -186,6 +187,7 @@ Result<Value> Parser::parseValue() {
 ///
 /// Note: rewinds the lexer on failure.
 Result<PredicateRef> Parser::parsePredicateRef() {
+    std::vector<SyntaxError> errors;
     Token identifier = lexer.take_next();
     if(identifier.type == Token::Type::identifier) {
         Token next = lexer.peek_next();
@@ -200,16 +202,16 @@ Result<PredicateRef> Parser::parsePredicateRef() {
                     arguments.push_back(val);
                 },
                 [&]() {
-                    std::vector<SyntaxError> errorVector { SyntaxError("Expected argument after \",\" in argument list.") };
-                    return Result<PredicateRef>(errorVector);
-                });
+                    errors.push_back(SyntaxError("Expected argument after \",\" in argument list."));
+                    return Result<PredicateRef>(errors);
+                }, errors);
             } while(lexer.take(Token::Type::comma));
 
             if(lexer.take(Token::Type::paren_r)) {
                 return Optional(PredicateRef(identifier.text, arguments, identifier.location));
             } else {
-                std::vector<SyntaxError> errorVector { SyntaxError("Expected a \",\" or \")\" after argument.") };
-                return Result<PredicateRef>(errorVector);
+                errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument."));
+                return Result<PredicateRef>(errors);
             }
         }
 
@@ -223,11 +225,16 @@ Result<PredicateRef> Parser::parsePredicateRef() {
 }
 
 Result<EffectCtorRef> Parser::parseEffectCtorRef() {
+    std::vector<SyntaxError> errors;
     Token first = lexer.take_next();
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(first);
-        return Optional<EffectCtorRef>();
+        if (errors.empty()) {
+            return Result<EffectCtorRef>(Optional<EffectCtorRef>());
+        } else {
+            return Result<EffectCtorRef>(errors);
+        }
     };
 
     // <effect-ctor-ref> := "do" <identifier>
@@ -238,8 +245,8 @@ Result<EffectCtorRef> Parser::parseEffectCtorRef() {
 
     Token identifier = lexer.take_next();
     if(identifier.type != Token::Type::identifier) {
-        std::vector<SyntaxError> errorVector { SyntaxError("Expected identifier after \"do\".") };
-        return Result<EffectCtorRef>(errorVector);
+        errors.push_back(SyntaxError("Expected identifier after \"do\"."));
+        return Result<EffectCtorRef>(errors);
     }
 
     if(lexer.take(Token::Type::paren_l)) {
@@ -251,16 +258,16 @@ Result<EffectCtorRef> Parser::parseEffectCtorRef() {
                 arguments.push_back(val);
             },
             [&]() {
-                std::vector<SyntaxError> errorVector { SyntaxError("Expected argument after \",\" in argument list.") };
-                return Result<EffectCtorRef>(errorVector);
-            });
+                errors.push_back(SyntaxError("Expected argument after \",\" in argument list."));
+                return Result<EffectCtorRef>(errors);
+            }, errors);
         } while(lexer.take(Token::Type::comma));
 
         if(lexer.take(Token::Type::paren_r)) {
             return Optional(EffectCtorRef(identifier.text, arguments, identifier.location));
         } else {
-            std::vector<SyntaxError> errorVector { SyntaxError("Expected a \",\" or \")\" after argument.") };
-            return Result<EffectCtorRef>(errorVector);
+            errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument."));
+            return Result<EffectCtorRef>(errors);
         }
     }
 
