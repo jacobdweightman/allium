@@ -12,6 +12,7 @@
 #include "SemAna/StaticError.h"
 #include "SemAna/Predicates.h"
 #include "Utils/Optional.h"
+#include "Parser/AST.h"
 
 struct Arguments {
     /// Represents the possible modes for writing the AST to stdout.
@@ -81,7 +82,15 @@ int main(int argc, char *argv[]) {
     std::ifstream file(arguments.filePaths.front());
     ErrorEmitter errorEmitter(std::cout);
 
-    parser::Parser(file).parseAST().then([&](const parser::AST &ast) {
+    parser::Result<parser::AST> parserOutput = parser::Parser(file).parseAST();
+    if (parserOutput.errored()) {
+        exit(1);
+    }
+
+    Optional<parser::AST> ast;
+    parserOutput.as_a<Optional<parser::AST>>().unwrapInto(ast);
+
+    ast.then([&](const parser::AST &ast) {
         if(arguments.printAST == Arguments::PrintASTMode::SYNTACTIC) {
             parser::ASTPrinter(std::cout).visit(ast);
             exit(0);
