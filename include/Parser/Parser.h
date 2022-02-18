@@ -60,7 +60,6 @@ public:
         }
     }
 
-private:
     bool errored() const {
         return std::holds_alternative<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
     }
