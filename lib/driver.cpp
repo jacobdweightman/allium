@@ -84,6 +84,11 @@ int main(int argc, char *argv[]) {
 
     parser::Result<parser::AST> parserOutput = parser::Parser(file).parseAST();
     if (parserOutput.errored()) {
+        std::vector<parser::SyntaxError> errors;
+        parserOutput.as_a<std::vector<parser::SyntaxError>>().unwrapInto(errors);
+        for (parser::SyntaxError const& error : errors) {
+            std::cout << error.getMessage() << std::endl;
+        }
         exit(1);
     }
 

@@ -343,7 +343,11 @@ Result<Implication> Parser::parseImplication() {
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(first);
-        return Optional<Implication>();
+        if (errors.empty()) {
+            return Result<Implication>(Optional<Implication>());
+        } else {
+            return Result<Implication>(errors);
+        }
     };
 
     PredicateRef p;
@@ -718,10 +722,8 @@ Result<AST> Parser::parseAST() {
         } else {
             Token unexpectedToken = lexer.peek_next();
             if(unexpectedToken.type != Token::Type::end_of_file) {
-                std::cout << "Unexpected token " << unexpectedToken.text;
                 errors.push_back(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\"."));
             }
-
             reached_eof = true;
         }
     } while(!reached_eof);

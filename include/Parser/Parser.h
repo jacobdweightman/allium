@@ -29,7 +29,7 @@ template <typename T>
 class Result: public TaggedUnion<Optional<T>, std::vector<SyntaxError>> {
     using TaggedUnion<Optional<T>, std::vector<SyntaxError>>::TaggedUnion;
 public:
-    bool unwrapResultInto(T& val, std::vector<SyntaxError> errorsList) {
+    bool unwrapResultInto(T& val, std::vector<SyntaxError>& errorsList) {
         if (errored()) {
             std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
             errorsList.insert(std::end(errorsList), std::begin(resultErrors), std::end(resultErrors));
@@ -39,7 +39,7 @@ public:
         }
     }
 
-    bool unwrapResultGuard(T& val, std::vector<SyntaxError> errorsList) {
+    bool unwrapResultGuard(T& val, std::vector<SyntaxError>& errorsList) {
         if (errored()) {
             std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
             errorsList.insert(std::end(errorsList), std::begin(resultErrors), std::end(resultErrors));
