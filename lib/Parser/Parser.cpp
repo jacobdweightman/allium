@@ -722,7 +722,7 @@ Result<AST> Parser::parseAST() {
         } else {
             Token unexpectedToken = lexer.peek_next();
             if(unexpectedToken.type != Token::Type::end_of_file) {
-                errors.push_back(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\"."));
+                errors.push_back(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\".", lexer.peek_next().location));
             }
             reached_eof = true;
         }

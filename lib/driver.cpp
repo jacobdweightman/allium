@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
         std::vector<parser::SyntaxError> errors;
         parserOutput.as_a<std::vector<parser::SyntaxError>>().unwrapInto(errors);
         for (parser::SyntaxError const& error : errors) {
-            std::cout << error.getMessage() << std::endl;
+            std::cout << "syntax error " << error.getLocation() << " - " << error.getMessage() << std::endl;
         }
         exit(1);
     }

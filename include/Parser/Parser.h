@@ -7,6 +7,7 @@
 #include "Parser/Lexer.h"
 #include "Utils/Optional.h"
 #include "Utils/TaggedUnion.h"
+#include "Utils/ParserValues.h"
 
 namespace parser {
 
@@ -14,12 +15,18 @@ namespace parser {
 /// The parser terminates and returns an empty AST on the first syntax error it encounters.
 class SyntaxError {
 public:
-   SyntaxError(const std::string& msg) : msg_(msg) {}
-  ~SyntaxError() {}
+    SyntaxError(const std::string& msg, SourceLocation location) : msg(msg), location(location) {}
+    SyntaxError(const std::string& msg) : msg(msg), location(0, 0) {}
+    ~SyntaxError() {}
 
-   std::string getMessage() const {return(msg_);};
+    std::string getMessage() const {return(msg);};
+    SourceLocation getLocation() const {return(location);};
 private:
-   std::string msg_;
+    /// The error message associated with the error
+    std::string msg;
+
+    /// The location of the error in the source file.
+    SourceLocation location;
 };
 
 // Class representing either a success or failure for a particular parse method.
