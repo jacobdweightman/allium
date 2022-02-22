@@ -454,7 +454,7 @@ Result<Parameter> Parser::parseParameter() {
         if(lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
             return Optional(Parameter(identifier.text, true, next.location));
         } else {
-            std::vector<SyntaxError> errorVector { SyntaxError("Expected type name after keyword \"in.\"") };
+            std::vector<SyntaxError> errorVector { SyntaxError("Expected type name after keyword \"in.\"", lexer.peek_next().location) };
             return rewindAndReturn();
         }
     }
@@ -514,12 +514,16 @@ Result<Constructor> Parser::parseConstructor() {
             }
         } while(lexer.take(Token::Type::comma));
 
-        if( lexer.take(Token::Type::paren_r) &&
-            lexer.take(Token::Type::end_of_statement)) {
+        if(lexer.take(Token::Type::paren_r)) {
+            if (lexer.take(Token::Type::end_of_statement)) {
                 return Optional(Constructor(
                     identifier.text,
                     parameters,
                     identifier.location));
+            } else {
+                errors.push_back(SyntaxError("Expected a \";\" after a constructor definition.", lexer.peek_next().location));
+                return rewindAndReturn();
+            }
         } else {
             errors.push_back(SyntaxError("Expected a \",\" or \")\" after parameter.", lexer.peek_next().location));
             return rewindAndReturn();
