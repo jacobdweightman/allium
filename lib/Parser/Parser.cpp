@@ -33,7 +33,7 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
     };
 
     if(identifier.type != Token::Type::identifier) {
-        errors.push_back(SyntaxError("Expected predicate name in predicate definition."));
+        errors.push_back(SyntaxError("Expected predicate name in predicate definition.", lexer.peek_next().location));
         return Result<PredicateDecl>(errors);
     }
 
@@ -49,17 +49,17 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
                 parameters.push_back(param);
             } else {
                 if (parameters.size() == 0) {
-                    errors.push_back(SyntaxError("Parentheses must not appear after predicate name for predicates with zero arguments."));
+                    errors.push_back(SyntaxError("Parentheses must not appear after predicate name for predicates with zero arguments.", lexer.peek_next().location));
                     return Result<PredicateDecl>(errors);
                 } else {
-                    errors.push_back(SyntaxError("Expected an additional argument after \",\" in parameter list."));
+                    errors.push_back(SyntaxError("Expected an additional argument after \",\" in parameter list.", lexer.peek_next().location));
                     return Result<PredicateDecl>(errors);
                 }
             }
         } while(lexer.take(Token::Type::comma));
 
         if(!lexer.take(Token::Type::paren_r)) {
-            errors.push_back(SyntaxError("Expected a \",\" or \")\" after parameter."));
+            errors.push_back(SyntaxError("Expected a \",\" or \")\" after parameter.", lexer.peek_next().location));
             return Result<PredicateDecl>(errors);
         }
 
@@ -115,7 +115,7 @@ Result<NamedValue> Parser::parseNamedValue() {
                 arguments.push_back(arg);
             },
             [&]() {
-                errors.push_back(SyntaxError("Expected argument after \",\" in argument list."));
+                errors.push_back(SyntaxError("Expected argument after \",\" in argument list.", lexer.peek_next().location));
                 return Result<NamedValue>(errors);
             }, errors);
         } while(lexer.take(Token::Type::comma));
@@ -126,7 +126,7 @@ Result<NamedValue> Parser::parseNamedValue() {
                 arguments,
                 identifier.location));
         } else {
-            errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument."));
+            errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument.", lexer.peek_next().location));
             return Result<NamedValue>(errors);
         }
     } else {
@@ -202,7 +202,7 @@ Result<PredicateRef> Parser::parsePredicateRef() {
                     arguments.push_back(val);
                 },
                 [&]() {
-                    errors.push_back(SyntaxError("Expected argument after \",\" in argument list."));
+                    errors.push_back(SyntaxError("Expected argument after \",\" in argument list.", lexer.peek_next().location));
                     return Result<PredicateRef>(errors);
                 }, errors);
             } while(lexer.take(Token::Type::comma));
@@ -210,7 +210,7 @@ Result<PredicateRef> Parser::parsePredicateRef() {
             if(lexer.take(Token::Type::paren_r)) {
                 return Optional(PredicateRef(identifier.text, arguments, identifier.location));
             } else {
-                errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument."));
+                errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument.", lexer.peek_next().location));
                 return Result<PredicateRef>(errors);
             }
         }
@@ -245,7 +245,7 @@ Result<EffectCtorRef> Parser::parseEffectCtorRef() {
 
     Token identifier = lexer.take_next();
     if(identifier.type != Token::Type::identifier) {
-        errors.push_back(SyntaxError("Expected identifier after \"do\"."));
+        errors.push_back(SyntaxError("Expected identifier after \"do\".", lexer.peek_next().location));
         return Result<EffectCtorRef>(errors);
     }
 
@@ -258,7 +258,7 @@ Result<EffectCtorRef> Parser::parseEffectCtorRef() {
                 arguments.push_back(val);
             },
             [&]() {
-                errors.push_back(SyntaxError("Expected argument after \",\" in argument list."));
+                errors.push_back(SyntaxError("Expected argument after \",\" in argument list.", lexer.peek_next().location));
                 return Result<EffectCtorRef>(errors);
             }, errors);
         } while(lexer.take(Token::Type::comma));
@@ -266,7 +266,7 @@ Result<EffectCtorRef> Parser::parseEffectCtorRef() {
         if(lexer.take(Token::Type::paren_r)) {
             return Optional(EffectCtorRef(identifier.text, arguments, identifier.location));
         } else {
-            errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument."));
+            errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument.", lexer.peek_next().location));
             return Result<EffectCtorRef>(errors);
         }
     }
@@ -356,20 +356,20 @@ Result<Implication> Parser::parseImplication() {
     //     <predicate-name> "<-" <expression> "."
     if(parsePredicateRef().unwrapResultInto(p, errors)) {
         if(!lexer.take(Token::Type::implied_by)) {
-            errors.push_back(SyntaxError("Expected a \"<-\" after the head of an implication."));
+            errors.push_back(SyntaxError("Expected a \"<-\" after the head of an implication.", lexer.peek_next().location));
             return rewindAndReturn();
         }
 
         Expression expr;
         if(parseExpression().unwrapResultGuard(expr, errors)) {
-            errors.push_back(SyntaxError("Expected an expression after \"<-\" in an implication."));
+            errors.push_back(SyntaxError("Expected an expression after \"<-\" in an implication.", lexer.peek_next().location));
             return rewindAndReturn();
         }
 
         if(lexer.take(Token::Type::end_of_statement)) {
             return Optional(Implication(p, expr));
         } else {
-            std::vector<SyntaxError> errorVector { SyntaxError("Expected a \";\" at the end of an implication.") };
+            std::vector<SyntaxError> errorVector { SyntaxError("Expected a \";\" at the end of an implication.", lexer.peek_next().location) };
             return rewindAndReturn();
         }
     } else {
@@ -412,12 +412,12 @@ Result<Predicate> Parser::parsePredicate() {
         if(lexer.take(Token::Type::brace_r)) {
             return Result<Predicate>(Optional(Predicate(decl, implications)));
         } else {
-            errors.push_back(SyntaxError("Expected \"}\" at the end of a predicate definition."));
+            errors.push_back(SyntaxError("Expected \"}\" at the end of a predicate definition.", lexer.peek_next().location));
             return rewindAndReturn();
         }
     } else {
         Token unexpectedToken = lexer.peek_next();
-        errors.push_back(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\" between predicate name and \"{\"."));
+        errors.push_back(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\" between predicate name and \"{\".", unexpectedToken.location));
         return rewindAndReturn();
     }
 }
@@ -509,7 +509,7 @@ Result<Constructor> Parser::parseConstructor() {
             if(parseCtorParameter().unwrapResultInto(param, errors)) {
                 parameters.push_back(param);
             } else {
-                errors.push_back(SyntaxError("Expected an additional argument after \",\" in parameter list."));
+                errors.push_back(SyntaxError("Expected an additional argument after \",\" in parameter list.", lexer.peek_next().location));
                 return rewindAndReturn();
             }
         } while(lexer.take(Token::Type::comma));
@@ -521,7 +521,7 @@ Result<Constructor> Parser::parseConstructor() {
                     parameters,
                     identifier.location));
         } else {
-            errors.push_back(SyntaxError("Expected a \",\" or \")\" after parameter."));
+            errors.push_back(SyntaxError("Expected a \",\" or \")\" after parameter.", lexer.peek_next().location));
             return rewindAndReturn();
         }
     }
@@ -551,7 +551,7 @@ Result<Type> Parser::parseType() {
     }
 
     if(parseTypeDecl().unwrapResultGuard(declaration, errors)) {
-        errors.push_back(SyntaxError("Type name is missing from type declaration."));
+        errors.push_back(SyntaxError("Type name is missing from type declaration.", lexer.peek_next().location));
         return rewindAndReturn();
     }
 
@@ -565,12 +565,12 @@ Result<Type> Parser::parseType() {
         if(lexer.take(Token::Type::brace_r)) {
             return Optional(Type(declaration, ctors));
         } else {
-            errors.push_back(SyntaxError("Closing \"}\" is missing from type definition."));
+            errors.push_back(SyntaxError("Closing \"}\" is missing from type definition.", lexer.peek_next().location));
             return rewindAndReturn();
         }
     } else {
         Token unexpectedToken = lexer.peek_next();
-        errors.push_back(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\" between type name and \"{\"."));
+        errors.push_back(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\" between type name and \"{\".", lexer.peek_next().location));
         return rewindAndReturn();
     }
 }
@@ -591,7 +591,7 @@ Result<std::vector<EffectRef>> Parser::parseEffectList() {
     do {
         Token identifier;
         if(lexer.take_token(Token::Type::identifier).unwrapGuard(identifier)) {
-            errors.push_back(SyntaxError("Expected an effect name."));
+            errors.push_back(SyntaxError("Expected an effect name.", lexer.peek_next().location));
             return Result<std::vector<EffectRef>>(errors);
         }
         effects.emplace_back(identifier.text, identifier.location);
@@ -722,7 +722,7 @@ Result<AST> Parser::parseAST() {
         } else {
             Token unexpectedToken = lexer.peek_next();
             if(unexpectedToken.type != Token::Type::end_of_file) {
-                errors.push_back(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\".", lexer.peek_next().location));
+                errors.push_back(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\".", unexpectedToken.location));
             }
             reached_eof = true;
         }
@@ -733,12 +733,6 @@ Result<AST> Parser::parseAST() {
     } else {
         return Result<AST>(errors);
     }
-
-    /*catch (SyntaxError& se) {
-        out << "syntax error " << lexer.peek_next().location <<
-            " - " << se.getMessage() << "\n";
-        return Optional<AST>();
-    }*/
 }
 
 } // namespace parser

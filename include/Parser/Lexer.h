@@ -87,6 +87,9 @@ public:
     /// return true. Otherwise, has no effect on the lexer and returns no value.
     Optional<Token> take_token(Token::Type type);
 
+    /// Return the previous token in the stream without changing the current location.
+    Token peek_prev();
+
     /// Moves back within the file being lexed to the beginning of the indicated
     /// token, such that the given token becomes the next token to be lexed.
     void rewind(Token tok);

@@ -16,7 +16,6 @@ namespace parser {
 class SyntaxError {
 public:
     SyntaxError(const std::string& msg, SourceLocation location) : msg(msg), location(location) {}
-    SyntaxError(const std::string& msg) : msg(msg), location(0, 0) {}
     ~SyntaxError() {}
 
     std::string getMessage() const {return(msg);};
