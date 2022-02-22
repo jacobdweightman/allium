@@ -230,11 +230,7 @@ Result<EffectCtorRef> Parser::parseEffectCtorRef() {
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(first);
-        if (errors.empty()) {
-            return Result<EffectCtorRef>(Optional<EffectCtorRef>());
-        } else {
-            return Result<EffectCtorRef>(errors);
-        }
+        return Result<EffectCtorRef>(Optional<EffectCtorRef>());
     };
 
     // <effect-ctor-ref> := "do" <identifier>
@@ -343,11 +339,7 @@ Result<Implication> Parser::parseImplication() {
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(first);
-        if (errors.empty()) {
-            return Result<Implication>(Optional<Implication>());
-        } else {
-            return Result<Implication>(errors);
-        }
+        return Result<Implication>(Optional<Implication>());
     };
 
     PredicateRef p;
@@ -357,20 +349,20 @@ Result<Implication> Parser::parseImplication() {
     if(parsePredicateRef().unwrapResultInto(p, errors)) {
         if(!lexer.take(Token::Type::implied_by)) {
             errors.push_back(SyntaxError("Expected a \"<-\" after the head of an implication.", lexer.peek_next().location));
-            return rewindAndReturn();
+            return Result<Implication>(errors);
         }
 
         Expression expr;
         if(parseExpression().unwrapResultGuard(expr, errors)) {
             errors.push_back(SyntaxError("Expected an expression after \"<-\" in an implication.", lexer.peek_next().location));
-            return rewindAndReturn();
+            return Result<Implication>(errors);
         }
 
         if(lexer.take(Token::Type::end_of_statement)) {
             return Optional(Implication(p, expr));
         } else {
-            std::vector<SyntaxError> errorVector { SyntaxError("Expected a \";\" at the end of an implication.", lexer.peek_next().location) };
-            return rewindAndReturn();
+            errors.push_back(SyntaxError("Expected a \";\" at the end of an implication.", lexer.peek_next().location));
+            return Result<Implication>(errors);
         }
     } else {
         return rewindAndReturn();
@@ -405,20 +397,24 @@ Result<Predicate> Parser::parsePredicate() {
 
     if(lexer.take(Token::Type::brace_l)) {
         Implication impl;
-        while(parseImplication().unwrapResultInto(impl, errors)) {
+        while(parseImplication().unwrapResultErrors(impl, errors)) {
             implications.push_back(impl);
         }
 
         if(lexer.take(Token::Type::brace_r)) {
-            return Result<Predicate>(Optional(Predicate(decl, implications)));
+            if (errors.empty()) {
+                return Result<Predicate>(Optional(Predicate(decl, implications)));
+            } else {
+                return Result<Predicate>(errors);
+            }
         } else {
             errors.push_back(SyntaxError("Expected \"}\" at the end of a predicate definition.", lexer.peek_next().location));
-            return rewindAndReturn();
+            return Result<Predicate>(errors);
         }
     } else {
         Token unexpectedToken = lexer.peek_next();
         errors.push_back(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\" between predicate name and \"{\".", unexpectedToken.location));
-        return rewindAndReturn();
+        return Result<Predicate>(errors);
     }
 }
 
@@ -440,11 +436,7 @@ Result<Parameter> Parser::parseParameter() {
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(next);
-        if (errors.empty()) {
-            return Result<Parameter>(Optional<Parameter>());
-        } else {
-            return Result<Parameter>(errors);
-        }
+        return Result<Parameter>(Optional<Parameter>());
     };
 
     if(next.type == Token::Type::identifier) {
@@ -455,7 +447,7 @@ Result<Parameter> Parser::parseParameter() {
             return Optional(Parameter(identifier.text, true, next.location));
         } else {
             std::vector<SyntaxError> errorVector { SyntaxError("Expected type name after keyword \"in.\"", lexer.peek_next().location) };
-            return rewindAndReturn();
+            return Result<Parameter>(errors);
         }
     }
 
@@ -479,11 +471,7 @@ Result<Constructor> Parser::parseConstructor() {
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(next);
-        if (errors.empty()) {
-            return Result<Constructor>(Optional<Constructor>());
-        } else {
-            return Result<Constructor>(errors);
-        }
+        return Result<Constructor>(Optional<Constructor>());
     };
 
     Token identifier;
@@ -510,7 +498,6 @@ Result<Constructor> Parser::parseConstructor() {
                 parameters.push_back(param);
             } else {
                 errors.push_back(SyntaxError("Expected an additional argument after \",\" in parameter list.", lexer.peek_next().location));
-                return rewindAndReturn();
             }
         } while(lexer.take(Token::Type::comma));
 
@@ -521,12 +508,12 @@ Result<Constructor> Parser::parseConstructor() {
                     parameters,
                     identifier.location));
             } else {
-                errors.push_back(SyntaxError("Expected a \";\" after a constructor definition.", lexer.peek_next().location));
-                return rewindAndReturn();
+                errors.push_back(SyntaxError("Expected a \";\" after constructor definition.", lexer.peek_next().location));
+                return Result<Constructor>(errors);
             }
         } else {
             errors.push_back(SyntaxError("Expected a \",\" or \")\" after parameter.", lexer.peek_next().location));
-            return rewindAndReturn();
+            return Result<Constructor>(errors);
         }
     }
 
@@ -539,11 +526,7 @@ Result<Type> Parser::parseType() {
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(first);
-        if (errors.empty()) {
-            return Result<Type>(Optional<Type>());
-        } else {
-            return Result<Type>(errors);
-        }
+        return Result<Type>(Optional<Type>());
     };
 
     TypeDecl declaration;
@@ -556,7 +539,6 @@ Result<Type> Parser::parseType() {
 
     if(parseTypeDecl().unwrapResultGuard(declaration, errors)) {
         errors.push_back(SyntaxError("Type name is missing from type declaration.", lexer.peek_next().location));
-        return rewindAndReturn();
     }
 
     if(lexer.take(Token::Type::brace_l)) {
@@ -567,15 +549,19 @@ Result<Type> Parser::parseType() {
         }
 
         if(lexer.take(Token::Type::brace_r)) {
-            return Optional(Type(declaration, ctors));
+            if (errors.empty()) {
+                return Optional(Type(declaration, ctors));
+            } else {
+                return Result<Type>(errors);
+            }
         } else {
             errors.push_back(SyntaxError("Closing \"}\" is missing from type definition.", lexer.peek_next().location));
-            return rewindAndReturn();
+            return Result<Type>(errors);
         }
     } else {
         Token unexpectedToken = lexer.peek_next();
         errors.push_back(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\" between type name and \"{\".", lexer.peek_next().location));
-        return rewindAndReturn();
+        return Result<Type>(errors);
     }
 }
 
@@ -717,11 +703,11 @@ Result<AST> Parser::parseAST() {
     bool reached_eof = false;
 
     do {
-        if(parsePredicate().unwrapResultInto(p, errors)) {
+        if(parsePredicate().unwrapResultErrors(p, errors)) {
             predicates.push_back(p);
-        } else if(parseType().unwrapResultInto(t, errors)) {
+        } else if(parseType().unwrapResultErrors(t, errors)) {
             types.push_back(t);
-        } else if(parseEffect().unwrapResultInto(e, errors)) {
+        } else if(parseEffect().unwrapResultErrors(e, errors)) {
             effects.push_back(e);
         } else {
             Token unexpectedToken = lexer.peek_next();

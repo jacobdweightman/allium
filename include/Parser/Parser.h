@@ -55,6 +55,16 @@ public:
         }
     }
 
+    bool unwrapResultErrors(T& val, std::vector<SyntaxError>& errorsList) {
+        if (errored()) {
+            std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
+            errorsList.insert(std::end(errorsList), std::begin(resultErrors), std::end(resultErrors));
+            return true;
+        } else {
+            return std::get<Optional<T>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped).unwrapInto(val);
+        }
+    }
+
     template <typename U>
     U switchOver(std::function<U(T)> handleValue, std::function<U(void)> handleNone, std::vector<SyntaxError> errorsList) const {
         if (errored()) {
