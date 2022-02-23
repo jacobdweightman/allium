@@ -34,7 +34,7 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
 
     if(identifier.type != Token::Type::identifier) {
         errors.push_back(SyntaxError("Expected predicate name in predicate definition.", lexer.peek_next().location));
-        return Result<PredicateDecl>(errors);
+        lexer.rewind(identifier);
     }
 
     Token next = lexer.peek_next();
@@ -50,17 +50,14 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
             } else {
                 if (parameters.size() == 0) {
                     errors.push_back(SyntaxError("Parentheses must not appear after predicate name for predicates with zero arguments.", lexer.peek_next().location));
-                    return Result<PredicateDecl>(errors);
                 } else {
                     errors.push_back(SyntaxError("Expected an additional argument after \",\" in parameter list.", lexer.peek_next().location));
-                    return Result<PredicateDecl>(errors);
                 }
             }
         } while(lexer.take(Token::Type::comma));
 
         if(!lexer.take(Token::Type::paren_r)) {
             errors.push_back(SyntaxError("Expected a \",\" or \")\" after parameter.", lexer.peek_next().location));
-            return Result<PredicateDecl>(errors);
         }
 
         std::vector<EffectRef> effects;
@@ -68,12 +65,16 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
             rewindAndReturn();
         }
 
-        return Result<PredicateDecl>(
-          Optional(PredicateDecl(
-            Name<Predicate>(identifier.text),
-            parameters,
-            effects,
-            identifier.location)));
+        if (errors.empty()) {
+            return Result<PredicateDecl>(
+              Optional(PredicateDecl(
+                Name<Predicate>(identifier.text),
+                parameters,
+                effects,
+                identifier.location)));
+        } else {
+            return Result<PredicateDecl>(errors);
+        }
     }
 
     // <predicate-name> := identifier <effect-list>
@@ -84,8 +85,12 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
         rewindAndReturn();
     }
 
-    return Result<PredicateDecl>(Optional<PredicateDecl>(PredicateDecl(
-        Name<Predicate>(identifier.text), {}, effects, identifier.location)));
+    if (errors.empty()) {
+        return Result<PredicateDecl>(Optional<PredicateDecl>(PredicateDecl(
+            Name<Predicate>(identifier.text), {}, effects, identifier.location)));
+    } else {
+        return Result<PredicateDecl>(errors);
+    }
 }
 
 Result<NamedValue> Parser::parseNamedValue() {
@@ -203,12 +208,15 @@ Result<PredicateRef> Parser::parsePredicateRef() {
                 },
                 [&]() {
                     errors.push_back(SyntaxError("Expected argument after \",\" in argument list.", lexer.peek_next().location));
-                    return Result<PredicateRef>(errors);
                 }, errors);
             } while(lexer.take(Token::Type::comma));
 
             if(lexer.take(Token::Type::paren_r)) {
-                return Optional(PredicateRef(identifier.text, arguments, identifier.location));
+                if (errors.empty()) {
+                    return Optional(PredicateRef(identifier.text, arguments, identifier.location));
+                } else {
+                    return Result<PredicateRef>(errors);
+                }
             } else {
                 errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument.", lexer.peek_next().location));
                 return Result<PredicateRef>(errors);
@@ -278,17 +286,28 @@ Result<Expression> Parser::parseAtom() {
     std::vector<SyntaxError> errors;
 
     // <atom> := <truth-literal>
-    if(parseTruthLiteral().unwrapResultInto(tl, errors)) {
-        return Optional(Expression(tl));
+    if(parseTruthLiteral().unwrapResultErrors(tl, errors)) {
+        if (errors.empty()) {
+            return Optional(Expression(tl));
+        } else {
+            return Result<Expression>(errors);
+        }
 
     // <atom> := <predicate-name>
-    } else if(parsePredicateRef().unwrapResultInto(p, errors)) {
-        return Optional(Expression(p));
+    } else if(parsePredicateRef().unwrapResultErrors(p, errors)) {
+        if (errors.empty()) {
+            return Optional(Expression(p));
+        } else {
+            return Result<Expression>(errors);
+        }
 
     // <atom> := <effect-constructor-ref>
-    } else if(parseEffectCtorRef().unwrapResultInto(ecr, errors)) {
-        return Optional(Expression(ecr));
-
+    } else if(parseEffectCtorRef().unwrapResultErrors(ecr, errors)) {
+        if (errors.empty()) {
+            return Optional(Expression(ecr));
+        } else {
+            return Result<Expression>(errors);
+        }
     } else {
         if (errors.empty()) {
             return Optional<Expression>();
@@ -346,20 +365,22 @@ Result<Implication> Parser::parseImplication() {
 
     // <implication> :=
     //     <predicate-name> "<-" <expression> "."
-    if(parsePredicateRef().unwrapResultInto(p, errors)) {
+    if(parsePredicateRef().unwrapResultErrors(p, errors)) {
         if(!lexer.take(Token::Type::implied_by)) {
             errors.push_back(SyntaxError("Expected a \"<-\" after the head of an implication.", lexer.peek_next().location));
-            return Result<Implication>(errors);
         }
 
         Expression expr;
         if(parseExpression().unwrapResultGuard(expr, errors)) {
             errors.push_back(SyntaxError("Expected an expression after \"<-\" in an implication.", lexer.peek_next().location));
-            return Result<Implication>(errors);
         }
 
         if(lexer.take(Token::Type::end_of_statement)) {
-            return Optional(Implication(p, expr));
+            if (errors.empty()) {
+                return Optional(Implication(p, expr));
+            } else {
+                return Result<Implication>(errors);
+            }
         } else {
             errors.push_back(SyntaxError("Expected a \";\" at the end of an implication.", lexer.peek_next().location));
             return Result<Implication>(errors);
@@ -391,7 +412,7 @@ Result<Predicate> Parser::parsePredicate() {
         return rewindAndReturn();
     }
 
-    if (parsePredicateDecl().unwrapResultGuard(decl, errors)) {
+    if (parsePredicateDecl().unwrapResultGuardErrors(decl, errors)) {
         return rewindAndReturn();
     }
 
