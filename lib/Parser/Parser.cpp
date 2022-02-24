@@ -61,7 +61,7 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
         }
 
         std::vector<EffectRef> effects;
-        if(parseEffectList().unwrapResultGuard(effects, errors)) {
+        if(parseEffectList().unwrapResultGuardErrors(effects, errors)) {
             rewindAndReturn();
         }
 
@@ -81,7 +81,7 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
     lexer.rewind(next);
 
     std::vector<EffectRef> effects;
-    if(parseEffectList().unwrapResultGuard(effects, errors)) {
+    if(parseEffectList().unwrapResultGuardErrors(effects, errors)) {
         rewindAndReturn();
     }
 
@@ -99,9 +99,13 @@ Result<NamedValue> Parser::parseNamedValue() {
     Token identifier;
 
     // <value> := "let" <identifier>
-    if( lexer.take(Token::Type::kw_let) &&
-        lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
+    if( lexer.take(Token::Type::kw_let) ) {
+        if (lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
             return Optional(NamedValue(identifier.text, true, identifier.location));
+        } else {
+            errors.push_back(SyntaxError("Expected identifier after \"let\".", lexer.peek_next().location));
+            return Result<NamedValue>(errors);
+        }
     }
 
     // <value> := <identifier> "(" <list of values> ")"
@@ -121,21 +125,28 @@ Result<NamedValue> Parser::parseNamedValue() {
             },
             [&]() {
                 errors.push_back(SyntaxError("Expected argument after \",\" in argument list.", lexer.peek_next().location));
-                return Result<NamedValue>(errors);
             }, errors);
         } while(lexer.take(Token::Type::comma));
 
         if(lexer.take(Token::Type::paren_r)) {
-            return Optional(NamedValue(
-                identifier.text,
-                arguments,
-                identifier.location));
+            if (errors.empty()) {
+                return Optional(NamedValue(
+                    identifier.text,
+                    arguments,
+                    identifier.location));
+            } else {
+                return Result<NamedValue>(errors);
+            }
         } else {
             errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument.", lexer.peek_next().location));
             return Result<NamedValue>(errors);
         }
     } else {
-        return Optional(NamedValue(identifier.text, {}, identifier.location));
+        if (errors.empty()) {
+            return Optional(NamedValue(identifier.text, {}, identifier.location));
+        } else {
+            return Result<NamedValue>(errors);
+        }
     }
 }
 
@@ -169,16 +180,26 @@ Result<Value> Parser::parseValue() {
     std::vector<SyntaxError> errors;
 
     // <value> := <named-value>
-    if(parseNamedValue().unwrapResultInto(nv, errors)) {
-        return Optional(Value(nv));
-
+    if(parseNamedValue().unwrapResultErrors(nv, errors)) {
+        if (errors.empty()) {
+            return Optional(Value(nv));
+        } else {
+            return Result<Value>(errors);
+        }
     // <value> := <string-literal>
-    } else if(parseStringLiteral().unwrapResultInto(str, errors)) {
-        return Optional(Value(str));
-
+    } else if(parseStringLiteral().unwrapResultErrors(str, errors)) {
+        if (errors.empty()) {
+            return Optional(Value(str));
+        } else {
+            return Result<Value>(errors);
+        }
     // <value> := <integer-literal>
-    } else if(parseIntegerLiteral().unwrapResultInto(i, errors)) {
-        return Optional(Value(i));
+    } else if(parseIntegerLiteral().unwrapResultErrors(i, errors)) {
+        if (errors.empty()) {
+            return Optional(Value(i));
+        } else {
+            return Result<Value>(errors);
+        }
     } else {
         if (errors.empty()) {
             return Optional<Value>();
@@ -201,7 +222,15 @@ Result<PredicateRef> Parser::parsePredicateRef() {
         if(lexer.take(Token::Type::paren_l)) {
             std::vector<Value> arguments;
 
-            do {
+            parseValue().switchOver<void>(
+            [&](Value val) {
+                arguments.push_back(val);
+            },
+            [&]() {
+                errors.push_back(SyntaxError("Expected argument after \"(\" in argument list.", lexer.peek_next().location));
+            }, errors);
+
+            while(lexer.take(Token::Type::comma)){
                 parseValue().switchOver<void>(
                 [&](Value val) {
                     arguments.push_back(val);
@@ -209,7 +238,7 @@ Result<PredicateRef> Parser::parsePredicateRef() {
                 [&]() {
                     errors.push_back(SyntaxError("Expected argument after \",\" in argument list.", lexer.peek_next().location));
                 }, errors);
-            } while(lexer.take(Token::Type::comma));
+            };
 
             if(lexer.take(Token::Type::paren_r)) {
                 if (errors.empty()) {
@@ -249,8 +278,8 @@ Result<EffectCtorRef> Parser::parseEffectCtorRef() {
 
     Token identifier = lexer.take_next();
     if(identifier.type != Token::Type::identifier) {
-        errors.push_back(SyntaxError("Expected identifier after \"do\".", lexer.peek_next().location));
-        return Result<EffectCtorRef>(errors);
+        errors.push_back(SyntaxError("Expected identifier after \"do\".", identifier.location));
+        lexer.rewind(identifier);
     }
 
     if(lexer.take(Token::Type::paren_l)) {
@@ -263,7 +292,6 @@ Result<EffectCtorRef> Parser::parseEffectCtorRef() {
             },
             [&]() {
                 errors.push_back(SyntaxError("Expected argument after \",\" in argument list.", lexer.peek_next().location));
-                return Result<EffectCtorRef>(errors);
             }, errors);
         } while(lexer.take(Token::Type::comma));
 
@@ -271,11 +299,14 @@ Result<EffectCtorRef> Parser::parseEffectCtorRef() {
             return Optional(EffectCtorRef(identifier.text, arguments, identifier.location));
         } else {
             errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument.", lexer.peek_next().location));
-            return Result<EffectCtorRef>(errors);
         }
     }
 
-    return Optional(EffectCtorRef(identifier.text, {}, identifier.location));
+    if (errors.empty()) {
+        return Optional(EffectCtorRef(identifier.text, {}, identifier.location));
+    } else {
+        return Result<EffectCtorRef>(errors);
+    }
 }
 
 /// Parses a truth literal, predicate, or effect constructor from the stream.
@@ -328,7 +359,7 @@ Result<Expression> Parser::parseExpression() {
     Expression e;
 
     // <expression> := <atom>
-    if(parseAtom().unwrapResultInto(e, errors)) {
+    if(parseAtom().unwrapResultErrors(e, errors)) {
         Expression r;
 
         // <expression> := <expression> "," <atom>
@@ -341,7 +372,11 @@ Result<Expression> Parser::parseExpression() {
             }
         }
 
-        return Optional(e);
+        if (errors.empty()) {
+            return Optional(e);
+        } else {
+            return Result<Expression>(errors);
+        }
     } else {
         lexer.rewind(first);
         if (errors.empty()) {
@@ -371,7 +406,7 @@ Result<Implication> Parser::parseImplication() {
         }
 
         Expression expr;
-        if(parseExpression().unwrapResultGuard(expr, errors)) {
+        if(parseExpression().unwrapResultGuardErrors(expr, errors)) {
             errors.push_back(SyntaxError("Expected an expression after \"<-\" in an implication.", lexer.peek_next().location));
         }
 
@@ -603,12 +638,15 @@ Result<std::vector<EffectRef>> Parser::parseEffectList() {
         Token identifier;
         if(lexer.take_token(Token::Type::identifier).unwrapGuard(identifier)) {
             errors.push_back(SyntaxError("Expected an effect name.", lexer.peek_next().location));
-            return Result<std::vector<EffectRef>>(errors);
         }
         effects.emplace_back(identifier.text, identifier.location);
     } while(lexer.take(Token::Type::comma));
 
-    return Optional(effects);
+    if (errors.empty()) {
+        return Optional(effects);
+    } else {
+        return Result<std::vector<EffectRef>>(errors);
+    }
 }
 
 Result<EffectDecl> Parser::parseEffectDecl() {
