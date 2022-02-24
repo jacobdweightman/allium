@@ -125,7 +125,10 @@ Result<NamedValue> Parser::parseNamedValue() {
             },
             [&]() {
                 errors.push_back(SyntaxError("Expected argument after \",\" in argument list.", lexer.peek_next().location));
-            }, errors);
+            },
+            [&](std::vector<SyntaxError> resultErrors){
+                errors.insert(std::end(errors), std::begin(resultErrors), std::end(resultErrors));
+            });
         } while(lexer.take(Token::Type::comma));
 
         if(lexer.take(Token::Type::paren_r)) {
@@ -228,7 +231,10 @@ Result<PredicateRef> Parser::parsePredicateRef() {
             },
             [&]() {
                 errors.push_back(SyntaxError("Expected argument after \"(\" in argument list.", lexer.peek_next().location));
-            }, errors);
+            },
+            [&](std::vector<SyntaxError> resultErrors){
+                errors.insert(std::end(errors), std::begin(resultErrors), std::end(resultErrors));
+            });
 
             while(lexer.take(Token::Type::comma)){
                 parseValue().switchOver<void>(
@@ -237,7 +243,10 @@ Result<PredicateRef> Parser::parsePredicateRef() {
                 },
                 [&]() {
                     errors.push_back(SyntaxError("Expected argument after \",\" in argument list.", lexer.peek_next().location));
-                }, errors);
+                },
+                [&](std::vector<SyntaxError> resultErrors){
+                    errors.insert(std::end(errors), std::begin(resultErrors), std::end(resultErrors));
+                });
             };
 
             if(lexer.take(Token::Type::paren_r)) {
@@ -292,7 +301,10 @@ Result<EffectCtorRef> Parser::parseEffectCtorRef() {
             },
             [&]() {
                 errors.push_back(SyntaxError("Expected argument after \",\" in argument list.", lexer.peek_next().location));
-            }, errors);
+            },
+            [&](std::vector<SyntaxError> resultErrors){
+                errors.insert(std::end(errors), std::begin(resultErrors), std::end(resultErrors));
+            });
         } while(lexer.take(Token::Type::comma));
 
         if(lexer.take(Token::Type::paren_r)) {
