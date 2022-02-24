@@ -28,13 +28,17 @@ private:
     SourceLocation location;
 };
 
-// Class representing either a success or failure for a particular parse method.
-// In the success case, contains the parsed result. Otherwise, contains a std::vector
-// of the stack of syntax errors that resulted in the failure.
+// Class representing either an optional or a list of errors for a particular parse method.
 template <typename T>
 class Result: public TaggedUnion<Optional<T>, std::vector<SyntaxError>> {
     using TaggedUnion<Optional<T>, std::vector<SyntaxError>>::TaggedUnion;
 public:
+    Result(Optional<T> value, std::vector<SyntaxError> errors): TaggedUnion<Optional<T>, std::vector<SyntaxError>>(value) {
+        if (!errors.empty()) {
+            TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped = errors;
+        }
+    }
+
     bool unwrapResultInto(T& val, std::vector<SyntaxError>& errorsList) {
         if (errored()) {
             std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);

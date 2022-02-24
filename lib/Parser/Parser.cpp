@@ -65,16 +65,9 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
             rewindAndReturn();
         }
 
-        if (errors.empty()) {
-            return Result<PredicateDecl>(
-              Optional(PredicateDecl(
-                Name<Predicate>(identifier.text),
-                parameters,
-                effects,
-                identifier.location)));
-        } else {
-            return Result<PredicateDecl>(errors);
-        }
+        return Result<PredicateDecl>(
+            Optional(PredicateDecl(Name<Predicate>(identifier.text), parameters, effects, identifier.location)),
+            errors);
     }
 
     // <predicate-name> := identifier <effect-list>
@@ -85,12 +78,8 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
         rewindAndReturn();
     }
 
-    if (errors.empty()) {
-        return Result<PredicateDecl>(Optional<PredicateDecl>(PredicateDecl(
-            Name<Predicate>(identifier.text), {}, effects, identifier.location)));
-    } else {
-        return Result<PredicateDecl>(errors);
-    }
+    return Result<PredicateDecl>(Optional<PredicateDecl>(PredicateDecl(
+        Name<Predicate>(identifier.text), {}, effects, identifier.location)), errors);
 }
 
 Result<NamedValue> Parser::parseNamedValue() {
@@ -132,24 +121,15 @@ Result<NamedValue> Parser::parseNamedValue() {
         } while(lexer.take(Token::Type::comma));
 
         if(lexer.take(Token::Type::paren_r)) {
-            if (errors.empty()) {
-                return Optional(NamedValue(
-                    identifier.text,
-                    arguments,
-                    identifier.location));
-            } else {
-                return Result<NamedValue>(errors);
-            }
+            return Result<NamedValue>(
+                Optional(NamedValue(identifier.text, arguments, identifier.location)),
+                errors);
         } else {
             errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument.", lexer.peek_next().location));
             return Result<NamedValue>(errors);
         }
     } else {
-        if (errors.empty()) {
-            return Optional(NamedValue(identifier.text, {}, identifier.location));
-        } else {
-            return Result<NamedValue>(errors);
-        }
+        return Result<NamedValue>(Optional(NamedValue(identifier.text, {}, identifier.location)), errors);
     }
 }
 
@@ -184,31 +164,15 @@ Result<Value> Parser::parseValue() {
 
     // <value> := <named-value>
     if(parseNamedValue().unwrapResultErrors(nv, errors)) {
-        if (errors.empty()) {
-            return Optional(Value(nv));
-        } else {
-            return Result<Value>(errors);
-        }
+        return Result<Value>(Optional(Value(nv)), errors);
     // <value> := <string-literal>
     } else if(parseStringLiteral().unwrapResultErrors(str, errors)) {
-        if (errors.empty()) {
-            return Optional(Value(str));
-        } else {
-            return Result<Value>(errors);
-        }
+        return Result<Value>(Optional(Value(str)), errors);
     // <value> := <integer-literal>
     } else if(parseIntegerLiteral().unwrapResultErrors(i, errors)) {
-        if (errors.empty()) {
-            return Optional(Value(i));
-        } else {
-            return Result<Value>(errors);
-        }
+        return Result<Value>(Optional(Value(i)), errors);
     } else {
-        if (errors.empty()) {
-            return Optional<Value>();
-        } else {
-            return Result<Value>(errors);
-        }
+        return Result<Value>(Optional<Value>(), errors);
     }
 }
 
@@ -250,11 +214,7 @@ Result<PredicateRef> Parser::parsePredicateRef() {
             };
 
             if(lexer.take(Token::Type::paren_r)) {
-                if (errors.empty()) {
-                    return Optional(PredicateRef(identifier.text, arguments, identifier.location));
-                } else {
-                    return Result<PredicateRef>(errors);
-                }
+                return Result<PredicateRef>(Optional(PredicateRef(identifier.text, arguments, identifier.location)), errors);
             } else {
                 errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument.", lexer.peek_next().location));
                 return Result<PredicateRef>(errors);
@@ -314,11 +274,7 @@ Result<EffectCtorRef> Parser::parseEffectCtorRef() {
         }
     }
 
-    if (errors.empty()) {
-        return Optional(EffectCtorRef(identifier.text, {}, identifier.location));
-    } else {
-        return Result<EffectCtorRef>(errors);
-    }
+    return Result<EffectCtorRef>(Optional(EffectCtorRef(identifier.text, {}, identifier.location)), errors);
 }
 
 /// Parses a truth literal, predicate, or effect constructor from the stream.
@@ -330,33 +286,17 @@ Result<Expression> Parser::parseAtom() {
 
     // <atom> := <truth-literal>
     if(parseTruthLiteral().unwrapResultErrors(tl, errors)) {
-        if (errors.empty()) {
-            return Optional(Expression(tl));
-        } else {
-            return Result<Expression>(errors);
-        }
+        return Result<Expression>(Optional(Expression(tl)), errors);
 
     // <atom> := <predicate-name>
     } else if(parsePredicateRef().unwrapResultErrors(p, errors)) {
-        if (errors.empty()) {
-            return Optional(Expression(p));
-        } else {
-            return Result<Expression>(errors);
-        }
+        return Result<Expression>(Optional(Expression(p)), errors);
 
     // <atom> := <effect-constructor-ref>
     } else if(parseEffectCtorRef().unwrapResultErrors(ecr, errors)) {
-        if (errors.empty()) {
-            return Optional(Expression(ecr));
-        } else {
-            return Result<Expression>(errors);
-        }
+        return Result<Expression>(Optional(Expression(ecr)), errors);
     } else {
-        if (errors.empty()) {
-            return Optional<Expression>();
-        } else {
-            return Result<Expression>(errors);
-        }
+        return Result<Expression>(Optional<Expression>(), errors);
     }
 }
 
@@ -384,18 +324,10 @@ Result<Expression> Parser::parseExpression() {
             }
         }
 
-        if (errors.empty()) {
-            return Optional(e);
-        } else {
-            return Result<Expression>(errors);
-        }
+        return Result<Expression>(Optional(e), errors);
     } else {
         lexer.rewind(first);
-        if (errors.empty()) {
-            return Optional<Expression>();
-        } else {
-            return Result<Expression>(errors);
-        }
+        return Result<Expression>(Optional<Expression>(), errors);
     }
 }
 
@@ -423,11 +355,7 @@ Result<Implication> Parser::parseImplication() {
         }
 
         if(lexer.take(Token::Type::end_of_statement)) {
-            if (errors.empty()) {
-                return Optional(Implication(p, expr));
-            } else {
-                return Result<Implication>(errors);
-            }
+            return Result<Implication>(Optional(Implication(p, expr)), errors);
         } else {
             errors.push_back(SyntaxError("Expected a \";\" at the end of an implication.", lexer.peek_next().location));
             return Result<Implication>(errors);
@@ -443,11 +371,7 @@ Result<Predicate> Parser::parsePredicate() {
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(first);
-        if (errors.empty()) {
-            return Result<Predicate>(Optional<Predicate>());
-        } else {
-            return Result<Predicate>(errors);
-        }
+        return Result<Predicate>(Optional<Predicate>(), errors);
     };
 
     PredicateDecl decl;
@@ -470,11 +394,7 @@ Result<Predicate> Parser::parsePredicate() {
         }
 
         if(lexer.take(Token::Type::brace_r)) {
-            if (errors.empty()) {
-                return Result<Predicate>(Optional(Predicate(decl, implications)));
-            } else {
-                return Result<Predicate>(errors);
-            }
+            return Result<Predicate>(Optional<Predicate>(), errors);
         } else {
             errors.push_back(SyntaxError("Expected \"}\" at the end of a predicate definition.", lexer.peek_next().location));
             return Result<Predicate>(errors);
@@ -617,11 +537,7 @@ Result<Type> Parser::parseType() {
         }
 
         if(lexer.take(Token::Type::brace_r)) {
-            if (errors.empty()) {
-                return Optional(Type(declaration, ctors));
-            } else {
-                return Result<Type>(errors);
-            }
+            return Result<Type>(Optional(Type(declaration, ctors)), errors);
         } else {
             errors.push_back(SyntaxError("Closing \"}\" is missing from type definition.", lexer.peek_next().location));
             return Result<Type>(errors);
@@ -654,11 +570,7 @@ Result<std::vector<EffectRef>> Parser::parseEffectList() {
         effects.emplace_back(identifier.text, identifier.location);
     } while(lexer.take(Token::Type::comma));
 
-    if (errors.empty()) {
-        return Optional(effects);
-    } else {
-        return Result<std::vector<EffectRef>>(errors);
-    }
+    return Result<std::vector<EffectRef>>(Optional(effects), errors);
 }
 
 Result<EffectDecl> Parser::parseEffectDecl() {
@@ -718,11 +630,7 @@ Result<EffectConstructor> Parser::parseEffectConstructor() {
     }
 
     lexer.rewind(next);
-    if (errors.empty()) {
-        return Optional<EffectConstructor>();
-    } else {
-        return Result<EffectConstructor>(errors);
-    }
+    return Result<EffectConstructor>(Optional<EffectConstructor>(), errors);
 }
 
 Result<Effect> Parser::parseEffect() {
@@ -746,19 +654,11 @@ Result<Effect> Parser::parseEffect() {
                 return Optional(Effect(declaration, ctors));
             } else {
                 lexer.rewind(first);
-                if (errors.empty()) {
-                    return Optional<Effect>();
-                } else {
-                    return Result<Effect>(errors);
-                }
+                return Result<Effect>(Optional<Effect>(), errors);
             }
     } else {
         lexer.rewind(first);
-        if (errors.empty()) {
-            return Optional<Effect>();
-        } else {
-            return Result<Effect>(errors);
-        }
+        return Result<Effect>(Optional<Effect>(), errors);
     }
 }
 
@@ -789,11 +689,7 @@ Result<AST> Parser::parseAST() {
         }
     } while(!reached_eof);
 
-    if (errors.empty()) {
-        return Result<AST>(Optional(AST(types, effects, predicates)));
-    } else {
-        return Result<AST>(errors);
-    }
+    return Result<AST>(Optional<AST>(), errors);
 }
 
 } // namespace parser
