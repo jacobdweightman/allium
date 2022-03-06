@@ -49,16 +49,9 @@ public:
         }
     }
 
-    bool unwrapResultGuard(T& val, std::vector<SyntaxError>& errorsList) {
-        if (errored()) {
-            std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
-            errorsList.insert(std::end(errorsList), std::begin(resultErrors), std::end(resultErrors));
-            return true;
-        } else {
-            return std::get<Optional<T>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped).unwrapGuard(val);
-        }
-    }
-
+    // Unwrap the value of the result into the provided location if a value is present or
+    // add any errors to the provided list if errors are present. Return true if value or
+    // errors are present and false otherwise.
     bool unwrapResultErrors(T& val, std::vector<SyntaxError>& errorsList) {
         if (errored()) {
             std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
@@ -69,7 +62,10 @@ public:
         }
     }
 
-    bool unwrapResultGuardErrors(T& val, std::vector<SyntaxError>& errorsList) {
+    // Unwrap the value of the result into the provided location if a value is present or
+    // add any errors to the provided list if errors are present. Return true if value is
+    // present and false otherwise.
+    bool unwrapResultGuard(T& val, std::vector<SyntaxError>& errorsList) {
         if (errored()) {
             std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
             errorsList.insert(std::end(errorsList), std::begin(resultErrors), std::end(resultErrors));

@@ -61,7 +61,7 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
         }
 
         std::vector<EffectRef> effects;
-        if(parseEffectList().unwrapResultGuardErrors(effects, errors)) {
+        if(parseEffectList().unwrapResultGuard(effects, errors)) {
             rewindAndReturn();
         }
 
@@ -74,7 +74,7 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
     lexer.rewind(next);
 
     std::vector<EffectRef> effects;
-    if(parseEffectList().unwrapResultGuardErrors(effects, errors)) {
+    if(parseEffectList().unwrapResultGuard(effects, errors)) {
         rewindAndReturn();
     }
 
@@ -350,7 +350,7 @@ Result<Implication> Parser::parseImplication() {
         }
 
         Expression expr;
-        if(parseExpression().unwrapResultGuardErrors(expr, errors)) {
+        if(parseExpression().unwrapResultGuard(expr, errors)) {
             errors.push_back(SyntaxError("Expected an expression after \"<-\" in an implication.", lexer.peek_next().location));
         }
 
@@ -383,7 +383,7 @@ Result<Predicate> Parser::parsePredicate() {
         return rewindAndReturn();
     }
 
-    if (parsePredicateDecl().unwrapResultGuardErrors(decl, errors)) {
+    if (parsePredicateDecl().unwrapResultGuard(decl, errors)) {
         return rewindAndReturn();
     }
 
