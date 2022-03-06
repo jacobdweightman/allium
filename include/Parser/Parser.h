@@ -30,10 +30,10 @@ private:
 
 // Class representing either an optional or a list of errors for a particular parse method.
 template <typename T>
-class Result: public TaggedUnion<Optional<T>, std::vector<SyntaxError>> {
+class ParserResult: public TaggedUnion<Optional<T>, std::vector<SyntaxError>> {
     using TaggedUnion<Optional<T>, std::vector<SyntaxError>>::TaggedUnion;
 public:
-    Result(Optional<T> value, std::vector<SyntaxError> errors): TaggedUnion<Optional<T>, std::vector<SyntaxError>>(value) {
+    ParserResult(Optional<T> value, std::vector<SyntaxError> errors): TaggedUnion<Optional<T>, std::vector<SyntaxError>>(value) {
         if (!errors.empty()) {
             TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped = errors;
         }
@@ -85,33 +85,33 @@ public:
     Parser(std::istream &f, std::ostream &out = std::cout):
         lexer(f), out(std::cout) {}
 
-    Result<Implication> parseImplication();
-    Result<Predicate> parsePredicate();
-    Result<Type> parseType();
-    Result<Effect> parseEffect();
-    Result<AST> parseAST();
+    ParserResult<Implication> parseImplication();
+    ParserResult<Predicate> parsePredicate();
+    ParserResult<Type> parseType();
+    ParserResult<Effect> parseEffect();
+    ParserResult<AST> parseAST();
 
     // Exposed for test
     // TODO: guard these declarations with a compile flag.
-    Result<TruthLiteral> parseTruthLiteral();
-    Result<PredicateDecl> parsePredicateDecl();
-    Result<PredicateRef> parsePredicateRef();
-    Result<Expression> parseExpression();
-    Result<TypeDecl> parseTypeDecl();
-    Result<Parameter> parseParameter();
-    Result<CtorParameter> parseCtorParameter();
-    Result<Constructor> parseConstructor();
-    Result<NamedValue> parseNamedValue();
-    Result<StringLiteral> parseStringLiteral();
-    Result<IntegerLiteral> parseIntegerLiteral();
-    Result<Value> parseValue();
+    ParserResult<TruthLiteral> parseTruthLiteral();
+    ParserResult<PredicateDecl> parsePredicateDecl();
+    ParserResult<PredicateRef> parsePredicateRef();
+    ParserResult<Expression> parseExpression();
+    ParserResult<TypeDecl> parseTypeDecl();
+    ParserResult<Parameter> parseParameter();
+    ParserResult<CtorParameter> parseCtorParameter();
+    ParserResult<Constructor> parseConstructor();
+    ParserResult<NamedValue> parseNamedValue();
+    ParserResult<StringLiteral> parseStringLiteral();
+    ParserResult<IntegerLiteral> parseIntegerLiteral();
+    ParserResult<Value> parseValue();
 
 private:
-    Result<EffectCtorRef> parseEffectCtorRef();
-    Result<Expression> parseAtom();
-    Result<std::vector<EffectRef>> parseEffectList();
-    Result<EffectDecl> parseEffectDecl();
-    Result<EffectConstructor> parseEffectConstructor();
+    ParserResult<EffectCtorRef> parseEffectCtorRef();
+    ParserResult<Expression> parseAtom();
+    ParserResult<std::vector<EffectRef>> parseEffectList();
+    ParserResult<EffectDecl> parseEffectDecl();
+    ParserResult<EffectConstructor> parseEffectConstructor();
 
     Lexer lexer;
     std::ostream &out;

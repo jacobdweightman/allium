@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
     std::ifstream file(arguments.filePaths.front());
     ErrorEmitter errorEmitter(std::cout);
 
-    parser::Result<parser::AST> parserOutput = parser::Parser(file).parseAST();
+    parser::ParserResult<parser::AST> parserOutput = parser::Parser(file).parseAST();
     if (parserOutput.errored()) {
         std::vector<parser::SyntaxError> errors;
         parserOutput.as_a<std::vector<parser::SyntaxError>>().unwrapInto(errors);
