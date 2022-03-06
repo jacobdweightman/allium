@@ -167,13 +167,13 @@ Result<Value> Parser::parseValue() {
     std::vector<SyntaxError> errors;
 
     // <value> := <named-value>
-    if(parseNamedValue().unwrapResultErrors(nv, errors)) {
+    if(parseNamedValue().unwrapResultInto(nv, errors)) {
         return Result<Value>(Optional(Value(nv)), errors);
     // <value> := <string-literal>
-    } else if(parseStringLiteral().unwrapResultErrors(str, errors)) {
+    } else if(parseStringLiteral().unwrapResultInto(str, errors)) {
         return Result<Value>(Optional(Value(str)), errors);
     // <value> := <integer-literal>
-    } else if(parseIntegerLiteral().unwrapResultErrors(i, errors)) {
+    } else if(parseIntegerLiteral().unwrapResultInto(i, errors)) {
         return Result<Value>(Optional(Value(i)), errors);
     } else {
         return Result<Value>(Optional<Value>(), errors);
@@ -286,15 +286,15 @@ Result<Expression> Parser::parseAtom() {
     std::vector<SyntaxError> errors;
 
     // <atom> := <truth-literal>
-    if(parseTruthLiteral().unwrapResultErrors(tl, errors)) {
+    if(parseTruthLiteral().unwrapResultInto(tl, errors)) {
         return Result<Expression>(Optional(Expression(tl)), errors);
 
     // <atom> := <predicate-name>
-    } else if(parsePredicateRef().unwrapResultErrors(p, errors)) {
+    } else if(parsePredicateRef().unwrapResultInto(p, errors)) {
         return Result<Expression>(Optional(Expression(p)), errors);
 
     // <atom> := <effect-constructor-ref>
-    } else if(parseEffectCtorRef().unwrapResultErrors(ecr, errors)) {
+    } else if(parseEffectCtorRef().unwrapResultInto(ecr, errors)) {
         return Result<Expression>(Optional(Expression(ecr)), errors);
     } else {
         return Result<Expression>(Optional<Expression>(), errors);
@@ -312,7 +312,7 @@ Result<Expression> Parser::parseExpression() {
     Expression e;
 
     // <expression> := <atom>
-    if(parseAtom().unwrapResultErrors(e, errors)) {
+    if(parseAtom().unwrapResultInto(e, errors)) {
         Expression r;
 
         // <expression> := <expression> "," <atom>
@@ -345,7 +345,7 @@ Result<Implication> Parser::parseImplication() {
 
     // <implication> :=
     //     <predicate-name> "<-" <expression> "."
-    if(parsePredicateRef().unwrapResultErrors(p, errors)) {
+    if(parsePredicateRef().unwrapResultInto(p, errors)) {
         if(!lexer.take(Token::Type::implied_by)) {
             errors.push_back(SyntaxError("Expected a \"<-\" after the head of an implication.", lexer.peek_next().location));
         }
@@ -390,7 +390,7 @@ Result<Predicate> Parser::parsePredicate() {
 
     if(lexer.take(Token::Type::brace_l)) {
         Implication impl;
-        while(parseImplication().unwrapResultErrors(impl, errors)) {
+        while(parseImplication().unwrapResultInto(impl, errors)) {
             implications.push_back(impl);
         }
 
@@ -679,11 +679,11 @@ Result<AST> Parser::parseAST() {
     bool reached_eof = false;
 
     do {
-        if(parsePredicate().unwrapResultErrors(p, errors)) {
+        if(parsePredicate().unwrapResultInto(p, errors)) {
             predicates.push_back(p);
-        } else if(parseType().unwrapResultErrors(t, errors)) {
+        } else if(parseType().unwrapResultInto(t, errors)) {
             types.push_back(t);
-        } else if(parseEffect().unwrapResultErrors(e, errors)) {
+        } else if(parseEffect().unwrapResultInto(e, errors)) {
             effects.push_back(e);
         } else {
             Token unexpectedToken = lexer.peek_next();
