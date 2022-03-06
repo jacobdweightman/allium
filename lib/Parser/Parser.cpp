@@ -51,7 +51,7 @@ Result<PredicateDecl> Parser::parsePredicateDecl() {
                 if (parameters.size() == 0) {
                     errors.push_back(SyntaxError("Parentheses must not appear after predicate name for predicates with zero arguments.", lexer.peek_next().location));
                 } else {
-                    errors.push_back(SyntaxError("Expected an additional argument after \",\" in parameter list.", lexer.peek_next().location));
+                    errors.push_back(SyntaxError("Expected an additional parameter after \",\" in parameter list.", lexer.peek_next().location));
                 }
             }
         } while(lexer.take(Token::Type::comma));
@@ -113,7 +113,11 @@ Result<NamedValue> Parser::parseNamedValue() {
                 arguments.push_back(arg);
             },
             [&]() {
-                errors.push_back(SyntaxError("Expected argument after \",\" in argument list.", lexer.peek_next().location));
+                if (arguments.empty()) {
+                    errors.push_back(SyntaxError("Expected argument after \"(\" in argument list.", lexer.peek_next().location));
+                } else {
+                    errors.push_back(SyntaxError("Expected an additional argument after \",\" in argument list.", lexer.peek_next().location));
+                }
             },
             [&](std::vector<SyntaxError> resultErrors){
                 errors.insert(std::end(errors), std::begin(resultErrors), std::end(resultErrors));
@@ -189,29 +193,22 @@ Result<PredicateRef> Parser::parsePredicateRef() {
         if(lexer.take(Token::Type::paren_l)) {
             std::vector<Value> arguments;
 
-            parseValue().switchOver<void>(
-            [&](Value val) {
-                arguments.push_back(val);
-            },
-            [&]() {
-                errors.push_back(SyntaxError("Expected argument after \"(\" in argument list.", lexer.peek_next().location));
-            },
-            [&](std::vector<SyntaxError> resultErrors){
-                errors.insert(std::end(errors), std::begin(resultErrors), std::end(resultErrors));
-            });
-
-            while(lexer.take(Token::Type::comma)){
+            do {
                 parseValue().switchOver<void>(
                 [&](Value val) {
                     arguments.push_back(val);
                 },
                 [&]() {
-                    errors.push_back(SyntaxError("Expected argument after \",\" in argument list.", lexer.peek_next().location));
+                    if (arguments.empty()) {
+                        errors.push_back(SyntaxError("Expected argument after \"(\" in argument list.", lexer.peek_next().location));
+                    } else {
+                        errors.push_back(SyntaxError("Expected an additional argument after \",\" in argument list.", lexer.peek_next().location));
+                    }
                 },
                 [&](std::vector<SyntaxError> resultErrors){
                     errors.insert(std::end(errors), std::begin(resultErrors), std::end(resultErrors));
                 });
-            };
+            } while(lexer.take(Token::Type::comma));
 
             if(lexer.take(Token::Type::paren_r)) {
                 return Result<PredicateRef>(Optional(PredicateRef(identifier.text, arguments, identifier.location)), errors);
@@ -260,7 +257,11 @@ Result<EffectCtorRef> Parser::parseEffectCtorRef() {
                 arguments.push_back(val);
             },
             [&]() {
-                errors.push_back(SyntaxError("Expected argument after \",\" in argument list.", lexer.peek_next().location));
+                if (arguments.empty()) {
+                    errors.push_back(SyntaxError("Expected argument after \"(\" in argument list.", lexer.peek_next().location));
+                } else {
+                    errors.push_back(SyntaxError("Expected an additional argument after \",\" in argument list.", lexer.peek_next().location));
+                }
             },
             [&](std::vector<SyntaxError> resultErrors){
                 errors.insert(std::end(errors), std::begin(resultErrors), std::end(resultErrors));
@@ -485,7 +486,11 @@ Result<Constructor> Parser::parseConstructor() {
             if(parseCtorParameter().unwrapResultInto(param, errors)) {
                 parameters.push_back(param);
             } else {
-                errors.push_back(SyntaxError("Expected an additional argument after \",\" in parameter list.", lexer.peek_next().location));
+                if (parameters.empty()) {
+                    errors.push_back(SyntaxError("Expected parameter after \"(\" in parameter list.", lexer.peek_next().location));
+                } else {
+                    errors.push_back(SyntaxError("Expected an additional parameter after \",\" in parameter list.", lexer.peek_next().location));
+                }
             }
         } while(lexer.take(Token::Type::comma));
 
