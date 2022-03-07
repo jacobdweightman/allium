@@ -51,7 +51,7 @@ struct Arguments {
 
     /// True if Allium is run as an interpreter (-i), false if run as a compiler.
     /// Undefined if the mode is indeterminate.
-    ExecutionMode executionMode;
+    ExecutionMode executionMode = ExecutionMode::UNCOMMITTED;
 
     Optional<PrintASTMode> printAST;
     std::vector<std::string> filePaths;

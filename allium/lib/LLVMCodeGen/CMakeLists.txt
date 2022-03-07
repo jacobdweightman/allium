@@ -13,7 +13,7 @@ add_library(AlliumLLVMCodeGen SHARED
   CGType.cpp
   CodeGen.cpp)
 
-llvm_map_components_to_libnames(llvm_libs core ${LLVM_TARGETS_TO_BUILD})
+llvm_map_components_to_libnames(llvm_libs core support passes analysis coroutines ipo mc ${LLVM_TARGETS_TO_BUILD})
 message(STATUS "LLVM library names: ${llvm_libs}")
 target_link_libraries(AlliumLLVMCodeGen AlliumSemAna)
 target_link_libraries(AlliumLLVMCodeGen ${llvm_libs})

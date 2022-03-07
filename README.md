@@ -49,5 +49,5 @@ command:
 ```
 $ mkdir build
 $ cd build
-$ cmake .. -DBUILD_COMPILER=1 -DCMAKE_BUILD_TYPE=Debug
+$ cmake .. -DBUILD_COMPILER=1 -D CMAKE_BUILD_TYPE=Debug
 ```

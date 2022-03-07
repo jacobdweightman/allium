@@ -25,8 +25,8 @@ Type *LLVMCodeGen::lower(const TypedAST::Type &type) {
         TypeSize payloadSize = mod.getDataLayout()
             .getTypeAllocSize(payloadType);
 
-        if(payloadSize.getValue() > maxPayloadSize) {
-            maxPayloadSize = payloadSize.getValue();
+        if(payloadSize > maxPayloadSize) {
+            maxPayloadSize = payloadSize;
         }
     }
 
