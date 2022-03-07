@@ -1,0 +1,14 @@
+name: Test All
+runs:
+  using: "composite"
+  steps:
+  # Build test-only targets.
+  - name: Build Targets
+    working-directory: ./build
+    shell: bash
+    run: cmake --build . --config $BUILD_TYPE --target unittests allium-ls-unittests
+
+  - name: Test
+    working-directory: ./build
+    shell: bash
+    run: ctest -C $BUILD_TYPE --verbose
