@@ -273,6 +273,8 @@ ParserResult<EffectCtorRef> Parser::parseEffectCtorRef() {
         } else {
             errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument.", lexer.peek_next().location));
         }
+    } else {
+        errors.push_back(SyntaxError("Expected \"(\" after effect name.", lexer.peek_next().location));
     }
 
     return ParserResult<EffectCtorRef>(Optional(EffectCtorRef(identifier.text, {}, identifier.location)), errors);
@@ -402,7 +404,7 @@ ParserResult<Predicate> Parser::parsePredicate() {
         }
     } else {
         Token unexpectedToken = lexer.peek_next();
-        errors.push_back(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\" between predicate name and \"{\".", unexpectedToken.location));
+        errors.push_back(SyntaxError("Expected \"{\" after predicate name.", unexpectedToken.location));
         return ParserResult<Predicate>(errors);
     }
 }
@@ -549,7 +551,7 @@ ParserResult<Type> Parser::parseType() {
         }
     } else {
         Token unexpectedToken = lexer.peek_next();
-        errors.push_back(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\" between type name and \"{\".", lexer.peek_next().location));
+        errors.push_back(SyntaxError("Expected \"{\" after type name.", lexer.peek_next().location));
         return ParserResult<Type>(errors);
     }
 }

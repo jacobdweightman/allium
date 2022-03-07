@@ -39,9 +39,8 @@ public:
         }
     }
 
-    // Unwrap the value of the result into the provided location if a value is present or
-    // add any errors to the provided list if errors are present. Return true if value or
-    // errors are present and false otherwise.
+    // Unwrap the value of the result into the provided location if a value is present or add any errors to the provided list
+    // if errors are present. Return true if value or errors are present and false otherwise.
     bool unwrapResultInto(T& val, std::vector<SyntaxError>& errorsList) {
         if (errored()) {
             std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
@@ -52,9 +51,8 @@ public:
         }
     }
 
-    // Unwrap the value of the result into the provided location if a value is present or
-    // add any errors to the provided list if errors are present. Return true if value is
-    // present and false otherwise.
+    // Unwrap the value of the result into the provided location if a value is present or add any errors to the
+    // provided list if errors are present. Return true if value is present and false otherwise.
     bool unwrapResultGuard(T& val, std::vector<SyntaxError>& errorsList) {
         if (errored()) {
             std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
