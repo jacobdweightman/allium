@@ -1,0 +1,17 @@
+name: Pre-merge Pipeline
+on: push
+env:
+  BUILD_TYPE: Release
+jobs:
+  test-all:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ./.github/workflows/build
+      name: Build
+    - uses: ./.github/workflows/test
+      name: Test

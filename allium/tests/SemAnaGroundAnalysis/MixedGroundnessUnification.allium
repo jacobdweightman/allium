@@ -1,0 +1,15 @@
+type Pair {
+    ctor Pair(String, String);
+}
+
+pred secondIsB(Pair) {
+    secondIsB(Pair(_, "b")) <- true;
+}
+
+pred main: IO {
+    main <- secondIsB(Pair("a", let b)),
+        do print(b);
+}
+
+// CHECK: b
+// CHECK: Exit code: 0

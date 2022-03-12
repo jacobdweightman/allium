@@ -1,0 +1,23 @@
+type Letter {
+    ctor A;
+    ctor B;
+}
+
+type Word {
+    ctor Nil;
+    ctor Cons(Letter, Word);
+}
+
+pred second(Word, Letter) {
+    second(Cons(_, Cons(let c, _)), c) <- true;
+}
+
+pred main {
+    main <- second(
+        Cons(A, Cons(B, Cons(A, Cons(A, Nil)))),
+        B);
+}
+
+// CHECK: prove: main()
+// CHECK: prove: second(1(0(), 1(1(), 1(0(), 1(0(), 0(), ), ), ), ), 1(), )
+// CHECK: Exit code: 0

@@ -1,0 +1,26 @@
+type Tree {
+    ctor Redwood;
+    ctor Spruse;
+    ctor Apple;
+    ctor Pear;
+}
+
+pred tall(Tree) {
+    tall(Redwood) <- true;
+    tall(Spruse) <- true;
+}
+
+pred smellsNice(Tree) {
+    smellsNice(Spruse) <- true;
+    smellsNice(Apple) <- true;
+}
+
+pred main {
+    main <- tall(let t), smellsNice(t);
+}
+
+// CHECK: prove: main()
+// CHECK: prove: tall(var 0, )
+// CHECK: prove: smellsNice(var 0, )
+// CHECK: prove: smellsNice(var 0, )
+// CHECK: Exit code: 0

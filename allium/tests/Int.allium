@@ -1,0 +1,15 @@
+pred smallPrime(Int) {
+    smallPrime(2) <- true;
+    smallPrime(3) <- true;
+    smallPrime(5) <- true;
+    smallPrime(7) <- true;
+    smallPrime(11) <- true;
+}
+
+pred main {
+    main <- smallPrime(5);
+}
+
+// CHECK: prove: main()
+// CHECK: prove: smallPrime(5, )
+// CHECK: Exit code: 0

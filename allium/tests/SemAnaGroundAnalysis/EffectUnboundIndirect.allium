@@ -1,0 +1,27 @@
+pred unbound11(String) {
+    unbound11(let x) <- unbound12(x);
+}
+
+pred unbound12(String) {
+    unbound12(_) <- true;
+}
+
+pred unbound21(String) {
+    unbound21(let x) <- unbound22(x);
+}
+
+pred unbound22(String) {
+    unbound22(let t) <- true;
+}
+
+pred main: IO {
+    // CHECK: error 20:11
+    main <- unbound11(let s),
+        do print(s);
+
+    // CHECK: error 24:11
+    main <- unbound11(let s),
+        do print(s);
+}
+
+// CHECK: Exit code: 1

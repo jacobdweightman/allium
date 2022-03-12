@@ -1,0 +1,22 @@
+type StrList {
+    ctor Nil;
+    ctor Cons(String, StrList);
+}
+
+pred in(String, StrList) {
+    in(let str, Cons(str, _)) <- true;
+    in(let str, Cons(_, let tail)) <- in(str, tail);
+}
+
+pred main: IO {
+    // If the second argument is fully grounded, there's no error.
+    // CHECK-NOT: error 15
+    // main <- in(let s, Cons("a", Cons("b", Cons("c", Nil)))),
+    //     do print(s);
+
+    // CHECK: error 19:11
+    main <- in(let s, Cons("a", Cons("b", Cons(let x, Nil)))),
+        do print(s);
+}
+
+// CHECK: Exit code: 1

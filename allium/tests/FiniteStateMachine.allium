@@ -1,0 +1,33 @@
+type Symbol {
+    ctor A;
+    ctor B;
+}
+
+type SymbolList {
+    ctor Nil;
+    ctor Cons(Symbol, SymbolList);
+}
+
+type State {
+    ctor ReadA;
+    ctor ReadB;
+}
+
+// Accepts iff the given SymbolList matches (AB)*
+pred simulate(State, SymbolList) {
+    simulate(ReadA, Nil) <- true;
+    simulate(ReadA, Cons(A, let tail)) <- simulate(ReadB, tail);
+    simulate(ReadB, Cons(B, let tail)) <- simulate(ReadA, tail);
+}
+
+pred main {
+    main <- simulate(ReadA, Cons(A, Cons(B, Cons(A, Cons(B, Nil)))));
+}
+
+// CHECK: prove: main()
+// CHECK: prove: simulate(0(), 1(0(), 1(1(), 1(0(), 1(1(), 0(), ), ), ), ), )
+// CHECK: prove: simulate(1(), var 0, )
+// CHECK: prove: simulate(0(), var 0, )
+// CHECK: prove: simulate(1(), var 0, )
+// CHECK: prove: simulate(0(), var 0, )
+// CHECK: Exit code: 0

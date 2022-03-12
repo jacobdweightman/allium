@@ -1,0 +1,8 @@
+pred main: IO {
+    main <- do print("Hello world!");
+}
+
+// CHECK: prove: main()
+// CHECK: handle effect: do 0.0
+// CHECK: Hello world!
+// CHECK: Exit code: 0

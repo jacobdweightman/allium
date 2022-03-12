@@ -1,0 +1,43 @@
+type Symbol {
+    ctor A;
+    ctor B;
+}
+
+type Input {
+    ctor Nil;
+    ctor Cons(Symbol, Input);
+}
+
+type StackSymbol {
+    ctor I;
+}
+
+type Stack {
+    ctor Nil;
+    ctor Push(StackSymbol, Stack);
+}
+
+type State {
+    ctor ReadA;
+    ctor ReadB;
+}
+
+// Accepts iff the given Input matches (A^n)(B^n)
+pred simulate(State, Stack, Input) {
+    simulate(ReadB, Nil, Nil) <- true;
+    simulate(ReadA, let stack, Cons(A, let tail)) <- simulate(ReadA, Push(I, stack), tail);
+    simulate(ReadA, Push(I, let stack), Cons(B, let tail)) <- simulate(ReadB, stack, tail);
+    simulate(ReadB, Push(I, let stack), Cons(B, let tail)) <- simulate(ReadB, stack, tail);
+}
+
+pred main {
+    main <- simulate(ReadA, Nil, Cons(A, Cons(A, Cons(B, Cons(B, Nil)))));
+}
+
+// CHECK: prove: main()
+// CHECK: prove: simulate(0(), 0(), 1(0(), 1(0(), 1(1(), 1(1(), 0(), ), ), ), ), )
+// CHECK: prove: simulate(0(), 1(0(), var 0, ), var 1, )
+// CHECK: prove: simulate(0(), 1(0(), var 0, ), var 1, )
+// CHECK: prove: simulate(1(), var 0, var 1, )
+// CHECK: prove: simulate(1(), var 0, var 1, )
+// CHECK: Exit code: 0
