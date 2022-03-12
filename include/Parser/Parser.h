@@ -18,6 +18,10 @@ public:
     SyntaxError(const std::string& msg, SourceLocation location) : msg(msg), location(location) {}
     ~SyntaxError() {}
 
+    friend bool operator==(const SyntaxError &lhs, const SyntaxError &rhs) {
+        return lhs.msg == rhs.msg && lhs.location == rhs.location;
+    }
+
     std::string getMessage() const {return(msg);};
     SourceLocation getLocation() const {return(location);};
 private:
@@ -37,6 +41,28 @@ public:
         if (!errors.empty()) {
             TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped = errors;
         }
+    }
+    ParserResult(Optional<T> value): TaggedUnion<Optional<T>, std::vector<SyntaxError>>(value) {}
+    ParserResult(T value): TaggedUnion<Optional<T>, std::vector<SyntaxError>>(Optional<T>(value)) {}
+
+    friend std::ostream& operator<<(std::ostream& stream, const ParserResult<T>& value) {
+        if (value.errored()) {
+            for (auto error: std::get<std::vector<SyntaxError>>(value.wrapped)) {
+                stream << error.getMessage() << ' '; // will print: "a b c"
+            }
+        } else {
+            stream << std::get<Optional<T>>(value.wrapped);
+        }
+
+        return stream;
+    }
+
+    friend bool operator==(const ParserResult<T> &lhs, const ParserResult<T> &rhs) {
+        return lhs.wrapped == rhs.wrapped;
+    }
+
+    friend bool operator!=(const ParserResult<T> &lhs, const ParserResult<T> &rhs) {
+        return lhs.wrapped != rhs.wrapped;
     }
 
     // Unwrap the value of the result into the provided location if a value is present or add any errors to the provided list

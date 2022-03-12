@@ -273,8 +273,6 @@ ParserResult<EffectCtorRef> Parser::parseEffectCtorRef() {
         } else {
             errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument.", lexer.peek_next().location));
         }
-    } else {
-        errors.push_back(SyntaxError("Expected \"(\" after effect name.", lexer.peek_next().location));
     }
 
     return ParserResult<EffectCtorRef>(Optional(EffectCtorRef(identifier.text, {}, identifier.location)), errors);
@@ -397,7 +395,7 @@ ParserResult<Predicate> Parser::parsePredicate() {
         }
 
         if(lexer.take(Token::Type::brace_r)) {
-            return ParserResult<Predicate>(Optional<Predicate>(), errors);
+            return ParserResult<Predicate>(Predicate(decl, implications), errors);
         } else {
             errors.push_back(SyntaxError("Expected \"}\" at the end of a predicate definition.", lexer.peek_next().location));
             return ParserResult<Predicate>(errors);
