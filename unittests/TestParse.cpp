@@ -449,9 +449,12 @@ TEST(TestParser, constructor_parameter_cannot_be_marked_input_only) {
     std::istringstream f("ctor sundae(in IceCream, Sauce);");
     Parser p(f);
 
-    EXPECT_THROW(
+    EXPECT_EQ(
         p.parseConstructor(),
-        SyntaxError
+        ParserResult<Constructor>(std::vector<SyntaxError> {
+            SyntaxError("Expected parameter after \"(\" in parameter list.", SourceLocation(1, 12)),
+            SyntaxError("Expected a \",\" or \")\" after parameter.", SourceLocation(1, 12))
+        })
     );
 }
 

@@ -22,6 +22,11 @@ public:
         return lhs.msg == rhs.msg && lhs.location == rhs.location;
     }
 
+    friend std::ostream& operator<<(std::ostream& stream, const SyntaxError& error) {
+        stream << "syntax error " << error.getLocation() << " - " << error.getMessage() << std::endl;
+        return stream;
+    }
+
     std::string getMessage() const {return(msg);};
     SourceLocation getLocation() const {return(location);};
 private:
@@ -48,7 +53,7 @@ public:
     friend std::ostream& operator<<(std::ostream& stream, const ParserResult<T>& value) {
         if (value.errored()) {
             for (auto error: std::get<std::vector<SyntaxError>>(value.wrapped)) {
-                stream << error.getMessage() << ' '; // will print: "a b c"
+                stream << error;
             }
         } else {
             stream << std::get<Optional<T>>(value.wrapped);
