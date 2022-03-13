@@ -1,0 +1,28 @@
+type Type {
+    ctor ctor1
+    ctor ctor2();
+    ctor ctor3(arg, )
+}
+
+pred Pred(Type, ) {
+    Pred() <- true
+    Pred(arg, ) <- true;
+}
+
+pred main: IO,  {
+    main <- Pred(let )
+}
+
+// CHECK: syntax error 3:4 - Expected a ";" after constructor definition.
+// CHECK: syntax error 3:4 - Expected arguments list after constructor name.
+// CHECK: syntax error 4:14 - Expected a ";" after constructor definition.
+// CHECK: syntax error 4:20 - Expected an additional parameter after "," in parameter list.
+// CHECK: syntax error 5:0 - Expected a ";" after constructor definition.
+// CHECK: syntax error 7:16 - Expected an additional parameter after "," in parameter list.
+// CHECK: syntax error 8:9 - Expected argument after "(" in argument list.
+// CHECK: syntax error 9:4 - Expected a ";" at the end of an implication.
+// CHECK: syntax error 9:14 - Expected an additional argument after "," in argument list.
+// CHECK: syntax error 12:16 - Expected an effect name.
+// CHECK: syntax error 13:21 - Expected identifier after "let".
+// CHECK: syntax error 14:0 - Expected a ";" at the end of an implication.
+// CHECK: Exit code: 1

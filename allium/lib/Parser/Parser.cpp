@@ -467,50 +467,64 @@ ParserResult<Constructor> Parser::parseConstructor() {
 
     // <constructor> :=
     //     "ctor" <identifier> ";"
-    if( lexer.take(Token::Type::kw_ctor) &&
-        lexer.take_token(Token::Type::identifier).unwrapInto(identifier) &&
-        lexer.take(Token::Type::end_of_statement)) {
-            return Optional(Constructor(identifier.text, {}, identifier.location));
+    if (lexer.take(Token::Type::kw_ctor)) {
+        if (lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
+            if (lexer.take(Token::Type::end_of_statement)) {
+                return Optional(Constructor(identifier.text, {}, identifier.location));
+            } else {
+                errors.push_back(SyntaxError("Expected a \";\" after constructor definition.", lexer.peek_next().location));
+            }
+        } else {
+            errors.push_back(SyntaxError("Expected constructor name after \"ctor\" keyword.", lexer.peek_next().location));
+        }
     }
 
     // <constructor> :=
     //     "ctor" <identifier> "(" <comma-separated-ctor-parameters> ")" ";"
     lexer.rewind(next);
-    if( lexer.take(Token::Type::kw_ctor) &&
-        lexer.take_token(Token::Type::identifier).unwrapInto(identifier) &&
-        lexer.take(Token::Type::paren_l)) {
+    if (lexer.take(Token::Type::kw_ctor)) {
+        if (lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
+            if (lexer.take(Token::Type::paren_l)) {
 
-        std::vector<CtorParameter> parameters;
-        CtorParameter param;
-        do {
-            if(parseCtorParameter().unwrapResultInto(param, errors)) {
-                parameters.push_back(param);
-            } else {
-                if (parameters.empty()) {
-                    errors.push_back(SyntaxError("Expected parameter after \"(\" in parameter list.", lexer.peek_next().location));
+                std::vector<CtorParameter> parameters;
+                CtorParameter param;
+                do {
+                    if(parseCtorParameter().unwrapResultInto(param, errors)) {
+                        parameters.push_back(param);
+                    } else {
+                        if (parameters.empty()) {
+                            errors.push_back(SyntaxError("Expected parameter after \"(\" in parameter list.", lexer.peek_next().location));
+                        } else {
+                            errors.push_back(SyntaxError("Expected an additional parameter after \",\" in parameter list.", lexer.peek_next().location));
+                        }
+                    }
+                } while(lexer.take(Token::Type::comma));
+
+                if(lexer.take(Token::Type::paren_r)) {
+                    if (lexer.take(Token::Type::end_of_statement)) {
+                        return Optional(Constructor(
+                            identifier.text,
+                            parameters,
+                            identifier.location));
+                    } else {
+                        errors.push_back(SyntaxError("Expected a \";\" after constructor definition.", lexer.peek_next().location));
+                    }
                 } else {
-                    errors.push_back(SyntaxError("Expected an additional parameter after \",\" in parameter list.", lexer.peek_next().location));
+                    errors.push_back(SyntaxError("Expected a \",\" or \")\" after parameter.", lexer.peek_next().location));
                 }
-            }
-        } while(lexer.take(Token::Type::comma));
-
-        if(lexer.take(Token::Type::paren_r)) {
-            if (lexer.take(Token::Type::end_of_statement)) {
-                return Optional(Constructor(
-                    identifier.text,
-                    parameters,
-                    identifier.location));
             } else {
-                errors.push_back(SyntaxError("Expected a \";\" after constructor definition.", lexer.peek_next().location));
-                return ParserResult<Constructor>(errors);
+                errors.push_back(SyntaxError("Expected arguments list after constructor name.", lexer.peek_next().location));
             }
         } else {
-            errors.push_back(SyntaxError("Expected a \",\" or \")\" after parameter.", lexer.peek_next().location));
-            return ParserResult<Constructor>(errors);
+            errors.push_back(SyntaxError("Expected constructor name after \"ctor\" keyword.", lexer.peek_next().location));
         }
     }
 
-    return rewindAndReturn();
+    if (errors.empty()) {
+        return rewindAndReturn();
+    } else {
+        return ParserResult<Constructor>(errors);
+    }
 }
 
 ParserResult<Type> Parser::parseType() {
