@@ -14,8 +14,6 @@ pred main: IO,  {
 }
 
 // CHECK: syntax error 3:4 - Expected a ";" after constructor definition.
-// CHECK: syntax error 3:4 - Expected arguments list after constructor name.
-// CHECK: syntax error 4:14 - Expected a ";" after constructor definition.
 // CHECK: syntax error 4:20 - Expected an additional parameter after "," in parameter list.
 // CHECK: syntax error 5:0 - Expected a ";" after constructor definition.
 // CHECK: syntax error 7:16 - Expected an additional parameter after "," in parameter list.

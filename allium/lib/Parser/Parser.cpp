@@ -467,25 +467,15 @@ ParserResult<Constructor> Parser::parseConstructor() {
 
     // <constructor> :=
     //     "ctor" <identifier> ";"
-    if (lexer.take(Token::Type::kw_ctor)) {
-        if (lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
-            if (lexer.take(Token::Type::end_of_statement)) {
-                return Optional(Constructor(identifier.text, {}, identifier.location));
-            } else {
-                errors.push_back(SyntaxError("Expected a \";\" after constructor definition.", lexer.peek_next().location));
-            }
-        } else {
-            errors.push_back(SyntaxError("Expected constructor name after \"ctor\" keyword.", lexer.peek_next().location));
-        }
-    }
-
+    //  -- or --
     // <constructor> :=
     //     "ctor" <identifier> "(" <comma-separated-ctor-parameters> ")" ";"
     lexer.rewind(next);
     if (lexer.take(Token::Type::kw_ctor)) {
         if (lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
-            if (lexer.take(Token::Type::paren_l)) {
-
+            if (lexer.take(Token::Type::end_of_statement)) {
+                return Optional(Constructor(identifier.text, {}, identifier.location));
+            } else if (lexer.take(Token::Type::paren_l)) {
                 std::vector<CtorParameter> parameters;
                 CtorParameter param;
                 do {
@@ -513,7 +503,7 @@ ParserResult<Constructor> Parser::parseConstructor() {
                     errors.push_back(SyntaxError("Expected a \",\" or \")\" after parameter.", lexer.peek_next().location));
                 }
             } else {
-                errors.push_back(SyntaxError("Expected arguments list after constructor name.", lexer.peek_next().location));
+                errors.push_back(SyntaxError("Expected a \";\" after constructor definition.", lexer.peek_next().location));
             }
         } else {
             errors.push_back(SyntaxError("Expected constructor name after \"ctor\" keyword.", lexer.peek_next().location));
