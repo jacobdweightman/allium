@@ -694,7 +694,7 @@ ParserResult<AST> Parser::parseAST() {
         }
     } while(!reached_eof);
 
-    return ParserResult<AST>(Optional<AST>(), errors);
+    return ParserResult<AST>(AST(types, effects, predicates), errors);
 }
 
 } // namespace parser

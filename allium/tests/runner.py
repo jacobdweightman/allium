@@ -37,7 +37,7 @@ if __name__ == "__main__":
             if(file.endswith(".allium")):
                 full_test_path = os.path.join(dirpath, file)
                 run(full_test_path)
-    
+
     if failed_tests:
         print("Failing tests:")
         for test in failed_tests:
