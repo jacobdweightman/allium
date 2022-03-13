@@ -435,7 +435,7 @@ ParserResult<Parameter> Parser::parseParameter() {
         if(lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
             return Optional(Parameter(identifier.text, true, next.location));
         } else {
-            std::vector<SyntaxError> errorVector { SyntaxError("Expected type name after keyword \"in.\"", lexer.peek_next().location) };
+            errors.push_back(SyntaxError("Expected type name after keyword \"in.\"", lexer.peek_next().location));
             return ParserResult<Parameter>(errors);
         }
     }
@@ -492,10 +492,9 @@ ParserResult<Constructor> Parser::parseConstructor() {
 
                 if(lexer.take(Token::Type::paren_r)) {
                     if (lexer.take(Token::Type::end_of_statement)) {
-                        return Optional(Constructor(
-                            identifier.text,
-                            parameters,
-                            identifier.location));
+                        return ParserResult<Constructor>(Optional(Constructor(
+                            identifier.text, parameters, identifier.location)),
+                            errors);
                     } else {
                         errors.push_back(SyntaxError("Expected a \";\" after constructor definition.", lexer.peek_next().location));
                     }

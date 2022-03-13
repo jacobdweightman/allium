@@ -49,6 +49,7 @@ public:
     }
     ParserResult(Optional<T> value): TaggedUnion<Optional<T>, std::vector<SyntaxError>>(value) {}
     ParserResult(T value): TaggedUnion<Optional<T>, std::vector<SyntaxError>>(Optional<T>(value)) {}
+    ParserResult(std::vector<SyntaxError> errors): TaggedUnion<Optional<T>, std::vector<SyntaxError>>(errors) {}
 
     friend std::ostream& operator<<(std::ostream& stream, const ParserResult<T>& value) {
         if (value.errored()) {
