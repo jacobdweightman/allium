@@ -15,23 +15,19 @@ namespace parser {
 /// The parser terminates and returns an empty AST on the first syntax error it encounters.
 class SyntaxError {
 public:
-    SyntaxError(const std::string& msg, SourceLocation location) : msg(msg), location(location) {}
-    ~SyntaxError() {}
+    SyntaxError(const std::string& message, SourceLocation location) : message(message), location(location) {}
 
     friend bool operator==(const SyntaxError &lhs, const SyntaxError &rhs) {
-        return lhs.msg == rhs.msg && lhs.location == rhs.location;
+        return lhs.message == rhs.message && lhs.location == rhs.location;
     }
 
     friend std::ostream& operator<<(std::ostream& stream, const SyntaxError& error) {
-        stream << "syntax error " << error.getLocation() << " - " << error.getMessage() << std::endl;
+        stream << "syntax error " << error.location << " - " << error.message << std::endl;
         return stream;
     }
 
-    std::string getMessage() const {return(msg);};
-    SourceLocation getLocation() const {return(location);};
-private:
     /// The error message associated with the error
-    std::string msg;
+    std::string message;
 
     /// The location of the error in the source file.
     SourceLocation location;
