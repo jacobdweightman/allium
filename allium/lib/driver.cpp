@@ -190,20 +190,15 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    parser::ParserResult<parser::AST> parserOutput = parser::Parser(file).parseAST();
-    if (parserOutput.errored()) {
-        std::vector<parser::SyntaxError> errors;
-        parserOutput.as_a<std::vector<parser::SyntaxError>>().unwrapInto(errors);
+    parser::Parser(file).parseAST()
+    .error([](const std::vector<SyntaxError> &errors) {
         for (parser::SyntaxError const& error : errors) {
             std::cout << error;
         }
         exit(1);
-    }
-
-    Optional<parser::AST> ast;
-    parserOutput.as_a<Optional<parser::AST>>().unwrapInto(ast);
-
-    ast.then([&](const parser::AST &ast) {
+    })
+    .as_a<Optional<parser::AST>>()
+    .then([&](const parser::AST &ast) {
         if(arguments.printAST == Arguments::PrintASTMode::SYNTACTIC) {
             parser::ASTPrinter(std::cout).visit(ast);
             exit(0);
@@ -211,7 +206,6 @@ int main(int argc, char *argv[]) {
     }).error([]() {
         exit(1);
     })
-
     .map<TypedAST::AST>([&](parser::AST ast) {
         return checkAll(ast, errorEmitter);
     }).then([&](TypedAST::AST ast) {

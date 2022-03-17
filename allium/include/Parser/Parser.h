@@ -101,6 +101,14 @@ public:
         }
     }
 
+    ParserResult &error(std::function<void(const std::vector<SyntaxError>&)> errorHandler) const {
+        if(errored()) {
+            errorHandler(std::get<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped));
+        }
+
+        return *this;
+    }
+
     bool errored() const {
         return std::holds_alternative<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
     }
