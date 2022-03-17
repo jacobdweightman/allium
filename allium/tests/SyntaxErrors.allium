@@ -20,7 +20,7 @@ pred main: IO,  {
 // CHECK: syntax error 8:9 - Expected argument after "(" in argument list.
 // CHECK: syntax error 9:4 - Expected a ";" at the end of an implication.
 // CHECK: syntax error 9:14 - Expected an additional argument after "," in argument list.
-// CHECK: syntax error 12:16 - Expected an effect name.
+// CHECK: syntax error 12:16 - Expected an additional effect name after "," in effect list.
 // CHECK: syntax error 13:21 - Expected identifier after "let".
 // CHECK: syntax error 14:0 - Expected a ";" at the end of an implication.
 // CHECK: Exit code: 1

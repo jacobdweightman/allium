@@ -573,7 +573,11 @@ ParserResult<std::vector<EffectRef>> Parser::parseEffectList() {
     do {
         Token identifier;
         if(lexer.take_token(Token::Type::identifier).unwrapGuard(identifier)) {
-            errors.push_back(SyntaxError("Expected an effect name.", lexer.peek_next().location));
+            if (effects.empty()) {
+                errors.push_back(SyntaxError("Expected an effect after \":\" in effect list.", lexer.peek_next().location));
+            } else {
+                errors.push_back(SyntaxError("Expected an additional effect name after \",\" in effect list.", lexer.peek_next().location));
+            }
         }
         effects.emplace_back(identifier.text, identifier.location);
     } while(lexer.take(Token::Type::comma));
