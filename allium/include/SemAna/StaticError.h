@@ -36,6 +36,10 @@ enum class ErrorMessage {
 
     int_literal_not_convertible,
     predicate_argument_count,
+
+    /// A predicate was defined multiple times.
+    predicate_redefined,
+
     string_literal_not_convertible,
     type_redefined,
     undefined_predicate,
