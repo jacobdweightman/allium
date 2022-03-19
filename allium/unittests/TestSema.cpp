@@ -250,6 +250,28 @@ TEST_F(TestSemAnaPredicates, predicate_argument_type_mismatch) {
     checkAll(AST(ts, {}, ps), error);
 }
 
+TEST_F(TestSemAnaPredicates, predicate_redefined) {
+    // pred p {}
+    // pred p {}
+
+    SourceLocation originalLocation(1, 5);
+    SourceLocation errorLocation(2, 5);
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", {}, {}, originalLocation),
+            {}
+        ),
+        Predicate(
+            PredicateDecl("p", {}, {}, errorLocation),
+            {}
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::predicate_redefined, "p", originalLocation.toString()));
+
+    checkAll(AST({}, {}, ps), error);
+}
+
 TEST_F(TestSemAnaPredicates, existential_variable_as_input_only_parameter) {
     // pred p(in String) {}
     // pred q {

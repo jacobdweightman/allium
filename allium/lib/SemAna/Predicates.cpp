@@ -50,6 +50,22 @@ public:
     }
 
     Optional<TypedAST::PredicateDecl> visit(const PredicateDecl &pd) {
+        const auto originalDeclaration = std::find_if(
+            ast.predicates.begin(),
+            ast.predicates.end(),
+            [&](Predicate p) {
+                return p.name.name == pd.name;
+            });
+
+        if(originalDeclaration->name.location != pd.location) {
+            error.emit(
+                pd.location,
+                ErrorMessage::predicate_redefined,
+                pd.name.string(),
+                originalDeclaration->name.location.toString());
+            return Optional<TypedAST::PredicateDecl>();
+        }
+
         return both(
             fullMap<Parameter, TypedAST::Parameter>(
                 pd.parameters,
