@@ -11,8 +11,7 @@
 
 namespace parser {
 
-/// Custom error class representing any syntax errors encountered during parsing.
-/// The parser terminates and returns an empty AST on the first syntax error it encounters.
+/// Custom error class representing syntax errors encountered during parsing.
 class SyntaxError {
 public:
     SyntaxError(const std::string& message, SourceLocation location) : message(message), location(location) {}
@@ -33,7 +32,7 @@ public:
     SourceLocation location;
 };
 
-// Class representing either an optional or a list of errors for a particular parse method.
+// Class representing either an return value or a list of syntax errors for a particular parse method.
 template <typename T>
 class ParserResult: public TaggedUnion<Optional<T>, std::vector<SyntaxError>> {
     using TaggedUnion<Optional<T>, std::vector<SyntaxError>>::TaggedUnion;
