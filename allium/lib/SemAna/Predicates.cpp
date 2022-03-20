@@ -120,6 +120,10 @@ public:
             pr.arguments,
             [&](Value argument) {
                 inferredType = ast.resolveTypeRef(parameter->name);
+                if(!inferredType) {
+                    ++parameter;
+                    return Optional<TypedAST::Value>();
+                }
                 isInputOnly = parameter->isInputOnly && enclosingPred.name.name != pr.name;
                 auto raisedArg = visit(argument);
                 isInputOnly = false;
@@ -181,6 +185,10 @@ public:
             ecr.arguments,
             [&](Value argument) -> Optional<TypedAST::Value> {
                 inferredType = ast.resolveTypeRef(parameter->name);
+                if(!inferredType) {
+                    ++parameter;
+                    return Optional<TypedAST::Value>();
+                }
                 isInputOnly = parameter->isInputOnly; // TODO: must be false if inside handler
                 Optional<TypedAST::Value> raisedArg = visit(argument);
                 isInputOnly = false;
@@ -433,6 +441,10 @@ public:
             cr.arguments,
             [&](Value argument) -> Optional<TypedAST::Value> {
                 inferredType = ast.resolveTypeRef(parameter->name);
+                if(!inferredType) {
+                    ++parameter;
+                    return Optional<TypedAST::Value>();
+                }
                 Optional<TypedAST::Value> raisedArg = visit(argument);
                 inferredType = Optional<Type>();
                 ++parameter;

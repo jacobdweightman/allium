@@ -351,12 +351,46 @@ TEST_F(TestSemAnaPredicates, existential_variable_inside_constructor_as_input_on
     checkAll(AST(ts, {}, ps), error);
 }
 
-TEST_F(TestSemAnaPredicates, undefined_type) {
+TEST_F(TestSemAnaPredicates, predicate_with_undefined_type_parameter) {
     SourceLocation errorLocation(1, 5);
     std::vector<Predicate> ps = {
         Predicate(
             PredicateDecl("p", { Parameter("Foo", false, errorLocation) }, {}, SourceLocation(3, 5)),
             {}
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::undefined_type, "Foo"));
+
+    checkAll(AST({}, {}, ps), error);
+}
+
+TEST_F(TestSemAnaPredicates, predicate_undefined_type_error_type_inference) {
+    // This regression test covers a bug where there is an assertion failure if
+    // a predicate with a parameter of an undefined type is used. For example:
+    //
+    // pred p(Foo) {}
+    // pred q {
+    //     q <- p(Bar);
+    // }
+    SourceLocation errorLocation(1, 7);
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", { Parameter("Foo", false, errorLocation) }, {}, {1, 5}),
+            {}
+        ),
+        Predicate(
+            PredicateDecl("q", {}, {}, SourceLocation(2, 5)),
+            { 
+                Implication(
+                    PredicateRef("q", {3, 5}),
+                    Expression(PredicateRef(
+                        "p",
+                        { NamedValue("Bar", {}, {3, 11}) },
+                        {3, 9}
+                    ))
+                )
+            }
         )
     };
 
@@ -469,6 +503,56 @@ TEST_F(TestSemAnaPredicates, type_redefinition) {
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::type_redefined, "Void", "1:5"));
 
     checkAll(AST(ts, {}, {}), error);
+}
+
+TEST_F(TestSemAnaPredicates, constructor_with_parameter_of_undefined_type) {
+    // type T {
+    //     ctor t(U);
+    // }
+    SourceLocation errorLocation(2, 11);
+    std::vector<Type> ts = {
+        Type(
+            TypeDecl("T", SourceLocation(1, 5)),
+            { Constructor("t", { CtorParameter("U", errorLocation) }, {2, 9}) }
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::undefined_type, "U"));
+
+    checkAll(AST(ts, {}, {}), error);
+}
+TEST_F(TestSemAnaPredicates, constructor_with_parameter_of_undefined_type_type_inference) {
+    // This regression test covers a bug where there is an assertion failure if
+    // a constructor with a parameter of an undefined type is used. For example:
+    //
+    // type T {
+    //     ctor t(U);
+    // }
+    // pred p(T) {
+    //     p(t(u)) <- true;
+    // }
+    SourceLocation errorLocation(2, 11);
+    std::vector<Type> ts = {
+        Type(
+            TypeDecl("T", {1, 5}),
+            { Constructor("t", { CtorParameter("U", errorLocation) }, {2, 9}) }
+        )
+    };
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", { Parameter("T", false, {4, 7}) }, {}, SourceLocation(4, 5)),
+            { 
+                Implication(
+                    PredicateRef("p", { NamedValue("t", { NamedValue("u", {}, {5, 8}) }, {5, 6}) }, {5, 4}),
+                    Expression(TruthLiteral(true, {5, 15}))
+                )
+            }
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::undefined_type, "U"));
+
+    checkAll(AST(ts, {}, ps), error);
 }
 
 TEST_F(TestSemAnaPredicates, string_literal_not_convertible) {
@@ -627,6 +711,74 @@ TEST_F(TestSemAnaPredicates, effect_argument_count) {
 
     checkAll(AST({}, es, ps), error);
 }
+
+TEST_F(TestSemAnaPredicates, effect_with_undefined_type_parameter) {
+    // effect Foo {
+    //     ctor bar(Bar);
+    // }
+    // pred p: Foo {
+    //     p <- do bar(Baz);
+    // }
+    SourceLocation errorLocation(2, 13);
+    std::vector<Effect> es = {
+        Effect(
+            EffectDecl("Foo", {1, 7}),
+            {
+                EffectConstructor(
+                    "bar",
+                    { Parameter("Bar", false, errorLocation) },
+                    SourceLocation(2, 9)
+                )
+            }
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::undefined_type, "Bar"));
+
+    checkAll(AST({}, es, {}), error);
+}
+
+TEST_F(TestSemAnaPredicates, effect_ctor_with_undefined_type_error_type_inference) {
+    // This regression test covers a bug where there is an assertion failure if
+    // an effect constructor with a parameter of an undefined type is used. For
+    // example:
+    //
+    // effect Foo {
+    //     ctor bar(Bar);
+    // }
+    // pred p: Foo {
+    //     p <- do bar(Baz);
+    // }
+    SourceLocation errorLocation(2, 13);
+    std::vector<Effect> es = {
+        Effect(
+            EffectDecl("Foo", {1, 7}),
+            {
+                EffectConstructor(
+                    "bar",
+                    { Parameter("Bar", false, errorLocation) },
+                    SourceLocation(2, 9)
+                )
+            }
+        )
+    };
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", {}, { EffectRef("Foo", {4, 8}) }, {3, 5}),
+            {
+                Implication(
+                    PredicateRef("p", {5, 4}),
+                    Expression(EffectCtorRef("bar", { NamedValue("Baz", {}, {5, 16}) }, {5, 12}))
+                )
+            }
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::undefined_type, "Bar"));
+
+    checkAll(AST({}, es, ps), error);
+}
+
 
 TEST_F(TestSemAnaPredicates, predicate_proves_predicate_with_unhandled_effect) {
     // effect Foo {}
