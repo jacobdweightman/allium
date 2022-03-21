@@ -1,0 +1,67 @@
+type Bool {
+    ctor True;
+    ctor False;
+}
+
+type Expression {
+    ctor E(Bool);
+    ctor And(Expression, Expression);
+    ctor Or(Expression, Expression);
+    ctor Not(Expression);
+}
+
+// bSat(x) iff x is satisfiable.
+pred bSat(Expression) {
+    bSat(E(True)) <- true;
+    bSat(And(let x, let y)) <- bSat(x), bSat(y);
+    bSat(Or(let x, _)) <- bSat(x);
+    bSat(Or(_, let y)) <- bSat(y);
+
+    // Allium doesn't support negation, so we use double-negation elimination
+    // and DeMorgan's laws to push the negation "further down." bSat(in)
+    // terminates by structural induction.
+    bSat(Not(E(False))) <- true;
+    bSat(Not(Not(let x))) <- bSat(x);
+    bSat(Not(And(let x, _))) <- bSat(Not(x));
+    bSat(Not(And(_, let y))) <- bSat(Not(y));
+    bSat(Not(Or(let x, let y))) <- bSat(Not(x)), bSat(Not(y));
+}
+
+pred asString(Bool, String) {
+    asString(True, "True") <- true;
+    asString(False, "False") <- true;
+}
+
+pred main: IO {
+    // ~((P or ~Q) and R) and ~((~S or (~Q or ~S)) or (P or R))
+    // iff ~P and Q and ~R and S
+    main <-
+        bSat(And(
+            Not(And(
+                Or(E(let p), Not(E(let q))),
+                E(let r)
+            )),
+            Not(Or(
+                Or(Not(E(let s)), Or(Not(E(q)), Not(E(s)))),
+                Or(E(p), E(r))
+            ))
+        )),
+        do print("Solution:"),
+        asString(p, let ps),
+        do print(ps),
+        asString(q, let qs),
+        do print(qs),
+        asString(r, let rs),
+        do print(rs),
+        asString(s, let ss),
+        do print(ss);
+}
+
+// The only solution is ~P and Q and ~R and S. 
+// CHECK: Solution:
+// CHECK: False
+// CHECK: True
+// CHECK: False
+// CHECK: True
+
+// CHECK: Exit code: 0

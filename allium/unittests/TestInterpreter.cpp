@@ -134,67 +134,51 @@ public:
 };
 
 TEST_F(TestMatching, match_base_constructor) {
-    Context existentialVariables, universalVariables;
+    Context parentContext, localContext;
 
-    EXPECT_TRUE(
-        match(
-            MatcherCtorRef(0, {}),
-            MatcherCtorRef(0, {}),
-            existentialVariables,
-            universalVariables
-        )
-    );
-
-    EXPECT_FALSE(
-        match(
-            MatcherCtorRef(0, {}),
-            MatcherCtorRef(1, {}),
-            existentialVariables,
-            universalVariables
-        )
-    );
+    RuntimeCtorRef value(0, {});
+    EXPECT_TRUE(match(value, MatcherCtorRef(0, {}), localContext));
+    EXPECT_FALSE(match(value, MatcherCtorRef(1, {}), localContext));
 }
 
 TEST_F(TestMatching, match_constructor_with_parameter) {
-    Context existentialVariables, universalVariables;
+    Context localContext;
 
+    RuntimeCtorRef value(1, { RuntimeValue(RuntimeCtorRef(0, {})) });
     EXPECT_TRUE(
         match(
+            value,
             MatcherCtorRef(1, { MatcherValue(MatcherCtorRef(0, {})) }),
-            MatcherCtorRef(1, { MatcherValue(MatcherCtorRef(0, {})) }),
-            existentialVariables,
-            universalVariables
+            localContext
         )
     );
 
     EXPECT_FALSE(
         match(
-            MatcherCtorRef(0, { MatcherValue(MatcherCtorRef(0, {})) }),
+            value,
             MatcherCtorRef(0, { MatcherValue(MatcherCtorRef(1, {})) }),
-            existentialVariables,
-            universalVariables
+            localContext
         )
     );
 }
 
 TEST_F(TestMatching, match_constructor_with_multiple_parameters) {
-    Context existentialVariables, universalVariables;
+    Context localContext;
 
+    RuntimeCtorRef value(0, { RuntimeValue(RuntimeCtorRef(0, {})), RuntimeValue(RuntimeCtorRef(1, {})) });
     EXPECT_TRUE(
         match(
+            value,
             MatcherCtorRef(0, { MatcherValue(MatcherCtorRef(0, {})), MatcherValue(MatcherCtorRef(1, {})) }),
-            MatcherCtorRef(0, { MatcherValue(MatcherCtorRef(0, {})), MatcherValue(MatcherCtorRef(1, {})) }),
-            existentialVariables,
-            universalVariables
+            localContext
         )
     );
 
     EXPECT_FALSE(
         match(
-            MatcherCtorRef(0, { MatcherValue(MatcherCtorRef(0, {})), MatcherValue(MatcherCtorRef(1, {})) }),
+            value,
             MatcherCtorRef(0, { MatcherValue(MatcherCtorRef(0, {})), MatcherValue(MatcherCtorRef(0, {})) }),
-            existentialVariables,
-            universalVariables
+            localContext
         )
     );
 }
@@ -203,14 +187,8 @@ TEST_F(TestMatching, matching_undefined_local_variable_sets_its_value) {
     Context parentContext, localContext;
     localContext.resize(1);
 
-    EXPECT_TRUE(
-        match(
-            MatcherCtorRef(1, {}),
-            MatcherVariable(0),
-            parentContext,
-            localContext
-        )
-    );
+    RuntimeCtorRef value(1, {});
+    EXPECT_TRUE(match(value, MatcherVariable(0), localContext));
 
     EXPECT_EQ(localContext[0], RuntimeValue(RuntimeCtorRef(1, {})));
 }
@@ -219,14 +197,7 @@ TEST_F(TestMatching, matching_nonlocal_variable_definition_sets_its_value) {
     Context parentContext, localContext;
     parentContext.resize(1);
 
-    EXPECT_TRUE(
-        match(
-            MatcherVariable(0),
-            MatcherCtorRef(1, {}),
-            parentContext,
-            localContext
-        )
-    );
+    EXPECT_TRUE(match(&parentContext[0], MatcherCtorRef(1, {}), localContext));
 
     EXPECT_EQ(parentContext[0], RuntimeValue(RuntimeCtorRef(1, {})));
 }
@@ -236,23 +207,11 @@ TEST_F(TestMatching, matching_defined_local_variable_matches_its_value) {
         RuntimeValue(RuntimeCtorRef(1, {}))
     };
 
-    EXPECT_TRUE(
-        match(
-            MatcherCtorRef(1, {}),
-            MatcherVariable(0),
-            parentContext,
-            localContext
-        )
-    );
+    RuntimeCtorRef value1(1, {});
+    EXPECT_TRUE(match(value1, MatcherVariable(0), localContext));
 
-    EXPECT_FALSE(
-        match(
-            MatcherCtorRef(2, {}),
-            MatcherVariable(0),
-            parentContext,
-            localContext
-        )
-    );
+    RuntimeCtorRef value2(2, {});
+    EXPECT_FALSE(match(value2, MatcherVariable(0), localContext));
 }
 
 TEST_F(TestMatching, matching_defined_nonlocal_variable_matches_its_value) {
@@ -260,38 +219,16 @@ TEST_F(TestMatching, matching_defined_nonlocal_variable_matches_its_value) {
         RuntimeValue(RuntimeCtorRef(1, {}))
     };
 
-    EXPECT_TRUE(
-        match(
-            MatcherVariable(0),
-            MatcherCtorRef(1, {}),
-            parentContext,
-            localContext
-        )
-    );
-
-    EXPECT_FALSE(
-        match(
-            MatcherVariable(0),
-            MatcherCtorRef(2, {}),
-            parentContext,
-            localContext
-        )
-    );
+    EXPECT_TRUE(match(&parentContext[0], MatcherCtorRef(1, {}), localContext));
+    EXPECT_FALSE(match(&parentContext[0], MatcherCtorRef(2, {}), localContext));
 }
 
 TEST_F(TestMatching, matching_unbound_nonlocal_and_local_variables_sets_latter_to_former) {
-    Context universalVariables(1), existentialVariables(1);
+    Context parentContext(1), localContext(1);
 
-    EXPECT_TRUE(
-        match(
-            MatcherVariable(0),
-            MatcherVariable(0),
-            existentialVariables,
-            universalVariables
-        )
-    );
+    EXPECT_TRUE(match(&parentContext[0], MatcherVariable(0), localContext));
 
-    EXPECT_EQ(existentialVariables[0], RuntimeValue(&universalVariables[0]));
+    EXPECT_EQ(parentContext[0], RuntimeValue(&localContext[0]));
 }
 
 TEST_F(TestMatching, variables_are_properly_bound_after_binding_to_each_other) {
@@ -299,21 +236,8 @@ TEST_F(TestMatching, variables_are_properly_bound_after_binding_to_each_other) {
     // a value.
     Context parentContext(1), localContext(1);
 
-    match(
-        MatcherVariable(0),
-        MatcherVariable(0),
-        parentContext,
-        localContext
-    );
-
-    EXPECT_TRUE(
-        match(
-            MatcherVariable(0),
-            MatcherCtorRef(1, {}),
-            parentContext,
-            localContext
-        )
-    );
+    match(&parentContext[0], MatcherVariable(0), localContext);
+    EXPECT_TRUE(match(&parentContext[0], MatcherCtorRef(1, {}), localContext));
 
     // Even though parentContext[0] was matched with the constructor, the
     // interpreter should "look through" the pointer that's already there and
@@ -328,23 +252,31 @@ TEST_F(TestMatching, variables_are_properly_bound_after_binding_to_each_other2) 
     Context parentContext(1), localContext(1);
 
     match(
+        &parentContext[0],
         MatcherVariable(0),
-        MatcherVariable(0),
-        parentContext,
         localContext
     );
 
-    EXPECT_TRUE(
-        match(
-            MatcherCtorRef(1, {}),
-            MatcherVariable(0),
-            parentContext,
-            localContext
-        )
-    );
+    RuntimeCtorRef value(1, {});
+    EXPECT_TRUE(match(value, MatcherVariable(0), localContext));
 
     // The result should be the same as the last test, even though the local
     // variable was bound to the constructor this time.
     EXPECT_EQ(parentContext[0], RuntimeValue(&localContext[0]));
     EXPECT_EQ(localContext[0], RuntimeValue(RuntimeCtorRef(1, {})));
+}
+
+TEST_F(TestMatching, matching_regression) {
+    Context parentContext(2), localContext(1);
+
+    localContext[0] = std::monostate{};
+    parentContext[0] = RuntimeValue(&localContext[0]);
+    parentContext[1] = RuntimeValue(RuntimeCtorRef(1, { RuntimeValue(&parentContext[0]) }));
+
+    MatcherCtorRef ctor(1, { MatcherValue(MatcherCtorRef(0, {})) });
+    EXPECT_TRUE(match(&parentContext[1], ctor, localContext));
+
+    EXPECT_EQ(localContext[0], RuntimeValue(RuntimeCtorRef(0, {})));
+    EXPECT_EQ(parentContext[0], RuntimeValue(&localContext[0]));
+    EXPECT_EQ(parentContext[1], RuntimeValue(RuntimeCtorRef(1, { RuntimeValue(&parentContext[0]) })));
 }

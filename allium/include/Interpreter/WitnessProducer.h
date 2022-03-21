@@ -15,37 +15,32 @@ bool match(
 );
 
 bool match(
-    const MatcherVariable &goalVar,
+    RuntimeValue *goalVar,
     const MatcherVariable &matcherVar,
-    Context &parentContext,
     Context &localContext
 );
 
 bool match(
-    const MatcherVariable &goalVar,
+    RuntimeValue *goalVar,
     const MatcherCtorRef &matcherCtor,
-    Context &parentContext,
     Context &localContext
 );
 
 bool match(
-    const MatcherCtorRef &goalCtor,
+    RuntimeCtorRef &goalCtor,
     const MatcherVariable &matcherVar,
-    Context &parentContext,
     Context &localContext
 );
 
 bool match(
-    const MatcherCtorRef &goalCtor,
+    RuntimeCtorRef &goalCtor,
     const MatcherCtorRef &matcherCtor,
-    Context &parentContext,
     Context &localContext
 );
 
 bool match(
-    const MatcherValue &goalVal,
+    RuntimeValue &goalVal,
     const MatcherValue &matcherVal,
-    Context &parentContext,
     Context &localContext
 );
 

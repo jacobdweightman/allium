@@ -385,14 +385,6 @@ public:
     const Config config;
 
 protected:
-    bool match(
-        const Implication &impl,
-        const MatcherVariable &mv,
-        const MatcherCtorRef &mCtor) const;
-    bool match(const MatcherVariable &vl, const MatcherVariable &vr) const;
-    bool match(const MatcherCtorRef &cl, const MatcherCtorRef &cr) const;
-    bool match(const MatcherValue &left, const MatcherValue &right) const;
-
     /// A collection of the predicates defined in the program. Predicates
     /// refer to each other through their indices in this vector.
     std::vector<Predicate> predicates;

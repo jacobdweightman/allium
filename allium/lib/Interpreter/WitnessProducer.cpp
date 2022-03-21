@@ -112,92 +112,109 @@ bool match(
         return false;
 
     for(int i=0; i<goalPred.arguments.size(); ++i) {
-        if(!match(goalPred.arguments[i], matcherPred.arguments[i], parentContext, localContext))
+        auto argVal = goalPred.arguments[i].lower(parentContext);
+        if(!match(argVal, matcherPred.arguments[i], localContext))
             return false;
     }
     return true;
 }
 
 bool match(
-    const MatcherVariable &goalVar,
+    RuntimeValue *goalVar,
     const MatcherVariable &matcherVar,
-    Context &parentContext,
     Context &localContext
 ) {
-    assert(goalVar.index != MatcherVariable::anonymousIndex);
+    assert(goalVar && "goalVar must not be an anonymous variable.");
 
     if(matcherVar.index == MatcherVariable::anonymousIndex)
-        return goalVar.isTypeInhabited;
+        return matcherVar.isTypeInhabited;
 
-    RuntimeValue &goalVarVal = parentContext[goalVar.index].getValue();
+    RuntimeValue &goalVarVal = goalVar->getValue();
     if(goalVarVal.isDefined()) {
         RuntimeValue &matcherVarVal = localContext[matcherVar.index].getValue();
         if(matcherVarVal.isDefined()) {
             return match(
-                goalVarVal.lift(),
+                goalVarVal,
                 matcherVarVal.lift(),
-                parentContext,
                 localContext);
         } else {
             matcherVarVal = RuntimeValue(&goalVarVal);
             return true;
         }
     } else {
-        if(!goalVar.isTypeInhabited)
+        if(!matcherVar.isTypeInhabited)
             return false;
-        // VariableRef u = matcher;
-        // u.isExistential = true;
-        // localContext[matcher.index] = VariableValue(u);
         goalVarVal = RuntimeValue(&localContext[matcherVar.index]);
         return true;
     }
 }
 
 bool match(
-    const MatcherVariable &goalVar,
+    RuntimeValue *goalVar,
     const MatcherCtorRef &matcherCtor,
-    Context &parentContext,
     Context &localContext
 ) {
-    if(goalVar.index == MatcherVariable::anonymousIndex) return true;
-    assert(goalVar.index < parentContext.size());
-
-    RuntimeValue &varValue = parentContext[goalVar.index].getValue();
+    // TODO: pattern matching for anonymous existential variables.
+    RuntimeValue &varValue = goalVar->getValue();
     if(varValue.isDefined()) {
         return match(
-            varValue.lift(),
+            varValue,
             MatcherValue(matcherCtor),
-            parentContext,
             localContext);
     } else {
-        if(!goalVar.isTypeInhabited)
-            return false;
+        // If there is a valid constructor to match the variable against, then
+        // then the variable's type must be inhabited.
         varValue = MatcherValue(matcherCtor).lower(localContext);
         return true;
     }
 }
 
 bool match(
-    const MatcherCtorRef &goalCtor,
+    RuntimeCtorRef &goalCtor,
     const MatcherVariable &matcherVar,
-    Context &parentContext,
     Context &localContext
 ) {
+    assert(matcherVar.isTypeInhabited);
     if(matcherVar.index == MatcherVariable::anonymousIndex) return true;
     assert(matcherVar.index < localContext.size());
 
     RuntimeValue &varValue = localContext[matcherVar.index].getValue();
     if(varValue.isDefined()) {
+        RuntimeValue goalValue(goalCtor);
         return match(
-            MatcherValue(goalCtor),
+            goalValue,
             varValue.lift(),
-            parentContext,
             localContext);
     } else {
-        varValue = MatcherValue(goalCtor).lower(parentContext);
+        varValue = RuntimeValue(goalCtor);
         return true;
     }
 }
+
+template <typename T>
+static bool match(
+    RuntimeValue *var,
+    const T &t
+) {
+    assert(var && "var must not be null!");
+    RuntimeValue &val = var->getValue();
+    if(val.isDefined()) {
+        return val == RuntimeValue(t);
+    } else {
+        val = RuntimeValue(t);
+        return true;
+    }
+}
+
+template bool match(
+    RuntimeValue *var,
+    const String &str
+);
+
+template bool match(
+    RuntimeValue *var,
+    const Int &i
+);
 
 template <typename T>
 static bool match(
@@ -209,7 +226,7 @@ static bool match(
     assert(vr.index < context.size());
     auto &variableVal = context[vr.index];
     if(variableVal.isDefined()) {
-        return variableVal.getValue() == RuntimeValue(t);
+        return variableVal == RuntimeValue(t);
     } else {
         variableVal = RuntimeValue(t);
         return true;
@@ -229,36 +246,34 @@ template bool match(
 );
 
 bool match(
-    const MatcherCtorRef &goalCtor,
+    RuntimeCtorRef &goalCtor,
     const MatcherCtorRef &matcherCtor,
-    Context &parentContext,
     Context &localContext
 ) {
     if(goalCtor.index != matcherCtor.index) return false;
     assert(goalCtor.arguments.size() == matcherCtor.arguments.size());
     for(int i=0; i<goalCtor.arguments.size(); ++i) {
-        if(!match(goalCtor.arguments[i], matcherCtor.arguments[i], parentContext, localContext))
+        if(!match(goalCtor.arguments[i], matcherCtor.arguments[i], localContext))
             return false;
     }
     return true;
 }
 
 bool match(
-    const MatcherValue &goalVal,
+    RuntimeValue &goalVal,
     const MatcherValue &matcherVal,
-    Context &parentContext,
     Context &localContext
 ) {
 
     return goalVal.match<bool>(
         [](std::monostate) { assert(false); return false; },
-        [&](MatcherCtorRef &lctor) {
+        [&](RuntimeCtorRef &lctor) {
             return matcherVal.match<bool>(
                 [](std::monostate) { assert(false); return false; },
-                [&](MatcherCtorRef &rctor) { return match(lctor, rctor, parentContext, localContext); },
+                [&](MatcherCtorRef &rctor) { return match(lctor, rctor, localContext); },
                 [](String &rstr) { return false; },
                 [](Int) { return false; },
-                [&](MatcherVariable &rmv) { return match(lctor, rmv, parentContext, localContext); }
+                [&](MatcherVariable &rmv) { return match(lctor, rmv, localContext); }
             );
         },
         [&](String &lstr) {
@@ -279,13 +294,13 @@ bool match(
                 [&](MatcherVariable &rmv) { return match(rmv, lint, localContext); }
             );
         },
-        [&](MatcherVariable &lmv) {
+        [&](RuntimeValue *lvar) {
             return matcherVal.match<bool>(
                 [](std::monostate) { assert(false); return false; },
-                [&](MatcherCtorRef &rctor) { return match(lmv, rctor, parentContext, localContext); },
-                [&](String &rstr) { return match(lmv, rstr, parentContext); },
-                [&](Int rint) { return match(lmv, rint, parentContext); },
-                [&](MatcherVariable &rmv) { return match(lmv, rmv, parentContext, localContext); }
+                [&](MatcherCtorRef &rctor) { return match(lvar, rctor, localContext); },
+                [&](String &rstr) { return match(lvar, rstr); },
+                [&](Int rint) { return match(lvar, rint); },
+                [&](MatcherVariable &rmv) { return match(lvar, rmv, localContext); }
             );
         }
     );
