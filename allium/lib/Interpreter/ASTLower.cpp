@@ -21,7 +21,7 @@ public:
     ): ast(ast), inhabitableTypes(getInhabitableTypes(ast.types)) {}
 
     interpreter::MatcherVariable visit(const AnonymousVariable &av) {
-        bool isTypeInhabited = ast.resolveTypeRef(av.type).constructors.size() > 0;
+        bool isTypeInhabited = inhabitableTypes.contains(av.type);
         return interpreter::MatcherVariable(
             interpreter::MatcherVariable::anonymousIndex,
             isTypeInhabited);
