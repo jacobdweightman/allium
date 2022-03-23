@@ -112,195 +112,124 @@ bool match(
         return false;
 
     for(int i=0; i<goalPred.arguments.size(); ++i) {
-        auto argVal = goalPred.arguments[i].lower(parentContext);
-        if(!match(argVal, matcherPred.arguments[i], localContext))
+        auto leftVal = goalPred.arguments[i].lower(parentContext);
+        auto rightVal = matcherPred.arguments[i].lower(localContext);
+        if(!match(leftVal, rightVal))
             return false;
     }
     return true;
 }
 
-bool match(
-    RuntimeValue *goalVar,
-    const MatcherVariable &matcherVar,
-    Context &localContext
-) {
-    assert(goalVar && "goalVar must not be an anonymous variable.");
+bool match(RuntimeValue *var1, RuntimeValue *var2) {
+    if(isVarTypeUninhabited(var1) || isVarTypeUninhabited(var2))
+        return false;
 
-    if(matcherVar.index == MatcherVariable::anonymousIndex)
-        return matcherVar.isTypeInhabited;
+    if(!var1 || !var2)
+        return true;
 
-    RuntimeValue &goalVarVal = goalVar->getValue();
-    if(goalVarVal.isDefined()) {
-        RuntimeValue &matcherVarVal = localContext[matcherVar.index].getValue();
-        if(matcherVarVal.isDefined()) {
-            return match(
-                goalVarVal,
-                matcherVarVal.lift(),
-                localContext);
+    RuntimeValue &val1 = var1->getValue();
+    if(val1.isDefined()) {
+        RuntimeValue &val2 = var2->getValue();
+        if(val2.isDefined()) {
+            return match(val1, val2);
         } else {
-            matcherVarVal = RuntimeValue(&goalVarVal);
+            val2 = RuntimeValue(&val1);
             return true;
         }
     } else {
-        if(!matcherVar.isTypeInhabited)
-            return false;
-        goalVarVal = RuntimeValue(&localContext[matcherVar.index]);
+        val1 = RuntimeValue(var2);
         return true;
     }
 }
 
-bool match(
-    RuntimeValue *goalVar,
-    const MatcherCtorRef &matcherCtor,
-    Context &localContext
-) {
-    // TODO: pattern matching for anonymous existential variables.
-    RuntimeValue &varValue = goalVar->getValue();
-    if(varValue.isDefined()) {
-        return match(
-            varValue,
-            MatcherValue(matcherCtor),
-            localContext);
-    } else {
-        // If there is a valid constructor to match the variable against, then
-        // then the variable's type must be inhabited.
-        varValue = MatcherValue(matcherCtor).lower(localContext);
+bool match(RuntimeValue *var, RuntimeCtorRef &ctor) {
+    if(isVarTypeUninhabited(var))
+        return false;
+
+    if(isAnonymousVariable(var))
         return true;
-    }
-}
 
-bool match(
-    RuntimeCtorRef &goalCtor,
-    const MatcherVariable &matcherVar,
-    Context &localContext
-) {
-    assert(matcherVar.isTypeInhabited);
-    if(matcherVar.index == MatcherVariable::anonymousIndex) return true;
-    assert(matcherVar.index < localContext.size());
-
-    RuntimeValue &varValue = localContext[matcherVar.index].getValue();
-    if(varValue.isDefined()) {
-        RuntimeValue goalValue(goalCtor);
-        return match(
-            goalValue,
-            varValue.lift(),
-            localContext);
-    } else {
-        varValue = RuntimeValue(goalCtor);
-        return true;
-    }
-}
-
-template <typename T>
-static bool match(
-    RuntimeValue *var,
-    const T &t
-) {
-    assert(var && "var must not be null!");
     RuntimeValue &val = var->getValue();
     if(val.isDefined()) {
-        return val == RuntimeValue(t);
+        RuntimeValue ctorVal(ctor);
+        return match(val, ctorVal);
     } else {
-        val = RuntimeValue(t);
+        val = RuntimeValue(ctor);
         return true;
     }
 }
 
-template bool match(
-    RuntimeValue *var,
-    const String &str
-);
-
-template bool match(
-    RuntimeValue *var,
-    const Int &i
-);
-
-template <typename T>
-static bool match(
-    const MatcherVariable &vr,
-    const T &t,
-    Context &context
-) {
-    if(vr.index == MatcherVariable::anonymousIndex) return true;
-    assert(vr.index < context.size());
-    auto &variableVal = context[vr.index];
-    if(variableVal.isDefined()) {
-        return variableVal == RuntimeValue(t);
+bool match(RuntimeValue *var, const String &str) {
+    if(isVarTypeUninhabited(var)) return false;
+    if(isAnonymousVariable(var)) return true;
+    RuntimeValue &val = var->getValue();
+    if(val.isDefined()) {
+        return val == RuntimeValue(str);
     } else {
-        variableVal = RuntimeValue(t);
+        val = RuntimeValue(str);
         return true;
     }
 }
 
-template bool match(
-    const MatcherVariable &vr,
-    const String &str,
-    Context &context
-);
+bool match(RuntimeValue *var, const Int &i) {
+    if(isVarTypeUninhabited(var)) return false;
+    if(isAnonymousVariable(var)) return true;
+    RuntimeValue &val = var->getValue();
+    if(val.isDefined()) {
+        return val == RuntimeValue(i);
+    } else {
+        val = RuntimeValue(i);
+        return true;
+    }
+}
 
-template bool match(
-    const MatcherVariable &vr,
-    const Int &i,
-    Context &context
-);
-
-bool match(
-    RuntimeCtorRef &goalCtor,
-    const MatcherCtorRef &matcherCtor,
-    Context &localContext
-) {
-    if(goalCtor.index != matcherCtor.index) return false;
-    assert(goalCtor.arguments.size() == matcherCtor.arguments.size());
-    for(int i=0; i<goalCtor.arguments.size(); ++i) {
-        if(!match(goalCtor.arguments[i], matcherCtor.arguments[i], localContext))
+bool match(RuntimeCtorRef &ctor1, RuntimeCtorRef &ctor2) {
+    if(ctor1.index != ctor2.index) return false;
+    assert(ctor1.arguments.size() == ctor2.arguments.size());
+    for(int i=0; i<ctor1.arguments.size(); ++i) {
+        if(!match(ctor1.arguments[i], ctor2.arguments[i]))
             return false;
     }
     return true;
 }
 
-bool match(
-    RuntimeValue &goalVal,
-    const MatcherValue &matcherVal,
-    Context &localContext
-) {
-
-    return goalVal.match<bool>(
+bool match(RuntimeValue &val1, RuntimeValue &val2) {
+    return val1.match<bool>(
         [](std::monostate) { assert(false); return false; },
         [&](RuntimeCtorRef &lctor) {
-            return matcherVal.match<bool>(
+            return val2.match<bool>(
                 [](std::monostate) { assert(false); return false; },
-                [&](MatcherCtorRef &rctor) { return match(lctor, rctor, localContext); },
+                [&](RuntimeCtorRef &rctor) { return match(lctor, rctor); },
                 [](String &rstr) { return false; },
                 [](Int) { return false; },
-                [&](MatcherVariable &rmv) { return match(lctor, rmv, localContext); }
+                [&](RuntimeValue *rvar) { return match(rvar, lctor); }
             );
         },
         [&](String &lstr) {
-            return matcherVal.match<bool>(
+            return val2.match<bool>(
                 [](std::monostate) { assert(false); return false; },
-                [](MatcherCtorRef) { return false; },
+                [](RuntimeCtorRef &) { return false; },
                 [&](String &rstr) { return lstr == rstr; },
                 [](Int) { return false; },
-                [&](MatcherVariable &rmv) { return match(rmv, lstr, localContext); }
+                [&](RuntimeValue *rvar) { return match(rvar, lstr); }
             );
         },
         [&](Int lint) {
-            return matcherVal.match<bool>(
+            return val2.match<bool>(
                 [](std::monostate) { assert(false); return false; },
-                [](MatcherCtorRef) { return false; },
+                [](RuntimeCtorRef &) { return false; },
                 [](String &rstr) { return false; },
                 [&](Int rint) { return lint == rint; },
-                [&](MatcherVariable &rmv) { return match(rmv, lint, localContext); }
+                [&](RuntimeValue *rvar) { return match(rvar, lint); }
             );
         },
         [&](RuntimeValue *lvar) {
-            return matcherVal.match<bool>(
+            return val2.match<bool>(
                 [](std::monostate) { assert(false); return false; },
-                [&](MatcherCtorRef &rctor) { return match(lvar, rctor, localContext); },
+                [&](RuntimeCtorRef &rctor) { return match(lvar, rctor); },
                 [&](String &rstr) { return match(lvar, rstr); },
                 [&](Int rint) { return match(lvar, rint); },
-                [&](MatcherVariable &rmv) { return match(lvar, rmv, localContext); }
+                [&](RuntimeValue *rvar) { return match(lvar, rvar); }
             );
         }
     );

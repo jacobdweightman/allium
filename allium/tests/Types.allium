@@ -35,3 +35,5 @@ pred main {
 
 // CHECK: prove: main()
 // CHECK: prove: hasVanilla(0(1(), 2(), ), )
+
+// CHECK: Exit code: 0

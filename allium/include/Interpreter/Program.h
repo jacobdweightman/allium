@@ -21,6 +21,12 @@
 //   3. Once semantic analysis has completed we can discard all syntactic
 //      information to reduce memory consumption.
 
+#ifdef _MSC_VER
+#define PUBLIC_GLOBAL __declspec(dllimport)
+#else
+#define PUBLIC_GLOBAL
+#endif
+
 namespace interpreter {
 
 struct TruthValue;
@@ -160,8 +166,7 @@ public:
         return wrapped.index() != 0;
     }
 
-    MatcherValue lift() const;
-
+    /// Follows a chain of pointers-to-values until it finds a non-pointer value.
     RuntimeValue &getValue();
 
     friend bool operator==(const RuntimeValue &lhs, const RuntimeValue &rhs) {
@@ -174,6 +179,16 @@ public:
 };
 
 std::ostream& operator<<(std::ostream &out, const RuntimeValue &val);
+
+PUBLIC_GLOBAL extern RuntimeValue *uninhabitedTypeVar;
+
+inline bool isVarTypeUninhabited(RuntimeValue *var) {
+    return var == uninhabitedTypeVar;
+}
+
+inline bool isAnonymousVariable(RuntimeValue *var) {
+    return var == nullptr;
+}
 
 /// Represents the values of all variables local to a particular context.
 typedef std::vector<RuntimeValue> Context;

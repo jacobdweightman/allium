@@ -14,35 +14,12 @@ bool match(
     Context &localContext
 );
 
-bool match(
-    RuntimeValue *goalVar,
-    const MatcherVariable &matcherVar,
-    Context &localContext
-);
-
-bool match(
-    RuntimeValue *goalVar,
-    const MatcherCtorRef &matcherCtor,
-    Context &localContext
-);
-
-bool match(
-    RuntimeCtorRef &goalCtor,
-    const MatcherVariable &matcherVar,
-    Context &localContext
-);
-
-bool match(
-    RuntimeCtorRef &goalCtor,
-    const MatcherCtorRef &matcherCtor,
-    Context &localContext
-);
-
-bool match(
-    RuntimeValue &goalVal,
-    const MatcherValue &matcherVal,
-    Context &localContext
-);
+bool match(RuntimeValue *var1, RuntimeValue *var2);
+bool match(RuntimeValue *var, RuntimeCtorRef &ctor);
+bool match(RuntimeCtorRef &ctor1, RuntimeCtorRef &ctor2);
+bool match(RuntimeValue *var, const String &str);
+bool match(RuntimeValue *var, const Int &i);
+bool match(RuntimeValue &val1, RuntimeValue &val2);
 
 /**
  * A generator which enumerates the witnesses of expr.
