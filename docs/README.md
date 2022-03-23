@@ -16,3 +16,5 @@ Contents:
 
 Experimental:
 * [Effects and Handlers](Effects.md)
+* [Implicit type conversions](ImplicitTypeConversions.md)
+* [Parametric polymorphism](ParametricPolymorphism.md)
