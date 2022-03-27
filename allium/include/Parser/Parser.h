@@ -34,25 +34,27 @@ public:
 
 // Class representing either an return value or a list of syntax errors for a particular parse method.
 template <typename T>
-class ParserResult: public TaggedUnion<Optional<T>, std::vector<SyntaxError>> {
-    using TaggedUnion<Optional<T>, std::vector<SyntaxError>>::TaggedUnion;
+class ParserResult: public TaggedUnion<T, std::vector<SyntaxError>> {
+    using TaggedUnion<T, std::vector<SyntaxError>>::TaggedUnion;
 public:
-    ParserResult(Optional<T> value, std::vector<SyntaxError> errors): TaggedUnion<Optional<T>, std::vector<SyntaxError>>(value) {
+    ParserResult(T value, std::vector<SyntaxError> errors): TaggedUnion<T, std::vector<SyntaxError>>(value) {
         if (!errors.empty()) {
-            TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped = errors;
+            TaggedUnion<T, std::vector<SyntaxError>>::wrapped = errors;
         }
     }
-    ParserResult(Optional<T> value): TaggedUnion<Optional<T>, std::vector<SyntaxError>>(value) {}
-    ParserResult(T value): TaggedUnion<Optional<T>, std::vector<SyntaxError>>(Optional<T>(value)) {}
-    ParserResult(std::vector<SyntaxError> errors): TaggedUnion<Optional<T>, std::vector<SyntaxError>>(errors) {}
+    ParserResult(T value): TaggedUnion<T, std::vector<SyntaxError>>(value) {}
+    ParserResult(std::vector<SyntaxError> errors): TaggedUnion<T, std::vector<SyntaxError>>(errors) {}
+    ParserResult(): TaggedUnion<T, std::vector<SyntaxError>>(std::vector<SyntaxError>()) {}
 
     friend std::ostream& operator<<(std::ostream& stream, const ParserResult<T>& value) {
         if (value.errored()) {
             for (auto error: std::get<std::vector<SyntaxError>>(value.wrapped)) {
                 stream << error;
             }
+        } else if (value.failed()) {
+            stream << "none";
         } else {
-            stream << std::get<Optional<T>>(value.wrapped);
+            stream << std::get<T>(value.wrapped);
         }
 
         return stream;
@@ -70,11 +72,14 @@ public:
     // if errors are present. Return true if value or errors are present and false otherwise.
     bool unwrapResultInto(T& val, std::vector<SyntaxError>& errorsList) {
         if (errored()) {
-            std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
+            std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped);
             errorsList.insert(std::end(errorsList), std::begin(resultErrors), std::end(resultErrors));
             return true;
+        } else if (failed()) {
+            return false;
         } else {
-            return std::get<Optional<T>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped).unwrapInto(val);
+            val = std::get<T>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped);
+            return true;
         }
     }
 
@@ -82,34 +87,53 @@ public:
     // provided list if errors are present. Return true if value is present and false otherwise.
     bool unwrapResultGuard(T& val, std::vector<SyntaxError>& errorsList) {
         if (errored()) {
-            std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
+            std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped);
             errorsList.insert(std::end(errorsList), std::begin(resultErrors), std::end(resultErrors));
             return false;
+        } else if (failed()) {
+            return true;
         } else {
-            return std::get<Optional<T>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped).unwrapGuard(val);
+            val = std::get<T>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped);
+            return false;
         }
     }
 
     template <typename U>
     U switchOver(std::function<U(T)> handleValue, std::function<U(void)> handleNone, std::function<U(std::vector<SyntaxError>)> handleError) const {
         if (errored()) {
-            std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
+            std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped);
             return handleError(resultErrors);
+        } else if (failed()) {
+            return handleNone();
         } else {
-            return std::get<Optional<T>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped).switchOver(handleValue, handleNone);
+            return handleValue(std::get<T>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped));
         }
     }
 
-    ParserResult &error(std::function<void(const std::vector<SyntaxError>&)> errorHandler) const {
-        if(errored()) {
-            errorHandler(std::get<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped));
+    const ParserResult &error(std::function<void(const std::vector<SyntaxError>&)> errorHandler) const {
+        if (errored()) {
+            errorHandler(std::get<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped));
         }
 
         return *this;
     }
 
+    const Optional<T> as_optional() const {
+        if (errored() || failed()) {
+            return Optional<T>();
+        } else {
+            return Optional<T>(std::get<T>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped));
+        }
+    }
+
     bool errored() const {
-        return std::holds_alternative<std::vector<SyntaxError>>(TaggedUnion<Optional<T>, std::vector<SyntaxError>>::wrapped);
+        return std::holds_alternative<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped) &&
+            !std::get<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped).empty();
+    }
+
+    bool failed() const {
+        return std::holds_alternative<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped) &&
+            std::get<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped).empty();
     }
 };
 

@@ -61,7 +61,7 @@ TEST(TestParser, parse_invalid_truth_literal) {
 
     EXPECT_EQ(
         p.parseTruthLiteral(),
-        Optional<TruthLiteral>()
+        ParserResult<TruthLiteral>()
     );
 }
 
@@ -723,7 +723,7 @@ TEST(TestParser, parse_string_literal_mismatched_quotes) {
 
     EXPECT_EQ(
         p.parseValue(),
-        Optional<Value>()
+        ParserResult<Value>()
     );
 }
 
@@ -733,7 +733,7 @@ TEST(TestParser, parse_string_literal_cannot_contain_newline) {
 
     EXPECT_EQ(
         p.parseValue(),
-        Optional<Value>()
+        ParserResult<Value>()
     );
 }
 

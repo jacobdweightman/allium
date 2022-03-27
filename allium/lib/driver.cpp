@@ -191,13 +191,13 @@ int main(int argc, char *argv[]) {
     }
 
     parser::Parser(file).parseAST()
-    .error([](const std::vector<SyntaxError> &errors) {
+    .error([](const std::vector<parser::SyntaxError> &errors) {
         for (parser::SyntaxError const& error : errors) {
             std::cout << error;
         }
         exit(1);
     })
-    .as_a<Optional<parser::AST>>()
+    .as_optional()
     .then([&](const parser::AST &ast) {
         if(arguments.printAST == Arguments::PrintASTMode::SYNTACTIC) {
             parser::ASTPrinter(std::cout).visit(ast);
