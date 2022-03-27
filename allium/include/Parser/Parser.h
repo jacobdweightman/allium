@@ -39,7 +39,7 @@ class ParserResult: public TaggedUnion<T, std::vector<SyntaxError>> {
 public:
     ParserResult(T value, std::vector<SyntaxError> errors): TaggedUnion<T, std::vector<SyntaxError>>(value) {
         if (!errors.empty()) {
-            TaggedUnion<T, std::vector<SyntaxError>>::wrapped = errors;
+            this->wrapped = errors;
         }
     }
     ParserResult(): TaggedUnion<T, std::vector<SyntaxError>>(std::vector<SyntaxError>()) {}
@@ -70,13 +70,13 @@ public:
     // if errors are present. Return true if value or errors are present and false otherwise.
     bool unwrapResultInto(T& val, std::vector<SyntaxError>& errorsList) {
         if (errored()) {
-            std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped);
+            std::vector resultErrors = std::get<std::vector<SyntaxError>>(this->wrapped);
             errorsList.insert(std::end(errorsList), std::begin(resultErrors), std::end(resultErrors));
             return true;
         } else if (failed()) {
             return false;
         } else {
-            val = std::get<T>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped);
+            val = std::get<T>(this->wrapped);
             return true;
         }
     }
@@ -85,13 +85,13 @@ public:
     // provided list if errors are present. Return true if value is present and false otherwise.
     bool unwrapResultGuard(T& val, std::vector<SyntaxError>& errorsList) {
         if (errored()) {
-            std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped);
+            std::vector resultErrors = std::get<std::vector<SyntaxError>>(this->wrapped);
             errorsList.insert(std::end(errorsList), std::begin(resultErrors), std::end(resultErrors));
             return false;
         } else if (failed()) {
             return true;
         } else {
-            val = std::get<T>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped);
+            val = std::get<T>(this->wrapped);
             return false;
         }
     }
@@ -99,18 +99,18 @@ public:
     template <typename U>
     U switchOver(std::function<U(T)> handleValue, std::function<U(void)> handleNone, std::function<U(std::vector<SyntaxError>)> handleError) const {
         if (errored()) {
-            std::vector resultErrors = std::get<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped);
+            std::vector resultErrors = std::get<std::vector<SyntaxError>>(this->wrapped);
             return handleError(resultErrors);
         } else if (failed()) {
             return handleNone();
         } else {
-            return handleValue(std::get<T>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped));
+            return handleValue(std::get<T>(this->wrapped));
         }
     }
 
     const ParserResult &error(std::function<void(const std::vector<SyntaxError>&)> errorHandler) const {
         if (errored()) {
-            errorHandler(std::get<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped));
+            errorHandler(std::get<std::vector<SyntaxError>>(this->wrapped));
         }
 
         return *this;
@@ -120,18 +120,18 @@ public:
         if (errored() || failed()) {
             return Optional<T>();
         } else {
-            return Optional<T>(std::get<T>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped));
+            return Optional<T>(std::get<T>(this->wrapped));
         }
     }
 
     bool errored() const {
-        return std::holds_alternative<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped) &&
-            !std::get<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped).empty();
+        return this->wrapped.index() == 1 &&
+            !std::get<std::vector<SyntaxError>>(this->wrapped).empty();
     }
 
     bool failed() const {
-        return std::holds_alternative<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped) &&
-            std::get<std::vector<SyntaxError>>(TaggedUnion<T, std::vector<SyntaxError>>::wrapped).empty();
+        return this->wrapped.index() == 1 &&
+            std::get<std::vector<SyntaxError>>(this->wrapped).empty();
     }
 };
 
