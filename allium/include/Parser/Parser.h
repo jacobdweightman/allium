@@ -42,8 +42,6 @@ public:
             TaggedUnion<T, std::vector<SyntaxError>>::wrapped = errors;
         }
     }
-    ParserResult(T value): TaggedUnion<T, std::vector<SyntaxError>>(value) {}
-    ParserResult(std::vector<SyntaxError> errors): TaggedUnion<T, std::vector<SyntaxError>>(errors) {}
     ParserResult(): TaggedUnion<T, std::vector<SyntaxError>>(std::vector<SyntaxError>()) {}
 
     friend std::ostream& operator<<(std::ostream& stream, const ParserResult<T>& value) {

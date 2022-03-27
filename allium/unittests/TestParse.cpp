@@ -160,12 +160,14 @@ TEST(TestParser, parse_predicate_with_missing_argument_after_left_paren) {
 
     EXPECT_EQ(
         p.parsePredicateRef(),
-        std::vector<SyntaxError> {
-            SyntaxError(
-                "Expected argument after \"(\" in argument list.",
-                SourceLocation(1, 5)
-            )
-        }
+        ParserResult<PredicateRef>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected argument after \"(\" in argument list.",
+                    SourceLocation(1, 5)
+                )
+            }
+        )
     );
 }
 
@@ -175,12 +177,14 @@ TEST(TestParser, parse_predicate_with_missing_argument_after_comma) {
 
     EXPECT_EQ(
         p.parsePredicateRef(),
-        std::vector<SyntaxError> {
-            SyntaxError(
-                "Expected an additional argument after \",\" in argument list.",
-                SourceLocation(1, 14)
-            )
-        }
+        ParserResult<PredicateRef>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected an additional argument after \",\" in argument list.",
+                    SourceLocation(1, 14)
+                )
+            }
+        )
     );
 }
 
@@ -190,12 +194,14 @@ TEST(TestParser, parse_predicate_with_missing_right_paren) {
 
     EXPECT_EQ(
         p.parsePredicateRef(),
-        std::vector<SyntaxError> {
-            SyntaxError(
-                "Expected a \",\" or \")\" after argument.",
-                SourceLocation(1, 12)
-            )
-        }
+        ParserResult<PredicateRef>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected a \",\" or \")\" after argument.",
+                    SourceLocation(1, 12)
+                )
+            }
+        )
     );
 }
 
@@ -314,12 +320,14 @@ TEST(TestParser, parse_implication_with_missing_arrow) {
 
     EXPECT_EQ(
         p.parseImplication(),
-        std::vector<SyntaxError> {
-            SyntaxError(
-                "Expected a \"<-\" after the head of an implication.",
-                SourceLocation(1, 5)
-            )
-        }
+        ParserResult<Implication>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected a \"<-\" after the head of an implication.",
+                    SourceLocation(1, 5)
+                )
+            }
+        )
     );
 }
 
@@ -329,12 +337,14 @@ TEST(TestParser, parse_implication_with_missing_right_expression) {
 
     EXPECT_EQ(
         p.parseImplication(),
-        std::vector<SyntaxError> {
-            SyntaxError(
-                "Expected an expression after \"<-\" in an implication.",
-                SourceLocation(1, 8)
-            )
-        }
+        ParserResult<Implication>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected an expression after \"<-\" in an implication.",
+                    SourceLocation(1, 8)
+                )
+            }
+        )
     );
 }
 
@@ -344,12 +354,14 @@ TEST(TestParser, parse_implication_with_missing_semicolon) {
 
     EXPECT_EQ(
         p.parseImplication(),
-        std::vector<SyntaxError> {
-            SyntaxError(
-                "Expected a \";\" at the end of an implication.",
-                SourceLocation(1, 21)
-            )
-        }
+        ParserResult<Implication>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected a \";\" at the end of an implication.",
+                    SourceLocation(1, 21)
+                )
+            }
+        )
     );
 }
 
@@ -385,12 +397,14 @@ TEST(TestParser, parse_predicate_with_missing_left_brace) {
 
     EXPECT_EQ(
         p.parsePredicate(),
-        std::vector<SyntaxError> {
-            SyntaxError(
-                "Expected \"{\" after predicate name.",
-                SourceLocation(1, 13)
-            )
-        }
+        ParserResult<Predicate>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected \"{\" after predicate name.",
+                    SourceLocation(1, 13)
+                )
+            }
+        )
     );
 }
 
@@ -400,12 +414,14 @@ TEST(TestParser, parse_predicate_with_missing_right_brace) {
 
     EXPECT_EQ(
         p.parsePredicate(),
-        std::vector<SyntaxError> {
-            SyntaxError(
-                "Expected \"}\" at the end of a predicate definition.",
-                SourceLocation(1, 14)
-            )
-        }
+        ParserResult<Predicate>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected \"}\" at the end of a predicate definition.",
+                    SourceLocation(1, 14)
+                )
+            }
+        )
     );
 }
 
@@ -530,12 +546,14 @@ TEST(TestParser, parse_input_only_parameter_with_missing_parameter) {
 
     EXPECT_EQ(
         p.parseParameter(),
-        std::vector<SyntaxError> {
-            SyntaxError(
-                "Expected type name after keyword \"in.\"",
-                SourceLocation(1, 3)
-            )
-        }
+        ParserResult<Parameter>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected type name after keyword \"in.\"",
+                    SourceLocation(1, 3)
+                )
+            }
+        )
     );
 }
 
@@ -586,12 +604,14 @@ TEST(TestParser, parse_constructor_with_missing_name) {
 
     EXPECT_EQ(
         p.parseConstructor(),
-        std::vector<SyntaxError> {
-            SyntaxError(
-                "Expected constructor name after \"ctor\" keyword.",
-                SourceLocation(1, 5)
-            )
-        }
+        ParserResult<Constructor>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected constructor name after \"ctor\" keyword.",
+                    SourceLocation(1, 5)
+                )
+            }
+        )
     );
 }
 
@@ -601,12 +621,14 @@ TEST(TestParser, parse_argless_constructor_with_missing_semicolon) {
 
     EXPECT_EQ(
         p.parseConstructor(),
-        std::vector<SyntaxError> {
-            SyntaxError(
-                "Expected a \";\" after constructor definition.",
-                SourceLocation(1, 11)
-            )
-        }
+        ParserResult<Constructor>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected a \";\" after constructor definition.",
+                    SourceLocation(1, 11)
+                )
+            }
+        )
     );
 }
 
@@ -616,12 +638,14 @@ TEST(TestParser, parse_argful_constructor_with_missing_semicolon) {
 
     EXPECT_EQ(
         p.parseConstructor(),
-        std::vector<SyntaxError> {
-            SyntaxError(
-                "Expected a \";\" after constructor definition.",
-                SourceLocation(1, 21)
-            )
-        }
+        ParserResult<Constructor>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected a \";\" after constructor definition.",
+                    SourceLocation(1, 21)
+                )
+            }
+        )
     );
 }
 
@@ -631,12 +655,14 @@ TEST(TestParser, parse_constructor_with_missing_parameters) {
 
     EXPECT_EQ(
         p.parseConstructor(),
-        std::vector<SyntaxError> {
-            SyntaxError(
-                "Expected parameter after \"(\" in parameter list.",
-                SourceLocation(1, 12)
-            )
-        }
+        ParserResult<Constructor>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected parameter after \"(\" in parameter list.",
+                    SourceLocation(1, 12)
+                )
+            }
+        )
     );
 }
 
@@ -646,12 +672,14 @@ TEST(TestParser, parse_constructor_with_missing_parameter_after_comma) {
 
     EXPECT_EQ(
         p.parseConstructor(),
-        std::vector<SyntaxError> {
-            SyntaxError(
-                "Expected an additional parameter after \",\" in parameter list.",
-                SourceLocation(1, 22)
-            )
-        }
+        ParserResult<Constructor>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected an additional parameter after \",\" in parameter list.",
+                    SourceLocation(1, 22)
+                )
+            }
+        )
     );
 }
 
@@ -661,12 +689,14 @@ TEST(TestParser, parse_constructor_with_missing_right_paren) {
 
     EXPECT_EQ(
         p.parseConstructor(),
-        std::vector<SyntaxError> {
-            SyntaxError(
-                "Expected a \",\" or \")\" after parameter.",
-                SourceLocation(1, 27)
-            )
-        }
+        ParserResult<Constructor>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected a \",\" or \")\" after parameter.",
+                    SourceLocation(1, 27)
+                )
+            }
+        )
     );
 }
 
@@ -676,10 +706,12 @@ TEST(TestParser, constructor_parameter_cannot_be_marked_input_only) {
 
     EXPECT_EQ(
         p.parseConstructor(),
-        ParserResult<Constructor>(std::vector<SyntaxError> {
-            SyntaxError("Expected parameter after \"(\" in parameter list.", SourceLocation(1, 12)),
-            SyntaxError("Expected a \",\" or \")\" after parameter.", SourceLocation(1, 12))
-        })
+        ParserResult<Constructor>(
+            std::vector<SyntaxError> {
+                SyntaxError("Expected parameter after \"(\" in parameter list.", SourceLocation(1, 12)),
+                SyntaxError("Expected a \",\" or \")\" after parameter.", SourceLocation(1, 12))
+            }
+        )
     );
 }
 
