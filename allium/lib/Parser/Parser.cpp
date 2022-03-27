@@ -62,7 +62,7 @@ ParserResult<PredicateDecl> Parser::parsePredicateDecl() {
 
         std::vector<EffectRef> effects;
         if(parseEffectList().unwrapResultGuard(effects, errors)) {
-            rewindAndReturn();
+            return rewindAndReturn();
         }
 
         return ParserResult<PredicateDecl>(
