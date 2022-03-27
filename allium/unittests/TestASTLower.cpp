@@ -43,7 +43,8 @@ TEST(TestASTLower, variables_of_uninhabited_types_are_marked) {
     );
 }
 
-TEST(TestASTLower, string_is_not_uninhabited) {
+TEST(TestASTLower, string_is_inhabited) {
+    // This test checks that a variable of type String is marked as inhabited.
     AST ast(
         TypedAST::builtinTypes,
         {},
@@ -65,6 +66,33 @@ TEST(TestASTLower, string_is_not_uninhabited) {
 
     const interpreter::MatcherValue v = lower(ast).getPredicate(0).implications[0].head.arguments[0];
     EXPECT_EQ(v, interpreter::MatcherValue(interpreter::MatcherVariable(0, true)));
+}
+
+TEST(TestASTLower, string_is_inhabited_2) {
+    // This test checks that an anonymous variable of type String is marked as
+    // inhabited.
+    AST ast(
+        TypedAST::builtinTypes,
+        {},
+        {
+            Predicate(
+                PredicateDecl("p", { Parameter("String", false) }, {}),
+                {
+                    Implication(
+                        PredicateRef("p", {
+                            AnonymousVariable((Name<Type>("String")))
+                        }),
+                        Expression(TruthLiteral(true))
+                    )
+                },
+                {}
+            )
+        }
+    );
+
+    const interpreter::MatcherValue actualVariable = lower(ast).getPredicate(0).implications[0].head.arguments[0];
+    const interpreter::MatcherValue expectedVariable(interpreter::MatcherVariable(interpreter::MatcherVariable::anonymousIndex, true));
+    EXPECT_EQ(actualVariable, expectedVariable);
 }
 
 TEST(TestASTLower, existential_variables_are_uniquely_indexed) {

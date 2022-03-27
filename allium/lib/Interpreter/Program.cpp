@@ -88,26 +88,6 @@ std::ostream& operator<<(std::ostream &out, const MatcherVariable &vr) {
     return out;
 }
 
-MatcherValue RuntimeValue::lift() const {
-    return match<MatcherValue>(
-        [](std::monostate) { assert(false); return MatcherValue(); },
-        [&](RuntimeCtorRef &cr) {
-            return MatcherValue(
-                MatcherCtorRef(
-                    cr.index,
-                    map<RuntimeValue, MatcherValue>(
-                        cr.arguments,
-                        [&](RuntimeValue v) { return v.lift(); }
-                    )
-                )
-            );
-        },
-        [](String &str) { return MatcherValue(str); },
-        [](Int i) { return MatcherValue(i); },
-        [](RuntimeValue *v) { return v->lift(); }
-    );
-}
-
 RuntimeValue &RuntimeValue::getValue() {
     return match<RuntimeValue&>(
         [&](std::monostate) -> RuntimeValue& { return *this; },
@@ -129,6 +109,10 @@ std::ostream& operator<<(std::ostream &out, const RuntimeValue &v) {
     return out;
 }
 
+
+RuntimeValue uninhabitedTypeVal;
+RuntimeValue *uninhabitedTypeVar = &uninhabitedTypeVal;
+
 RuntimeValue MatcherValue::lower(Context &context) const {
     return match<RuntimeValue>(
         [](std::monostate) { assert(false); return RuntimeValue(); },
@@ -145,7 +129,16 @@ RuntimeValue MatcherValue::lower(Context &context) const {
         },
         [](String &str) { return RuntimeValue(str); },
         [](Int i) { return RuntimeValue(i); },
-        [&](MatcherVariable &v) { return RuntimeValue(&context[v.index]); }
+        [&](MatcherVariable &v) -> RuntimeValue {
+            if(!v.isTypeInhabited) {
+                return RuntimeValue(uninhabitedTypeVar);
+            } else if(v.index == MatcherVariable::anonymousIndex) {
+                return RuntimeValue(nullptr);
+            } else {
+                assert(v.index < context.size());
+                return RuntimeValue(&context[v.index]);
+            }
+        }
     );
 }
 

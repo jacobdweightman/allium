@@ -1,0 +1,13 @@
+
+type Void {}
+
+pred void(Void) {
+    void(_) <- true;
+}
+
+pred main {
+    // There does not exist x: Void.
+    main <- void(let x);
+}
+
+// CHECK: Exit code: 1

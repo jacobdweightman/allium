@@ -5,7 +5,9 @@ two ways: interpreting directly through `allium`, and by compiling to a
 standalone executable file. The compiler still lags behind the interpreter in
 terms of feature support, but will ultimately be the "usual" way to develop in
 Allium. Thus, `allium` defaults to compilation mode, but can be put into
-interpretation mode using the `-i` flag.
+interpretation mode using the `-i` flag. Note that if you build Allium from
+source without enabling the compiler, the `-i` flag is implied and compiler-only
+flags will be ignored.
 
 | Flag                    | Mode        | Meaning                                      |
 | ----------------------- | ----------- | -------------------------------------------- |
