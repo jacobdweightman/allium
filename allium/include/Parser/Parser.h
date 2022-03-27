@@ -32,16 +32,23 @@ public:
     SourceLocation location;
 };
 
-// Class representing either an return value or a list of syntax errors for a particular parse method.
+// Class representing the value returned by one of the Parser methods.
+// There are three possible cases that can be represented by a ParserResult:
+//  - Success: Result wraps a value of type T
+//  - Failure: Result wraps an empty list of SyntaxErrors
+//  - Error:   Result wraps a non-empty list of SyntaxErrors
 template <typename T>
 class ParserResult: public TaggedUnion<T, std::vector<SyntaxError>> {
     using TaggedUnion<T, std::vector<SyntaxError>>::TaggedUnion;
 public:
+    // Constructs a ParserResult which represents the provided list of errors if any errors are present.
+    // If no errors are present, the result will contain the provided value.
     ParserResult(T value, std::vector<SyntaxError> errors): TaggedUnion<T, std::vector<SyntaxError>>(value) {
         if (!errors.empty()) {
             this->wrapped = errors;
         }
     }
+    // Constructs a ParserResult for the failure case (no value, no errors).
     ParserResult(): TaggedUnion<T, std::vector<SyntaxError>>(std::vector<SyntaxError>()) {}
 
     friend std::ostream& operator<<(std::ostream& stream, const ParserResult<T>& value) {
@@ -67,7 +74,7 @@ public:
     }
 
     // Unwrap the value of the result into the provided location if a value is present or add any errors to the provided list
-    // if errors are present. Return true if value or errors are present and false otherwise.
+    // if errors are present. Return false in the failure case and true in the success and error cases.
     bool unwrapResultInto(T& val, std::vector<SyntaxError>& errorsList) {
         if (errored()) {
             std::vector resultErrors = std::get<std::vector<SyntaxError>>(this->wrapped);
@@ -81,8 +88,8 @@ public:
         }
     }
 
-    // Unwrap the value of the result into the provided location if a value is present or add any errors to the
-    // provided list if errors are present. Return true if value is present and false otherwise.
+    // Unwrap the value of the result into the provided location if a value is present or add any errors to the provided list
+    // if errors are present. Return false in the failure case and true in the success and error cases.
     bool unwrapResultGuard(T& val, std::vector<SyntaxError>& errorsList) {
         if (errored()) {
             std::vector resultErrors = std::get<std::vector<SyntaxError>>(this->wrapped);
@@ -96,18 +103,20 @@ public:
         }
     }
 
+    // Apply the operation which corresponds to the return case (success, failure, or error) represented by the result.
     template <typename U>
-    U switchOver(std::function<U(T)> handleValue, std::function<U(void)> handleNone, std::function<U(std::vector<SyntaxError>)> handleError) const {
+    U switchOver(std::function<U(T)> handleSuccess, std::function<U(void)> handleFailure, std::function<U(std::vector<SyntaxError>)> handleError) const {
         if (errored()) {
-            std::vector resultErrors = std::get<std::vector<SyntaxError>>(this->wrapped);
-            return handleError(resultErrors);
+            return handleError(std::get<std::vector<SyntaxError>>(this->wrapped));
         } else if (failed()) {
-            return handleNone();
+            return handleFailure();
         } else {
-            return handleValue(std::get<T>(this->wrapped));
+            return handleSuccess(std::get<T>(this->wrapped));
         }
     }
 
+    // Calls the given observer if the result represents the error case, and
+    // returns the result again by reference for use in a chain.
     const ParserResult &error(std::function<void(const std::vector<SyntaxError>&)> errorHandler) const {
         if (errored()) {
             errorHandler(std::get<std::vector<SyntaxError>>(this->wrapped));
@@ -116,6 +125,8 @@ public:
         return *this;
     }
 
+    // Gets an Optional representation of the result. Optional contains the value wrapped
+    // by the result if one is present and is empty otherwise.
     const Optional<T> as_optional() const {
         if (errored() || failed()) {
             return Optional<T>();
@@ -124,11 +135,13 @@ public:
         }
     }
 
+    // Check whether the result represents the error case.
     bool errored() const {
         return this->wrapped.index() == 1 &&
             !std::get<std::vector<SyntaxError>>(this->wrapped).empty();
     }
 
+    // Check whether the result represents the failure case.
     bool failed() const {
         return this->wrapped.index() == 1 &&
             std::get<std::vector<SyntaxError>>(this->wrapped).empty();
