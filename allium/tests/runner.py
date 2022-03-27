@@ -16,9 +16,16 @@ def run(name):
 
     # (allium -i $name --log-level=2 ; echo "Exit code:" $?) | FileCheck $name
     with tempfile.TemporaryFile() as tracefile:
-        exe = subprocess.run([allium, "-i", name, "--log-level=2"], stdout=tracefile, stderr=subprocess.STDOUT)
-        tracefile.write(f"Exit code: {exe.returncode}".encode('utf8'))
-        tracefile.seek(0)
+        try:
+            exe = subprocess.run(
+                [allium, "-i", name, "--log-level=2"],
+                stdout=tracefile,
+                stderr=subprocess.STDOUT,
+                timeout=5)
+            tracefile.write(f"Exit code: {exe.returncode}".encode('utf8'))
+            tracefile.seek(0)
+        except subprocess.TimeoutExpired:
+            pass
         result = subprocess.run([filecheck, name], input=tracefile.read())
 
     tests_run += 1

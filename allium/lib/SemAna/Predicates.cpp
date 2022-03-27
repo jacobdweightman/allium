@@ -50,6 +50,22 @@ public:
     }
 
     Optional<TypedAST::PredicateDecl> visit(const PredicateDecl &pd) {
+        const auto originalDeclaration = std::find_if(
+            ast.predicates.begin(),
+            ast.predicates.end(),
+            [&](Predicate p) {
+                return p.name.name == pd.name;
+            });
+
+        if(originalDeclaration->name.location != pd.location) {
+            error.emit(
+                pd.location,
+                ErrorMessage::predicate_redefined,
+                pd.name.string(),
+                originalDeclaration->name.location.toString());
+            return Optional<TypedAST::PredicateDecl>();
+        }
+
         return both(
             fullMap<Parameter, TypedAST::Parameter>(
                 pd.parameters,
@@ -120,6 +136,10 @@ public:
             pr.arguments,
             [&](Value argument) {
                 inferredType = ast.resolveTypeRef(parameter->name);
+                if(!inferredType) {
+                    ++parameter;
+                    return Optional<TypedAST::Value>();
+                }
                 isInputOnly = parameter->isInputOnly && enclosingPred.name.name != pr.name;
                 auto raisedArg = visit(argument);
                 isInputOnly = false;
@@ -181,6 +201,10 @@ public:
             ecr.arguments,
             [&](Value argument) -> Optional<TypedAST::Value> {
                 inferredType = ast.resolveTypeRef(parameter->name);
+                if(!inferredType) {
+                    ++parameter;
+                    return Optional<TypedAST::Value>();
+                }
                 isInputOnly = parameter->isInputOnly; // TODO: must be false if inside handler
                 Optional<TypedAST::Value> raisedArg = visit(argument);
                 isInputOnly = false;
@@ -433,6 +457,10 @@ public:
             cr.arguments,
             [&](Value argument) -> Optional<TypedAST::Value> {
                 inferredType = ast.resolveTypeRef(parameter->name);
+                if(!inferredType) {
+                    ++parameter;
+                    return Optional<TypedAST::Value>();
+                }
                 Optional<TypedAST::Value> raisedArg = visit(argument);
                 inferredType = Optional<Type>();
                 ++parameter;

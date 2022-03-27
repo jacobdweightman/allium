@@ -29,6 +29,8 @@ std::string formatString(ErrorMessage msg) {
         return "An Int literal is not convertible to type \"%s\".";
     case ErrorMessage::predicate_argument_count:
         return "Predicate \"%s\" expects %s arguments.";
+    case ErrorMessage::predicate_redefined:
+        return "Predicate \"%s\" was already defined at %s and cannot be redefined.";
     case ErrorMessage::string_literal_not_convertible:
         return "A string literal is not convertible to type \"%s\".";
     case ErrorMessage::type_redefined:
