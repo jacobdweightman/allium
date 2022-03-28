@@ -260,6 +260,79 @@ Optional<EffectCtorRef> Parser::parseEffectCtorRef() {
     return EffectCtorRef(identifier.text, {}, identifier.location);
 }
 
+/// Parses an effect handler declaration
+Optional<Handler> Parser::parseHandler() {
+    Token first = lexer.peek_next();
+
+    auto rewindAndReturn = [&]() {
+        lexer.rewind(first);
+        return Optional<Handler>();
+    };
+
+    // <handler> := "handle" <effect-ref> "{" <0-or-more-effect-implications> "}"
+    if(!lexer.take(Token::Type::kw_handle)) {
+        return rewindAndReturn();
+    }
+
+    Token effectRef;
+    if(lexer.take_token(Token::Type::identifier).unwrapGuard(effectRef)) {
+        emitSyntaxError("Expected effect name after \"handle\".");
+    }
+
+    if(lexer.take(Token::Type::brace_l)) {
+        std::vector<EffectImplication> implications;
+        EffectImplication impl;
+
+        while(parseEffectImplication().unwrapInto(impl)) {
+            implications.push_back(impl);
+        }
+
+        if(lexer.take(Token::Type::brace_r)) {
+            return Handler(EffectRef(effectRef.text, effectRef.location), implications);
+        } else {
+            emitSyntaxError("Expected \"}\" at the end of a handler definition.");
+            return rewindAndReturn();
+        }
+    } else {
+        return rewindAndReturn();
+    }
+}
+
+/// Parses an effect implication within an effect handler
+Optional<EffectImplication> Parser::parseEffectImplication() {
+    Token first = lexer.peek_next();
+
+    auto rewindAndReturn = [&]() {
+        lexer.rewind(first);
+        return Optional<EffectImplication>();
+    };
+
+    EffectCtorRef ec;
+
+    // <effect-implication> := <effect-ctor-ref> "<-" <expression> ";"
+    if(parseEffectCtorRef().unwrapInto(ec)) {
+        if(!lexer.take(Token::Type::implied_by)) {
+            emitSyntaxError("Expected a \"<-\" after the head of an effect implication.");
+            return rewindAndReturn();
+        }
+
+        Expression expr;
+        if(parseExpression().unwrapGuard(expr)) {
+            emitSyntaxError("Expected an expression after \"<-\" in an effect implication.");
+            return rewindAndReturn();
+        }
+
+        if(lexer.take(Token::Type::end_of_statement)) {
+            return EffectImplication(ec, expr);
+        } else {
+            emitSyntaxError("Expected a \";\" at the end of an effect implication.");
+            return rewindAndReturn();
+        }
+    } else {
+        return rewindAndReturn();
+    }
+}
+
 /// Parses a truth literal, predicate, or effect constructor from the stream.
 Optional<Expression> Parser::parseAtom() {
     TruthLiteral tl;

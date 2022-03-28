@@ -19,6 +19,7 @@ public:
     Optional<Predicate> parsePredicate();
     Optional<Type> parseType();
     Optional<Effect> parseEffect();
+    Optional<Handler> parseHandler();
     Optional<AST> parseAST();
 
     // Exposed for test
@@ -42,6 +43,7 @@ private:
     Optional<std::vector<EffectRef>> parseEffectList();
     Optional<EffectDecl> parseEffectDecl();
     Optional<EffectConstructor> parseEffectConstructor();
+    Optional<EffectImplication> parseEffectImplication();
 
     void emitSyntaxError(std::string message);
 

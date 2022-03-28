@@ -44,7 +44,7 @@ class SemAna {
 public:
     SemAna(const AST &ast, const ErrorEmitter &error):
         ast(ast), error(error) {}
-    
+
     TypedAST::TruthLiteral visit(const TruthLiteral &tl) {
         return TypedAST::TruthLiteral(tl.value);
     }
@@ -102,7 +102,7 @@ public:
             bool handledInEnclosing = std::find_if(
                 enclosingPred.handlers.begin(),
                 enclosingPred.handlers.end(),
-                [&](const Handler &h) { return h.effectName == unhandledEffect.name; }
+                [&](const Handler &h) { return h.effect.name == unhandledEffect.name; }
             ) != enclosingPred.handlers.end();
 
             bool handledAboveEnclosing = std::find(
@@ -110,7 +110,7 @@ public:
                 enclosingPred.name.effects.end(),
                 unhandledEffect
             ) != enclosingPred.name.effects.end();
-            
+
             if(!handledInEnclosing && !handledAboveEnclosing) {
                 error.emit(
                     pr.location,
@@ -273,7 +273,7 @@ public:
             enclosingPredicate = Optional<Predicate>();
             return Optional<TypedAST::Predicate>();
         }
-        
+
         std::vector<TypedAST::Implication> raisedImplications;
         for(const auto &impl : p.implications) {
             if(impl.lhs.name != p.name.name) {
@@ -394,7 +394,7 @@ public:
             error.emit(v.location, ErrorMessage::input_only_argument_contains_variable_definition, v.name.string());
             return Optional<TypedAST::Variable>();
         }
- 
+
         // A variable is existential iff it is defined in the body of an
         // implication. Record this information for each variable in the scope.
         bool isExistential;
