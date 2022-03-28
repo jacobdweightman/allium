@@ -7,33 +7,34 @@ namespace parser {
 /// match.
 ///
 /// Note: rewinds the lexer on failure.
-Optional<TruthLiteral> Parser::parseTruthLiteral() {
+ParserResult<TruthLiteral> Parser::parseTruthLiteral() {
     Token next = lexer.take_next();
     switch(next.type) {
-    case Token::Type::true_literal:
-        return Optional(TruthLiteral(true, next.location));
-    case Token::Type::false_literal:
-        return Optional(TruthLiteral(false, next.location));
-    default:
-        lexer.rewind(next);
-        return Optional<TruthLiteral>();
+        case Token::Type::true_literal:
+            return TruthLiteral(true, next.location);
+        case Token::Type::false_literal:
+            return TruthLiteral(false, next.location);
+        default:
+            lexer.rewind(next);
+            return ParserResult<TruthLiteral>();
     }
 }
 
 /// Consumes an identifier from the lexer, and produces an AST node to match.
 ///
 /// Note: rewinds the lexer on failure.
-Optional<PredicateDecl> Parser::parsePredicateDecl() {
+ParserResult<PredicateDecl> Parser::parsePredicateDecl() {
     Token identifier = lexer.take_next();
+    std::vector<SyntaxError> errors;
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(identifier);
-        return Optional<PredicateDecl>();
+        return ParserResult<PredicateDecl>(errors);
     };
 
     if(identifier.type != Token::Type::identifier) {
-        emitSyntaxError("Expected predicate name in predicate definition.");
-        return rewindAndReturn();
+        errors.push_back(SyntaxError("Expected predicate name in predicate definition.", lexer.peek_next().location));
+        lexer.rewind(identifier);
     }
 
     Token next = lexer.peek_next();
@@ -44,56 +45,56 @@ Optional<PredicateDecl> Parser::parsePredicateDecl() {
         Parameter param;
 
         do {
-            if(parseParameter().unwrapInto(param)) {
+            if(parseParameter().unwrapResultInto(param, errors)) {
                 parameters.push_back(param);
             } else {
                 if (parameters.size() == 0) {
-                    emitSyntaxError("Parentheses must not appear after predicate name for predicates with zero arguments.");
+                    errors.push_back(SyntaxError("Parentheses must not appear after predicate name for predicates with zero arguments.", lexer.peek_next().location));
                 } else {
-                    emitSyntaxError("Expected an additional argument after \",\" in parameter list.");
+                    errors.push_back(SyntaxError("Expected an additional parameter after \",\" in parameter list.", lexer.peek_next().location));
                 }
-
-                return rewindAndReturn();
             }
         } while(lexer.take(Token::Type::comma));
 
         if(!lexer.take(Token::Type::paren_r)) {
-            emitSyntaxError("Expected a \",\" or \")\" after parameter.");
-            return rewindAndReturn();
+            errors.push_back(SyntaxError("Expected a \",\" or \")\" after parameter.", lexer.peek_next().location));
         }
 
         std::vector<EffectRef> effects;
-        if(parseEffectList().unwrapGuard(effects)) {
-            rewindAndReturn();
+        if(parseEffectList().unwrapResultGuard(effects, errors)) {
+            return rewindAndReturn();
         }
 
-        return PredicateDecl(
-            Name<Predicate>(identifier.text),
-            parameters,
-            effects,
-            identifier.location);
+        return ParserResult<PredicateDecl>(
+            PredicateDecl(Name<Predicate>(identifier.text), parameters, effects, identifier.location),
+            errors);
     }
 
     // <predicate-name> := identifier <effect-list>
     lexer.rewind(next);
 
     std::vector<EffectRef> effects;
-    if(parseEffectList().unwrapGuard(effects)) {
+    if(parseEffectList().unwrapResultGuard(effects, errors)) {
         rewindAndReturn();
     }
 
-    return Optional(PredicateDecl(
-        Name<Predicate>(identifier.text), {}, effects, identifier.location));
+    return ParserResult<PredicateDecl>(PredicateDecl(
+        Name<Predicate>(identifier.text), {}, effects, identifier.location), errors);
 }
 
-Optional<NamedValue> Parser::parseNamedValue() {
+ParserResult<NamedValue> Parser::parseNamedValue() {
     Token next = lexer.peek_next();
+    std::vector<SyntaxError> errors;
     Token identifier;
 
     // <value> := "let" <identifier>
-    if( lexer.take(Token::Type::kw_let) &&
-        lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
+    if( lexer.take(Token::Type::kw_let) ) {
+        if (lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
             return NamedValue(identifier.text, true, identifier.location);
+        } else {
+            errors.push_back(SyntaxError("Expected identifier after \"let\".", lexer.peek_next().location));
+            return ParserResult<NamedValue>(errors);
+        }
     }
 
     // <value> := <identifier> "(" <list of values> ")"
@@ -101,7 +102,7 @@ Optional<NamedValue> Parser::parseNamedValue() {
     lexer.rewind(next);
     if(lexer.take_token(Token::Type::identifier).unwrapGuard(identifier)) {
         lexer.rewind(next);
-        return Optional<NamedValue>();
+        return ParserResult<NamedValue>();
     }
 
     if(lexer.take(Token::Type::paren_l)) {
@@ -112,37 +113,42 @@ Optional<NamedValue> Parser::parseNamedValue() {
                 arguments.push_back(arg);
             },
             [&]() {
-                emitSyntaxError("Expected argument after \",\" in argument list.");
+                if (arguments.empty()) {
+                    errors.push_back(SyntaxError("Expected argument after \"(\" in argument list.", lexer.peek_next().location));
+                } else {
+                    errors.push_back(SyntaxError("Expected an additional argument after \",\" in argument list.", lexer.peek_next().location));
+                }
+            },
+            [&](std::vector<SyntaxError> resultErrors){
+                errors.insert(std::end(errors), std::begin(resultErrors), std::end(resultErrors));
             });
         } while(lexer.take(Token::Type::comma));
 
         if(lexer.take(Token::Type::paren_r)) {
-            return NamedValue(
-                identifier.text,
-                arguments,
-                identifier.location);
+            return ParserResult<NamedValue>(
+                NamedValue(identifier.text, arguments, identifier.location),
+                errors);
         } else {
-            emitSyntaxError("Expected a \",\" or \")\" after argument.");
-            lexer.rewind(next);
-            return Optional<NamedValue>();
+            errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument.", lexer.peek_next().location));
+            return ParserResult<NamedValue>(errors);
         }
     } else {
-        return NamedValue(identifier.text, {}, identifier.location);
+        return ParserResult<NamedValue>(NamedValue(identifier.text, {}, identifier.location), errors);
     }
 }
 
-Optional<StringLiteral> Parser::parseStringLiteral() {
+ParserResult<StringLiteral> Parser::parseStringLiteral() {
     Token token;
 
     // <string-literal> := <string-literal-token>
     if(lexer.take_token(Token::Type::string_literal).unwrapInto(token)) {
         return StringLiteral(token.text, token.location);
     } else {
-        return Optional<StringLiteral>();
+        return ParserResult<StringLiteral>();
     }
 }
 
-Optional<IntegerLiteral> Parser::parseIntegerLiteral() {
+ParserResult<IntegerLiteral> Parser::parseIntegerLiteral() {
     Token token;
 
     // <integer-literal> := <integer-literal-token>
@@ -150,36 +156,35 @@ Optional<IntegerLiteral> Parser::parseIntegerLiteral() {
         int64_t i = atoll(token.text.c_str());
         return IntegerLiteral(i, token.location);
     } else {
-        return Optional<IntegerLiteral>();
+        return ParserResult<IntegerLiteral>();
     }
 }
 
-Optional<Value> Parser::parseValue() {
+ParserResult<Value> Parser::parseValue() {
     NamedValue nv;
     StringLiteral str;
     IntegerLiteral i;
+    std::vector<SyntaxError> errors;
 
     // <value> := <named-value>
-    if(parseNamedValue().unwrapInto(nv)) {
-        return Value(nv);
-
+    if(parseNamedValue().unwrapResultInto(nv, errors)) {
+        return ParserResult<Value>(Value(nv), errors);
     // <value> := <string-literal>
-    } else if(parseStringLiteral().unwrapInto(str)) {
-        return Value(str);
-
+    } else if(parseStringLiteral().unwrapResultInto(str, errors)) {
+        return ParserResult<Value>(Value(str), errors);
     // <value> := <integer-literal>
-    } else if(parseIntegerLiteral().unwrapInto(i)) {
-        return Value(i);
-
+    } else if(parseIntegerLiteral().unwrapResultInto(i, errors)) {
+        return ParserResult<Value>(Value(i), errors);
     } else {
-        return Optional<Value>();
+        return ParserResult<Value>(errors);
     }
 }
 
 /// Consumes an identifier from the lexer, and produces an AST node to match.
 ///
 /// Note: rewinds the lexer on failure.
-Optional<PredicateRef> Parser::parsePredicateRef() {
+ParserResult<PredicateRef> Parser::parsePredicateRef() {
+    std::vector<SyntaxError> errors;
     Token identifier = lexer.take_next();
     if(identifier.type == Token::Type::identifier) {
         Token next = lexer.peek_next();
@@ -194,34 +199,41 @@ Optional<PredicateRef> Parser::parsePredicateRef() {
                     arguments.push_back(val);
                 },
                 [&]() {
-                    emitSyntaxError("Expected argument after \",\" in argument list.");
+                    if (arguments.empty()) {
+                        errors.push_back(SyntaxError("Expected argument after \"(\" in argument list.", lexer.peek_next().location));
+                    } else {
+                        errors.push_back(SyntaxError("Expected an additional argument after \",\" in argument list.", lexer.peek_next().location));
+                    }
+                },
+                [&](std::vector<SyntaxError> resultErrors){
+                    errors.insert(std::end(errors), std::begin(resultErrors), std::end(resultErrors));
                 });
             } while(lexer.take(Token::Type::comma));
 
             if(lexer.take(Token::Type::paren_r)) {
-                return PredicateRef(identifier.text, arguments, identifier.location);
+                return ParserResult<PredicateRef>(PredicateRef(identifier.text, arguments, identifier.location), errors);
             } else {
-                emitSyntaxError("Expected a \",\" or \")\" after argument.");
-                lexer.rewind(next);
-                return Optional<PredicateRef>();
+                errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument.", lexer.peek_next().location));
+                return ParserResult<PredicateRef>(errors);
             }
         }
 
         // <predicate-name> := identifier
         lexer.rewind(next);
-        return Optional(PredicateRef(identifier.text, identifier.location));
+        return PredicateRef(identifier.text, identifier.location);
     } else {
         lexer.rewind(identifier);
-        return Optional<PredicateRef>();
+        return ParserResult<PredicateRef>();
     }
 }
 
-Optional<EffectCtorRef> Parser::parseEffectCtorRef() {
+ParserResult<EffectCtorRef> Parser::parseEffectCtorRef() {
+    std::vector<SyntaxError> errors;
     Token first = lexer.take_next();
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(first);
-        return Optional<EffectCtorRef>();
+        return ParserResult<EffectCtorRef>(errors);
     };
 
     // <effect-ctor-ref> := "do" <identifier>
@@ -232,8 +244,8 @@ Optional<EffectCtorRef> Parser::parseEffectCtorRef() {
 
     Token identifier = lexer.take_next();
     if(identifier.type != Token::Type::identifier) {
-        emitSyntaxError("Expected identifier after \"do\".");
-        return rewindAndReturn();
+        errors.push_back(SyntaxError("Expected identifier after \"do\".", identifier.location));
+        lexer.rewind(identifier);
     }
 
     if(lexer.take(Token::Type::paren_l)) {
@@ -245,46 +257,54 @@ Optional<EffectCtorRef> Parser::parseEffectCtorRef() {
                 arguments.push_back(val);
             },
             [&]() {
-                emitSyntaxError("Expected argument after \",\" in argument list.");
+                if (arguments.empty()) {
+                    errors.push_back(SyntaxError("Expected argument after \"(\" in argument list.", lexer.peek_next().location));
+                } else {
+                    errors.push_back(SyntaxError("Expected an additional argument after \",\" in argument list.", lexer.peek_next().location));
+                }
+            },
+            [&](std::vector<SyntaxError> resultErrors){
+                errors.insert(std::end(errors), std::begin(resultErrors), std::end(resultErrors));
             });
         } while(lexer.take(Token::Type::comma));
 
         if(lexer.take(Token::Type::paren_r)) {
-            return EffectCtorRef(identifier.text, arguments, identifier.location);
+            return ParserResult<EffectCtorRef>(EffectCtorRef(identifier.text, arguments, identifier.location), errors);
         } else {
-            emitSyntaxError("Expected a \",\" or \")\" after argument.");
-            return rewindAndReturn();
+            errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument.", lexer.peek_next().location));
         }
     }
 
-    return EffectCtorRef(identifier.text, {}, identifier.location);
+    return ParserResult<EffectCtorRef>(EffectCtorRef(identifier.text, {}, identifier.location), errors);
 }
 
 /// Parses a truth literal, predicate, or effect constructor from the stream.
-Optional<Expression> Parser::parseAtom() {
+ParserResult<Expression> Parser::parseAtom() {
     TruthLiteral tl;
     PredicateRef p;
     EffectCtorRef ecr;
+    std::vector<SyntaxError> errors;
 
     // <atom> := <truth-literal>
-    if(parseTruthLiteral().unwrapInto(tl)) {
-        return Optional(Expression(tl));
+    if(parseTruthLiteral().unwrapResultInto(tl, errors)) {
+        return ParserResult<Expression>(Expression(tl), errors);
 
     // <atom> := <predicate-name>
-    } else if(parsePredicateRef().unwrapInto(p)) {
-        return Optional(Expression(p));
+    } else if(parsePredicateRef().unwrapResultInto(p, errors)) {
+        return ParserResult<Expression>(Expression(p), errors);
 
     // <atom> := <effect-constructor-ref>
-    } else if(parseEffectCtorRef().unwrapInto(ecr)) {
-        return Optional(Expression(ecr));
-
-    } else
-        return Optional<Expression>();
+    } else if(parseEffectCtorRef().unwrapResultInto(ecr, errors)) {
+        return ParserResult<Expression>(Expression(ecr), errors);
+    } else {
+        return ParserResult<Expression>(errors);
+    }
 }
 
 /// Constructs a parse tree of an expression.
-Optional<Expression> Parser::parseExpression() {
+ParserResult<Expression> Parser::parseExpression() {
     Token first = lexer.peek_next();
+    std::vector<SyntaxError> errors;
 
     // TODO: refactor optional "pyramid of doom."
     // would prefer to use Swift-like `guard let`.
@@ -292,67 +312,67 @@ Optional<Expression> Parser::parseExpression() {
     Expression e;
 
     // <expression> := <atom>
-    if(parseAtom().unwrapInto(e)) {
+    if(parseAtom().unwrapResultInto(e, errors)) {
         Expression r;
 
         // <expression> := <expression> "," <atom>
         while(lexer.take(Token::Type::comma)) {
-            if(parseAtom().unwrapInto(r)) {
+            if(parseAtom().unwrapResultInto(r, errors)) {
                 e = Expression(Conjunction(e, r));
             } else {
                 lexer.rewind(first);
-                return Optional<Expression>();
+                return ParserResult<Expression>();
             }
         }
 
-        return e;
+        return ParserResult<Expression>(e, errors);
     } else {
         lexer.rewind(first);
-        return Optional<Expression>();
+        return ParserResult<Expression>(errors);
     }
 }
 
-Optional<Implication> Parser::parseImplication() {
+ParserResult<Implication> Parser::parseImplication() {
     Token first = lexer.peek_next();
+    std::vector<SyntaxError> errors;
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(first);
-        return Optional<Implication>();
+        return ParserResult<Implication>();
     };
 
     PredicateRef p;
 
     // <implication> :=
     //     <predicate-name> "<-" <expression> "."
-    if(parsePredicateRef().unwrapInto(p)) {
+    if(parsePredicateRef().unwrapResultInto(p, errors)) {
         if(!lexer.take(Token::Type::implied_by)) {
-            emitSyntaxError("Expected a \"<-\" after the head of an implication.");
-            return rewindAndReturn();
+            errors.push_back(SyntaxError("Expected a \"<-\" after the head of an implication.", lexer.peek_next().location));
         }
 
         Expression expr;
-        if(parseExpression().unwrapGuard(expr)) {
-            emitSyntaxError("Expected an expression after \"<-\" in an implication.");
-            return rewindAndReturn();
+        if(parseExpression().unwrapResultGuard(expr, errors)) {
+            errors.push_back(SyntaxError("Expected an expression after \"<-\" in an implication.", lexer.peek_next().location));
         }
 
         if(lexer.take(Token::Type::end_of_statement)) {
-            return Implication(p, expr);
+            return ParserResult<Implication>(Implication(p, expr), errors);
         } else {
-            emitSyntaxError("Expected a \";\" at the end of an implication.");
-            return rewindAndReturn();
+            errors.push_back(SyntaxError("Expected a \";\" at the end of an implication.", lexer.peek_next().location));
+            return ParserResult<Implication>(errors);
         }
     } else {
         return rewindAndReturn();
     }
 }
 
-Optional<Predicate> Parser::parsePredicate() {
+ParserResult<Predicate> Parser::parsePredicate() {
     Token first = lexer.peek_next();
+    std::vector<SyntaxError> errors;
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(first);
-        return Optional<Predicate>();
+        return ParserResult<Predicate>(errors);
     };
 
     PredicateDecl decl;
@@ -364,45 +384,48 @@ Optional<Predicate> Parser::parsePredicate() {
         return rewindAndReturn();
     }
 
-    if(parsePredicateDecl().unwrapGuard(decl)) {
+    if (parsePredicateDecl().unwrapResultGuard(decl, errors)) {
         return rewindAndReturn();
     }
 
     if(lexer.take(Token::Type::brace_l)) {
         Implication impl;
-        while(parseImplication().unwrapInto(impl)) {
+        while(parseImplication().unwrapResultInto(impl, errors)) {
             implications.push_back(impl);
         }
 
         if(lexer.take(Token::Type::brace_r)) {
-            return Predicate(decl, implications);
+            return ParserResult<Predicate>(Predicate(decl, implications), errors);
         } else {
-            emitSyntaxError("Expected \"}\" at the end of a predicate definition.");
-            return rewindAndReturn();
+            errors.push_back(SyntaxError("Expected \"}\" at the end of a predicate definition.", lexer.peek_next().location));
+            return ParserResult<Predicate>(errors);
         }
     } else {
-        return rewindAndReturn();
+        Token unexpectedToken = lexer.peek_next();
+        errors.push_back(SyntaxError("Expected \"{\" after predicate name.", unexpectedToken.location));
+        return ParserResult<Predicate>(errors);
     }
 }
 
-Optional<TypeDecl> Parser::parseTypeDecl() {
+ParserResult<TypeDecl> Parser::parseTypeDecl() {
     Token next = lexer.take_next();
     if(next.type == Token::Type::identifier) {
-        return TypeDecl(next.text, next.location);
+        return ParserResult<TypeDecl>(TypeDecl(next.text, next.location));
     } else {
         lexer.rewind(next);
-        return Optional<TypeDecl>();
+        return ParserResult<TypeDecl>();
     }
 }
 
-Optional<Parameter> Parser::parseParameter() {
+ParserResult<Parameter> Parser::parseParameter() {
     // <parameter> := <type-name>
     // <parameter> := "in" <type-name>
     Token next = lexer.take_next();
+    std::vector<SyntaxError> errors;
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(next);
-        return Optional<Parameter>();
+        return ParserResult<Parameter>();
     };
 
     if(next.type == Token::Type::identifier) {
@@ -412,82 +435,94 @@ Optional<Parameter> Parser::parseParameter() {
         if(lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
             return Parameter(identifier.text, true, next.location);
         } else {
-            emitSyntaxError("Expected type name after keyword \"in.\"");
-            return rewindAndReturn();
+            errors.push_back(SyntaxError("Expected type name after keyword \"in.\"", lexer.peek_next().location));
+            return ParserResult<Parameter>(errors);
         }
     }
 
     return rewindAndReturn();
 }
 
-Optional<CtorParameter> Parser::parseCtorParameter() {
+ParserResult<CtorParameter> Parser::parseCtorParameter() {
     // <ctor-parameter> := <type-name>
     Token next = lexer.take_next();
     if(next.type == Token::Type::identifier) {
         return CtorParameter(next.text, next.location);
     } else {
         lexer.rewind(next);
-        return Optional<CtorParameter>();
+        return ParserResult<CtorParameter>();
     }
 }
 
-Optional<Constructor> Parser::parseConstructor() {
+ParserResult<Constructor> Parser::parseConstructor() {
+    std::vector<SyntaxError> errors;
     Token next = lexer.peek_next();
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(next);
-        return Optional<Constructor>();
+        return ParserResult<Constructor>();
     };
 
     Token identifier;
 
     // <constructor> :=
     //     "ctor" <identifier> ";"
-    if( lexer.take(Token::Type::kw_ctor) &&
-        lexer.take_token(Token::Type::identifier).unwrapInto(identifier) &&
-        lexer.take(Token::Type::end_of_statement)) {
-            return Constructor(identifier.text, {}, identifier.location);
-    }
-
+    //  -- or --
     // <constructor> :=
     //     "ctor" <identifier> "(" <comma-separated-ctor-parameters> ")" ";"
     lexer.rewind(next);
-    if( lexer.take(Token::Type::kw_ctor) &&
-        lexer.take_token(Token::Type::identifier).unwrapInto(identifier) &&
-        lexer.take(Token::Type::paren_l)) {
+    if (lexer.take(Token::Type::kw_ctor)) {
+        if (lexer.take_token(Token::Type::identifier).unwrapInto(identifier)) {
+            if (lexer.take(Token::Type::end_of_statement)) {
+                return Constructor(identifier.text, {}, identifier.location);
+            } else if (lexer.take(Token::Type::paren_l)) {
+                std::vector<CtorParameter> parameters;
+                CtorParameter param;
+                do {
+                    if(parseCtorParameter().unwrapResultInto(param, errors)) {
+                        parameters.push_back(param);
+                    } else {
+                        if (parameters.empty()) {
+                            errors.push_back(SyntaxError("Expected parameter after \"(\" in parameter list.", lexer.peek_next().location));
+                        } else {
+                            errors.push_back(SyntaxError("Expected an additional parameter after \",\" in parameter list.", lexer.peek_next().location));
+                        }
+                    }
+                } while(lexer.take(Token::Type::comma));
 
-        std::vector<CtorParameter> parameters;
-        CtorParameter param;
-        do {
-            if(parseCtorParameter().unwrapInto(param)) {
-                parameters.push_back(param);
+                if(lexer.take(Token::Type::paren_r)) {
+                    if (lexer.take(Token::Type::end_of_statement)) {
+                        return ParserResult<Constructor>(Constructor(
+                            identifier.text, parameters, identifier.location),
+                            errors);
+                    } else {
+                        errors.push_back(SyntaxError("Expected a \";\" after constructor definition.", lexer.peek_next().location));
+                    }
+                } else {
+                    errors.push_back(SyntaxError("Expected a \",\" or \")\" after parameter.", lexer.peek_next().location));
+                }
             } else {
-                emitSyntaxError("Expected an additional argument after \",\" in parameter list.");
-                return rewindAndReturn();
+                errors.push_back(SyntaxError("Expected a \";\" after constructor definition.", lexer.peek_next().location));
             }
-        } while(lexer.take(Token::Type::comma));
-
-        if( lexer.take(Token::Type::paren_r) &&
-            lexer.take(Token::Type::end_of_statement)) {
-                return Constructor(
-                    identifier.text,
-                    parameters,
-                    identifier.location);
         } else {
-            emitSyntaxError("Expected a \",\" or \")\" after parameter.");
-            return rewindAndReturn();
+            errors.push_back(SyntaxError("Expected constructor name after \"ctor\" keyword.", lexer.peek_next().location));
         }
     }
 
-    return rewindAndReturn();
+    if (errors.empty()) {
+        return rewindAndReturn();
+    } else {
+        return ParserResult<Constructor>(errors);
+    }
 }
 
-Optional<Type> Parser::parseType() {
+ParserResult<Type> Parser::parseType() {
+    std::vector<SyntaxError> errors;
     Token first = lexer.peek_next();
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(first);
-        return Optional<Type>();
+        return ParserResult<Type>(errors);
     };
 
     TypeDecl declaration;
@@ -498,31 +533,33 @@ Optional<Type> Parser::parseType() {
         return rewindAndReturn();
     }
 
-    if(parseTypeDecl().unwrapGuard(declaration)) {
-        emitSyntaxError("Type name is missing from type declaration.");
-        return rewindAndReturn();
+    if(parseTypeDecl().unwrapResultGuard(declaration, errors)) {
+        errors.push_back(SyntaxError("Type name is missing from type declaration.", lexer.peek_next().location));
     }
 
     if(lexer.take(Token::Type::brace_l)) {
         std::vector<Constructor> ctors;
         Constructor ctor;
-        while(parseConstructor().unwrapInto(ctor)) {
+        while(parseConstructor().unwrapResultInto(ctor, errors)) {
             ctors.push_back(ctor);
         }
 
         if(lexer.take(Token::Type::brace_r)) {
-            return Type(declaration, ctors);
+            return ParserResult<Type>(Type(declaration, ctors), errors);
         } else {
-            emitSyntaxError("Closing \"}\" is missing from type definition.");
-            return rewindAndReturn();
+            errors.push_back(SyntaxError("Closing \"}\" is missing from type definition.", lexer.peek_next().location));
+            return ParserResult<Type>(errors);
         }
     } else {
-        return rewindAndReturn();
+        Token unexpectedToken = lexer.peek_next();
+        errors.push_back(SyntaxError("Expected \"{\" after type name.", lexer.peek_next().location));
+        return ParserResult<Type>(errors);
     }
 }
 
-Optional<std::vector<EffectRef>> Parser::parseEffectList() {
+ParserResult<std::vector<EffectRef>> Parser::parseEffectList() {
     Token first = lexer.take_next();
+    std::vector<SyntaxError> errors;
 
     std::vector<EffectRef> effects;
 
@@ -536,28 +573,31 @@ Optional<std::vector<EffectRef>> Parser::parseEffectList() {
     do {
         Token identifier;
         if(lexer.take_token(Token::Type::identifier).unwrapGuard(identifier)) {
-            emitSyntaxError("Expected an effect name.");
-            lexer.rewind(first);
-            return Optional<std::vector<EffectRef>>();
+            if (effects.empty()) {
+                errors.push_back(SyntaxError("Expected an effect after \":\" in effect list.", lexer.peek_next().location));
+            } else {
+                errors.push_back(SyntaxError("Expected an additional effect name after \",\" in effect list.", lexer.peek_next().location));
+            }
         }
         effects.emplace_back(identifier.text, identifier.location);
     } while(lexer.take(Token::Type::comma));
 
-    return effects;
+    return ParserResult<std::vector<EffectRef>>(effects, errors);
 }
 
-Optional<EffectDecl> Parser::parseEffectDecl() {
+ParserResult<EffectDecl> Parser::parseEffectDecl() {
     Token next = lexer.take_next();
     if(next.type == Token::Type::identifier) {
         return EffectDecl(next.text, next.location);
     } else {
         lexer.rewind(next);
-        return Optional<EffectDecl>();
+        return ParserResult<EffectDecl>();
     }
 }
 
-Optional<EffectConstructor> Parser::parseEffectConstructor() {
+ParserResult<EffectConstructor> Parser::parseEffectConstructor() {
     Token next = lexer.peek_next();
+    std::vector<SyntaxError> errors;
 
     Token identifier;
 
@@ -579,12 +619,12 @@ Optional<EffectConstructor> Parser::parseEffectConstructor() {
         std::vector<Parameter> parameters;
         Parameter param;
         do {
-            if(parseParameter().unwrapInto(param)) {
+            if(parseParameter().unwrapResultInto(param, errors)) {
                 parameters.push_back(param);
             } else {
                 // requires a parameter
                 lexer.rewind(next);
-                return Optional<EffectConstructor>();
+                return ParserResult<EffectConstructor>();
             }
         } while(lexer.take(Token::Type::comma));
 
@@ -597,80 +637,71 @@ Optional<EffectConstructor> Parser::parseEffectConstructor() {
         } else {
             // requires a ")"
             lexer.rewind(next);
-            return Optional<EffectConstructor>();
+            return ParserResult<EffectConstructor>();
         }
     }
 
     lexer.rewind(next);
-    return Optional<EffectConstructor>();
+    return ParserResult<EffectConstructor>(errors);
 }
 
-Optional<Effect> Parser::parseEffect() {
+ParserResult<Effect> Parser::parseEffect() {
     Token first = lexer.peek_next();
+    std::vector<SyntaxError> errors;
 
     EffectDecl declaration;
 
     // <effect> := "type" <type-name> "{" "}"
     if( lexer.take(Token::Type::kw_effect) &&
-        parseEffectDecl().unwrapInto(declaration) &&
+        parseEffectDecl().unwrapResultInto(declaration, errors) &&
         lexer.take(Token::Type::brace_l)) {
 
             std::vector<EffectConstructor> ctors;
             EffectConstructor ctor;
-            while(parseEffectConstructor().unwrapInto(ctor)) {
+            while(parseEffectConstructor().unwrapResultInto(ctor, errors)) {
                 ctors.push_back(ctor);
             }
 
             if(lexer.take(Token::Type::brace_r)) {
-                return Effect(declaration, ctors);
+                return ParserResult<Effect>(Effect(declaration, ctors), errors);
             } else {
                 lexer.rewind(first);
-                return Optional<Effect>();
+                return ParserResult<Effect>(errors);
             }
     } else {
         lexer.rewind(first);
-        return Optional<Effect>();
+        return ParserResult<Effect>(errors);
     }
 }
 
-Optional<AST> Parser::parseAST() {
+ParserResult<AST> Parser::parseAST() {
     std::vector<Predicate> predicates;
     std::vector<Type> types;
     std::vector<Effect> effects;
     Predicate p;
     Type t;
     Effect e;
+    std::vector<SyntaxError> errors;
 
-    bool changed;
+    bool reached_eof = false;
+
     do {
-        changed = false;
-        if(parsePredicate().unwrapInto(p)) {
+        if(parsePredicate().unwrapResultInto(p, errors)) {
             predicates.push_back(p);
-            changed = true;
-        }
-
-        if(parseType().unwrapInto(t)) {
+        } else if(parseType().unwrapResultInto(t, errors)) {
             types.push_back(t);
-            changed = true;
-        }
-
-        if(parseEffect().unwrapInto(e)) {
+        } else if(parseEffect().unwrapResultInto(e, errors)) {
             effects.push_back(e);
-            changed = true;
+        } else {
+            Token unexpectedToken = lexer.peek_next();
+            if(unexpectedToken.type != Token::Type::end_of_file) {
+                errors.push_back(SyntaxError("Unexpected token \"" + unexpectedToken.text + "\".", unexpectedToken.location));
+            }
+            reached_eof = true;
         }
-    } while(changed);
+    } while(!reached_eof);
 
-    if(foundSyntaxError) {
-        return Optional<AST>();
-    } else {
-        return AST(types, effects, predicates);
-    }
-}
-
-void Parser::emitSyntaxError(std::string message) {
-    out << "syntax error " << lexer.peek_next().location <<
-        " - " << message << "\n";
-    foundSyntaxError = true;
+    return ParserResult<AST>(AST(types, effects, predicates), errors);
 }
 
 } // namespace parser

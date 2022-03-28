@@ -85,7 +85,7 @@ Token Lexer::take_next() {
         word = word.substr(0, 2);
     }
 
-    if( word.size() > 1 && 
+    if( word.size() > 1 &&
         (word.front() == '{' || word.front() == '}' ||
          word.front() == '(' || word.front() == ')' ||
          word.front() == '_')) {
