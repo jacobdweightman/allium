@@ -307,7 +307,7 @@ ParserResult<Handler> Parser::parseHandler() {
         }
 
         if(lexer.take(Token::Type::brace_r)) {
-            return Handler(EffectRef(effectRef.text, effectRef.location), implications);
+            return ParserResult<Handler>(Handler(EffectRef(effectRef.text, effectRef.location), implications), errors);
         } else {
             errors.push_back(SyntaxError("Expected \"}\" at the end of a handler definition.", lexer.peek_next().location));
         }
@@ -340,7 +340,7 @@ ParserResult<EffectImplication> Parser::parseEffectImplication() {
         }
 
         if(lexer.take(Token::Type::end_of_statement)) {
-            return EffectImplication(ec, expr);
+            return ParserResult<EffectImplication>(EffectImplication(ec, expr), errors);
         } else {
             errors.push_back(SyntaxError("Expected a \";\" at the end of an effect implication.", lexer.peek_next().location));
         }
@@ -749,9 +749,11 @@ ParserResult<AST> Parser::parseAST() {
     std::vector<Predicate> predicates;
     std::vector<Type> types;
     std::vector<Effect> effects;
+    std::vector<Handler> handlers;
     Predicate p;
     Type t;
     Effect e;
+    Handler h;
     std::vector<SyntaxError> errors;
 
     bool reached_eof = false;
@@ -763,6 +765,8 @@ ParserResult<AST> Parser::parseAST() {
             types.push_back(t);
         } else if(parseEffect().unwrapResultInto(e, errors)) {
             effects.push_back(e);
+        } else if(parseHandler().unwrapResultInto(h, errors)) {
+            handlers.push_back(h);
         } else {
             Token unexpectedToken = lexer.peek_next();
             if(unexpectedToken.type != Token::Type::end_of_file) {

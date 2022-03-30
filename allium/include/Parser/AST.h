@@ -421,6 +421,7 @@ std::ostream& operator<<(std::ostream &out, const Effect &type);
 
 // Represents the complete definition of an effect handler in the AST
 struct Handler {
+    Handler() {}
     Handler(EffectRef effect, std::vector<EffectImplication> implications):
         effect(effect), implications(implications) {}
 
