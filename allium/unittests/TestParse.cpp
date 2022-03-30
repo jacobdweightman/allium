@@ -8,7 +8,7 @@ using namespace parser;
 TEST(TestParser, parse_true_as_truth_literal) {
     std::istringstream f("true");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parseTruthLiteral(),
         TruthLiteral(true, SourceLocation(1, 0))
@@ -18,7 +18,7 @@ TEST(TestParser, parse_true_as_truth_literal) {
 TEST(TestParser, parse_false_as_truth_literal) {
     std::istringstream f("false");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parseTruthLiteral(),
         TruthLiteral(false, SourceLocation(1, 0))
@@ -28,7 +28,7 @@ TEST(TestParser, parse_false_as_truth_literal) {
 TEST(TestParser, lexer_ignores_comments) {
     std::istringstream f("// comment\ntrue");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parseTruthLiteral(),
         TruthLiteral(true, SourceLocation(2, 0))
@@ -38,7 +38,7 @@ TEST(TestParser, lexer_ignores_comments) {
 TEST(TestParser, lexer_ignores_consecutive_comments) {
     std::istringstream f("// comment 1\n// comment 2\ntrue");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parseTruthLiteral(),
         TruthLiteral(true, SourceLocation(3, 0))
@@ -48,7 +48,7 @@ TEST(TestParser, lexer_ignores_consecutive_comments) {
 TEST(TestParser, lexer_ignores_consecutive_comments_with_leading_whitespace) {
     std::istringstream f("  // comment 1\n  // comment 2\ntrue");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parseTruthLiteral(),
         TruthLiteral(true, SourceLocation(3, 0))
@@ -58,17 +58,17 @@ TEST(TestParser, lexer_ignores_consecutive_comments_with_leading_whitespace) {
 TEST(TestParser, parse_invalid_truth_literal) {
     std::istringstream f("tralse");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parseTruthLiteral(),
-        Optional<TruthLiteral>()
+        ParserResult<TruthLiteral>()
     );
 }
 
 TEST(TestParser, parse_simple_predicate_name) {
     std::istringstream f("open");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parsePredicateRef(),
         PredicateRef("open", SourceLocation(1, 0))
@@ -78,7 +78,7 @@ TEST(TestParser, parse_simple_predicate_name) {
 TEST(TestParser, parse_snake_case_predicate_name) {
     std::istringstream f("is_open");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parsePredicateRef(),
         PredicateRef("is_open", SourceLocation(1, 0))
@@ -88,7 +88,7 @@ TEST(TestParser, parse_snake_case_predicate_name) {
 TEST(TestParser, parse_predicate_name_does_not_match_whitespace) {
     std::istringstream f("open closed");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parsePredicateRef(),
         PredicateRef("open", SourceLocation(1, 0))
@@ -98,7 +98,7 @@ TEST(TestParser, parse_predicate_name_does_not_match_whitespace) {
 TEST(TestParser, parse_predicate_ignores_semicolon) {
     std::istringstream f("open;");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parsePredicateRef(),
         PredicateRef("open", SourceLocation(1, 0))
@@ -154,6 +154,57 @@ TEST(TestParser, parse_predicate_with_variable_use) {
     );
 }
 
+TEST(TestParser, parse_predicate_with_missing_argument_after_left_paren) {
+    std::istringstream f("tall()");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parsePredicateRef(),
+        ParserResult<PredicateRef>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected argument after \"(\" in argument list.",
+                    SourceLocation(1, 5)
+                )
+            }
+        )
+    );
+}
+
+TEST(TestParser, parse_predicate_with_missing_argument_after_comma) {
+    std::istringstream f("tall(redwood, )");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parsePredicateRef(),
+        ParserResult<PredicateRef>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected an additional argument after \",\" in argument list.",
+                    SourceLocation(1, 14)
+                )
+            }
+        )
+    );
+}
+
+TEST(TestParser, parse_predicate_with_missing_right_paren) {
+    std::istringstream f("tall(redwood");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parsePredicateRef(),
+        ParserResult<PredicateRef>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected a \",\" or \")\" after argument.",
+                    SourceLocation(1, 12)
+                )
+            }
+        )
+    );
+}
+
 TEST(TestParser, lex_peek_beginning) {
     std::istringstream f("false;");
     Lexer lexer(f);
@@ -167,7 +218,7 @@ TEST(TestParser, lex_peek_beginning) {
 TEST(TestParser, parse_truth_literal_as_expression) {
     std::istringstream f("false;");
     Parser p(f);
-    
+
     EXPECT_EQ(
         p.parseExpression(),
         Expression(TruthLiteral(false, SourceLocation(1, 0)))
@@ -263,6 +314,57 @@ TEST(TestParser, parse_implication_without_whitespace) {
     );
 }
 
+TEST(TestParser, parse_implication_with_missing_arrow) {
+    std::istringstream f("main somePredicate;");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseImplication(),
+        ParserResult<Implication>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected a \"<-\" after the head of an implication.",
+                    SourceLocation(1, 5)
+                )
+            }
+        )
+    );
+}
+
+TEST(TestParser, parse_implication_with_missing_right_expression) {
+    std::istringstream f("main <- ;");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseImplication(),
+        ParserResult<Implication>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected an expression after \"<-\" in an implication.",
+                    SourceLocation(1, 8)
+                )
+            }
+        )
+    );
+}
+
+TEST(TestParser, parse_implication_with_missing_semicolon) {
+    std::istringstream f("main <- somePredicate");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseImplication(),
+        ParserResult<Implication>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected a \";\" at the end of an implication.",
+                    SourceLocation(1, 21)
+                )
+            }
+        )
+    );
+}
+
 TEST(TestParser, parse_trivial_predicate) {
     std::istringstream f("pred trivial { }");
     Parser p(f);
@@ -285,6 +387,40 @@ TEST(TestParser, parse_predicate_unspaced_braces) {
         Predicate(
             PredicateDecl("trivial", {}, {}, SourceLocation(1, 5)),
             std::vector<Implication>()
+        )
+    );
+}
+
+TEST(TestParser, parse_predicate_with_missing_left_brace) {
+    std::istringstream f("pred trivial }");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parsePredicate(),
+        ParserResult<Predicate>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected \"{\" after predicate name.",
+                    SourceLocation(1, 13)
+                )
+            }
+        )
+    );
+}
+
+TEST(TestParser, parse_predicate_with_missing_right_brace) {
+    std::istringstream f("pred trivial {");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parsePredicate(),
+        ParserResult<Predicate>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected \"}\" at the end of a predicate definition.",
+                    SourceLocation(1, 14)
+                )
+            }
         )
     );
 }
@@ -404,6 +540,23 @@ TEST(TestParser, parse_input_only_parameter) {
     );
 }
 
+TEST(TestParser, parse_input_only_parameter_with_missing_parameter) {
+    std::istringstream f("in ;");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseParameter(),
+        ParserResult<Parameter>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected type name after keyword \"in.\"",
+                    SourceLocation(1, 3)
+                )
+            }
+        )
+    );
+}
+
 TEST(TestParser, parse_constructor) {
     std::istringstream f("ctor vanilla;");
     Parser p(f);
@@ -445,13 +598,120 @@ TEST(TestParser, parse_constructor_with_multiple_parameters) {
     );
 }
 
+TEST(TestParser, parse_constructor_with_missing_name) {
+    std::istringstream f("ctor (IceCream, Sauce);");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseConstructor(),
+        ParserResult<Constructor>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected constructor name after \"ctor\" keyword.",
+                    SourceLocation(1, 5)
+                )
+            }
+        )
+    );
+}
+
+TEST(TestParser, parse_argless_constructor_with_missing_semicolon) {
+    std::istringstream f("ctor sundae");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseConstructor(),
+        ParserResult<Constructor>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected a \";\" after constructor definition.",
+                    SourceLocation(1, 11)
+                )
+            }
+        )
+    );
+}
+
+TEST(TestParser, parse_argful_constructor_with_missing_semicolon) {
+    std::istringstream f("ctor sundae(IceCream)");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseConstructor(),
+        ParserResult<Constructor>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected a \";\" after constructor definition.",
+                    SourceLocation(1, 21)
+                )
+            }
+        )
+    );
+}
+
+TEST(TestParser, parse_constructor_with_missing_parameters) {
+    std::istringstream f("ctor sundae();");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseConstructor(),
+        ParserResult<Constructor>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected parameter after \"(\" in parameter list.",
+                    SourceLocation(1, 12)
+                )
+            }
+        )
+    );
+}
+
+TEST(TestParser, parse_constructor_with_missing_parameter_after_comma) {
+    std::istringstream f("ctor sundae(IceCream, );");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseConstructor(),
+        ParserResult<Constructor>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected an additional parameter after \",\" in parameter list.",
+                    SourceLocation(1, 22)
+                )
+            }
+        )
+    );
+}
+
+TEST(TestParser, parse_constructor_with_missing_right_paren) {
+    std::istringstream f("ctor sundae(IceCream, Sauce");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseConstructor(),
+        ParserResult<Constructor>(
+            std::vector<SyntaxError> {
+                SyntaxError(
+                    "Expected a \",\" or \")\" after parameter.",
+                    SourceLocation(1, 27)
+                )
+            }
+        )
+    );
+}
+
 TEST(TestParser, constructor_parameter_cannot_be_marked_input_only) {
     std::istringstream f("ctor sundae(in IceCream, Sauce);");
     Parser p(f);
 
     EXPECT_EQ(
         p.parseConstructor(),
-        Optional<Constructor>()
+        ParserResult<Constructor>(
+            std::vector<SyntaxError> {
+                SyntaxError("Expected parameter after \"(\" in parameter list.", SourceLocation(1, 12)),
+                SyntaxError("Expected a \",\" or \")\" after parameter.", SourceLocation(1, 12))
+            }
+        )
     );
 }
 
@@ -495,7 +755,7 @@ TEST(TestParser, parse_string_literal_mismatched_quotes) {
 
     EXPECT_EQ(
         p.parseValue(),
-        Optional<Value>()
+        ParserResult<Value>()
     );
 }
 
@@ -505,7 +765,7 @@ TEST(TestParser, parse_string_literal_cannot_contain_newline) {
 
     EXPECT_EQ(
         p.parseValue(),
-        Optional<Value>()
+        ParserResult<Value>()
     );
 }
 

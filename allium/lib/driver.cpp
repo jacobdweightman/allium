@@ -51,7 +51,7 @@ struct Arguments {
 
     /// True if Allium is run as an interpreter (-i), false if run as a compiler.
     /// Undefined if the mode is indeterminate.
-    ExecutionMode executionMode;
+    ExecutionMode executionMode = ExecutionMode::UNCOMMITTED;
 
     Optional<PrintASTMode> printAST;
     std::vector<std::string> filePaths;
@@ -159,7 +159,7 @@ struct Arguments {
 
         if(arguments.filePaths.size() == 0)
             issueError(Error::NO_INPUT_FILES);
-        
+
         #ifdef ENABLE_COMPILER
         if(arguments.compilerConfig.outputFile.empty()) {
             switch(arguments.compilerConfig.outputType) {
@@ -190,7 +190,15 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    parser::Parser(file).parseAST().then([&](const parser::AST &ast) {
+    parser::Parser(file).parseAST()
+    .error([](const std::vector<parser::SyntaxError> &errors) {
+        for (parser::SyntaxError const& error : errors) {
+            std::cout << error;
+        }
+        exit(1);
+    })
+    .as_optional()
+    .then([&](const parser::AST &ast) {
         if(arguments.printAST == Arguments::PrintASTMode::SYNTACTIC) {
             parser::ASTPrinter(std::cout).visit(ast);
             exit(0);
@@ -198,7 +206,6 @@ int main(int argc, char *argv[]) {
     }).error([]() {
         exit(1);
     })
-
     .map<TypedAST::AST>([&](parser::AST ast) {
         return checkAll(ast, errorEmitter);
     }).then([&](TypedAST::AST ast) {

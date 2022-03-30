@@ -91,7 +91,7 @@ public:
     /// Moves back within the file being lexed to the beginning of the indicated
     /// token, such that the given token becomes the next token to be lexed.
     void rewind(Token tok);
-
+    
 private:
     /// Advances the lexer to the next non-whitespace character.
     void skipWhitespace();

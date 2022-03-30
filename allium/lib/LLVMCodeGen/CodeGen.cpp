@@ -8,9 +8,16 @@
 #include "LLVMCodeGen/CodeGen.h"
 
 #include "llvm/ADT/APInt.h"
+#include "llvm/Analysis/LoopAnalysisManager.h"
+#include "llvm/Analysis/CGSCCPassManager.h"
+#include "llvm/Transforms/Coroutines.h"
+#include "llvm/Transforms/IPO.h"
 #include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/PassManager.h"
+#include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/Host.h"
-#include "llvm/Support/TargetRegistry.h"
+// #include "llvm/Support/TargetRegistry.h"
+#include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Target/TargetOptions.h"
 
@@ -19,54 +26,23 @@
 using namespace llvm;
 
 Function *LLVMCodeGen::createMain() {
-    auto retBool = [&](const char *name, bool b) {
-        Function *f = Function::Create(
-            FunctionType::get(boolean, { ptr, ptr }, false),
-            Function::PrivateLinkage,
-            name,
-            mod);
-        BasicBlock *entry = BasicBlock::Create(ctx, "entry", f);
-        builder.SetInsertPoint(entry);
-        builder.CreateRet(ConstantInt::get(boolean, APInt(1, b)));
-        return f;
-    };
-
-    auto *retT = retBool("retT", true);
-    auto *retF = retBool("retF", false);
-
-    Type *i32 = Type::getInt32Ty(ctx);
     Function *main = Function::Create(
-        FunctionType::get(i32, {}, false),
+        FunctionType::get(IntegerType::get(ctx, 32), {}, false),
         Function::ExternalLinkage,
         "main",
         mod);
+
     BasicBlock *entry = BasicBlock::Create(ctx, "entry", main);
-    
-    BasicBlock *success = BasicBlock::Create(ctx, "success", main);
-    builder.SetInsertPoint(success);
-    builder.CreateRet(ConstantInt::get(i32, APInt(32, 0, true)));
-
     BasicBlock *failure = BasicBlock::Create(ctx, "failure", main);
-    builder.SetInsertPoint(failure);
-    builder.CreateRet(ConstantInt::get(i32, APInt(32, 1, true)));
-
+    
     builder.SetInsertPoint(entry);
-    AllocaInst *k = builder.CreateAlloca(thunkType);
-    k->setName("k");
-    auto *kfunc = builder.CreateStructGEP(thunkType, k, 0);
-    builder.CreateStore(retT, kfunc);
-    AllocaInst *f = builder.CreateAlloca(thunkType);
-    f->setName("f");
-    auto *ffunc = builder.CreateStructGEP(thunkType, f, 0);
-    builder.CreateStore(retF, ffunc);
+    lower(TypedAST::PredicateRef("main", {}), failure);
 
-    Function *alliumMain = mod.getFunction(mangledPredName("main"));
-    assert(alliumMain && "didn't find main!");
-    auto *foundProof = builder.CreateCall(
-        alliumMain->getFunctionType(),
-        alliumMain,
-        { k, f });
-    builder.CreateCondBr(foundProof, success, failure);
+    // This goes into the "success" block created by lower
+    builder.CreateRet(ConstantInt::get(ctx, APInt(32, 0, true)));
+
+    builder.SetInsertPoint(failure);
+    builder.CreateRet(ConstantInt::get(ctx, APInt(32, 1, true)));
 
     return main;
 }
@@ -115,6 +91,7 @@ void cgProgram(const TypedAST::AST &ast, compiler::Config config) {
     LLVMCodeGen cg(tm);
     cg.lower(ast);
 
+    std::cout << "print IR: " << config.printLLVMIR << "\n";
     if(config.printLLVMIR) {
         cg.mod.print(llvm::outs(), nullptr);
     }
@@ -138,6 +115,25 @@ void cgProgram(const TypedAST::AST &ast, compiler::Config config) {
         return;
     }
 
+    LoopAnalysisManager lam;
+    FunctionAnalysisManager fam;
+    CGSCCAnalysisManager cgam;
+    ModuleAnalysisManager mam;
+
+    PassBuilder pb;
+    pb.registerModuleAnalyses(mam);
+    pb.registerCGSCCAnalyses(cgam);
+    pb.registerFunctionAnalyses(fam);
+    pb.registerLoopAnalyses(lam);
+    pb.crossRegisterProxies(lam, fam, cgam, mam);
+
+    // The default pipeline includes coroutine lowering.
+    ModulePassManager mpm = pb.buildPerModuleDefaultPipeline(OptimizationLevel::O1);
+
+    mpm.run(cg.mod, mam);
+
+    // As of LLVM 14, backend code generation only works with the legacy pass
+    // manager.
     legacy::PassManager pm;
     if(tm->addPassesToEmitFile(pm, dest, nullptr, CGFT_ObjectFile)) {
         errs() << "TheTargetMachine can't emit a file of this type";
@@ -147,7 +143,7 @@ void cgProgram(const TypedAST::AST &ast, compiler::Config config) {
     dest.flush();
     // TODO: this presumably only works on MacOS!
     system(
-        (std::string("ld64.lld -arch x86_64 -platform_version macos 11.0.0 11.0 -o ") +
+        (std::string("ld64.lld -arch x86_64 -platform_version macos 12.0.0 12.0 -o ") +
         config.outputFile + " " + std::string(objFileName) +
-        std::string(" -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.0.sdk -lSystem")).c_str());
+        std::string(" -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.sdk -lSystem")).c_str());
 }
