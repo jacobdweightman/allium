@@ -17,6 +17,8 @@ public:
     LLVMContext ctx;
     Module mod;
 
+    bool instrumentWithLogs = false;
+
     CGContext(const TypedAST::AST &ast, TargetMachine *tm):
             ast(ast), ctx(), mod("allium", ctx), builder(ctx) {
         mod.setDataLayout(tm->createDataLayout());

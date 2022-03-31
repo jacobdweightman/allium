@@ -224,11 +224,15 @@ typedef TaggedUnion<
     Conjunction
 > Expression;
 
+std::ostream& operator<<(std::ostream &out, const Expression &expr);
+
 struct TruthLiteral {
     TruthLiteral(bool value): value(value) {}
 
     bool value;
 };
+
+std::ostream& operator<<(std::ostream &out, const TruthLiteral &tl);
 
 struct PredicateDecl {
     PredicateDecl(
@@ -249,6 +253,8 @@ struct PredicateRef {
     std::vector<Value> arguments;
 };
 
+std::ostream& operator<<(std::ostream &out, const PredicateRef &pr);
+
 struct EffectCtorRef {
     EffectCtorRef(
         std::string effectName,
@@ -263,6 +269,8 @@ struct EffectCtorRef {
     std::vector<Value> arguments;
     SourceLocation location;
 };
+
+std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr);
 
 struct Conjunction {
     Conjunction(Expression left, Expression right);
@@ -285,6 +293,8 @@ struct Implication {
     Expression body;
 };
 
+std::ostream& operator<<(std::ostream &out, const Implication &impl);
+
 struct Predicate {
     Predicate(
         PredicateDecl declaration,
@@ -299,7 +309,6 @@ struct Predicate {
 };
 
 std::ostream& operator<<(std::ostream &out, const Value &val);
-std::ostream& operator<<(std::ostream &out, const PredicateRef &pr);
 
 class AST {
 public:

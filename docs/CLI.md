@@ -15,17 +15,10 @@ flags will be ignored.
 | `--log-level=X`         | Interpreter | `X` should be 0, 1, 2, or 3. Prints a trace of program execution. Higher values of `X` result in more verbose traces. |
 | `-c`                    | Compiler    | "Compile only." Produces an object file, and does not invoke the linker |
 | `-o`                    | Compiler    | Specifies the name of the output file. If omitted, the default is `a.out` for an executable, or the name of the first source file with a `.o` extension for an object file. |
+| `-g`                    | Compiler    | Enables printing of execution traces with the `ALLIUM_LOG_LEVEL` environment variable. |
 | `--print-llvm`          | Compiler    | Prints the LLVM IR produced by the compiler frontend. |
 | `--print-syntactic-ast` | Any         | Stops after parsing. Prints a text representation of the un-typed abstract syntax tree, or syntax error diagnostics if there are any. |
 | `--print-ast`           | Any         | Stops after semantic analysis. Prints a text representation of the type-checked abstract syntax tree, or syntax error or semantic error diagnostics if there are any. |
-
-This table details the trace messages which are logged for each log level:
-| Log Level | Name  | Messages                      |
-| --------- | ----- | ----------------------------- |
-| 0         | OFF   | None                          |
-| 1         | QUIET | OFF + handled effects         |
-| 2         | LOUD  | QUIET + attempted predicates  |
-| 3         | MAX   | LOUD + attempted implications |
 
 ## Examples
 

@@ -162,10 +162,32 @@ std::ostream& operator<<(std::ostream &out, const Value &val) {
     });
 }
 
+std::ostream& operator<<(std::ostream &out, const Expression &expr) {
+    expr.switchOver(
+    [&](TruthLiteral tl) { out << tl; },
+    [&](const PredicateRef &pr) { out << pr; },
+    [&](const EffectCtorRef &ecr) { out << ecr; },
+    [&](const Conjunction &conj) { out << conj.getLeft() << ", " << conj.getRight(); }
+    );
+    return out;
+}
+
+std::ostream& operator<<(std::ostream &out, const TruthLiteral &tl) {
+    return out << (tl.value ? "true" : "false");
+}
+
 std::ostream& operator<<(std::ostream &out, const PredicateRef &pr) {
     out << pr.name << "(";
     for(const auto &x : pr.arguments) out << x << ", ";
     return out << ")";
+}
+
+std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr) {
+    return out << "do " << ecr.effectName << "." << ecr.ctorName;
+}
+
+std::ostream& operator<<(std::ostream &out, const Implication &impl) {
+    return out << impl.head << " <- " << impl.body;
 }
 
 }

@@ -13,6 +13,7 @@ please open an issue or pull request!
 Contents:
 * [Command line interface](CLI.md)
 * [Allium language](Language.md)
+* [Debugging guide](Debugging.md)
 
 Experimental:
 * [Effects and Handlers](Effects.md)

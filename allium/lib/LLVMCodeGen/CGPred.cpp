@@ -1,4 +1,5 @@
 #include "LLVMCodeGen/CGPred.h"
+#include "LLVMCodeGen/LogInstrumentor.h"
 #include "SemAna/TypedAST.h"
 
 using namespace llvm;
@@ -32,6 +33,10 @@ void PredicateGenerator::lower(const TypedAST::PredicateRef &pr, BasicBlock *fai
     FunctionCallee pFunc = mod.getOrInsertFunction(
         mangledPredName(pr.name),
         getPredIRType(p.declaration));
+
+    if(cg.instrumentWithLogs) {
+        LogInstrumentor(cg).logSubproof(pr);
+    }
 
     Function *f = builder.GetInsertBlock()->getParent();
     BasicBlock *success = BasicBlock::Create(ctx, "", f);
@@ -203,6 +208,10 @@ Function *PredicateGenerator::lower(const TypedAST::Predicate &pred) {
         BasicBlock *bb = BasicBlock::Create(ctx, "", coro.func, nextBB);
         builder.SetInsertPoint(bb);
 
+        if(cg.instrumentWithLogs) {
+            LogInstrumentor(cg).logImplication(*impl);
+        }
+
         // Generate code for the implication body. On failure, continue with
         // the next implication.
         lower(impl->body, nextBB);
@@ -238,6 +247,9 @@ Function *PredicateGenerator::createMain() {
     BasicBlock *failure = BasicBlock::Create(ctx, "failure", main);
     
     builder.SetInsertPoint(entry);
+    FunctionType *initTy = FunctionType::get(Type::getVoidTy(ctx), {}, false);
+    FunctionCallee init = mod.getOrInsertFunction("allium_init", initTy);
+    builder.CreateCall(init, {});
     lower(TypedAST::PredicateRef("main", {}), failure);
 
     // This goes into the "success" block created by lower

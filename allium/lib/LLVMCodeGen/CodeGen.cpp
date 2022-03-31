@@ -26,6 +26,9 @@
 using namespace llvm;
 
 void lower(CGContext &cgctx) {
+    Constant *logLevel = cgctx.mod.getOrInsertGlobal("logLevel", Type::getInt32Ty(cgctx.ctx));
+    cgctx.mod.getNamedGlobal("logLevel")->setLinkage(GlobalValue::ExternalLinkage);
+
     TypeGenerator typeGenerator(cgctx);
     typeGenerator.lowerAllTypes();
 
@@ -68,6 +71,7 @@ void cgProgram(const TypedAST::AST &ast, compiler::Config config) {
     }
 
     CGContext cgctx(ast, tm);
+    cgctx.instrumentWithLogs = config.debug;
     lower(cgctx);
 
     if(config.printLLVMIR) {
@@ -121,7 +125,7 @@ void cgProgram(const TypedAST::AST &ast, compiler::Config config) {
     dest.flush();
     // TODO: this presumably only works on MacOS!
     system(
-        (std::string("ld64.lld -arch x86_64 -platform_version macos 12.0.0 12.0 -o ") +
-        config.outputFile + " " + std::string(objFileName) +
-        std::string(" -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.sdk -lSystem")).c_str());
+        (std::string("ld -o ") + config.outputFile + " " + std::string(objFileName) +
+        std::string(" -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.sdk -lSystem"
+                    " -L /Users/jacobweightman/code/cpp/allium/build/allium -lAllium")).c_str());
 }

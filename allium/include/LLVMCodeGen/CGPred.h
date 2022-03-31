@@ -30,6 +30,7 @@ struct PredCoroutine {
 
 class PredicateGenerator {
 private:
+    CGContext &cg;
     const TypedAST::AST &ast;
     IRBuilder<> &builder;
     LLVMContext &ctx;
@@ -72,8 +73,8 @@ private:
     void lower(const TypedAST::Expression &expr, BasicBlock *fail);
 
 public:
-    PredicateGenerator(CGContext &cgctx):
-        ast(cgctx.ast), builder(cgctx.builder), ctx(cgctx.ctx), mod(cgctx.mod) {}
+    PredicateGenerator(CGContext &cg):
+        cg(cg), ast(cg.ast), builder(cg.builder), ctx(cg.ctx), mod(cg.mod) {}
 
     /// Lowers an Allium predicate into an LLVM coroutine.
     Function *lower(const TypedAST::Predicate &pred);
