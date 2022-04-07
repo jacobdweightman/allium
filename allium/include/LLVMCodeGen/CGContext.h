@@ -25,4 +25,7 @@ public:
     }
 };
 
+std::string mangledTypeName(Name<TypedAST::Type> name);
+std::string mangledPredName(Name<TypedAST::Predicate> p);
+
 #endif // LLVMCODEGEN_CG_CONTEXT_H

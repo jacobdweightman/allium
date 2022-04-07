@@ -4,8 +4,6 @@
 #include "LLVMCodeGen/CGContext.h"
 #include "SemAna/TypedAST.h"
 
-std::string mangledPredName(Name<TypedAST::Predicate> p);
-
 struct PredCoroutine {
     // The function (coroutine) into which a predicate is lowered.
     Function *func = nullptr;

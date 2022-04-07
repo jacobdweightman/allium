@@ -8,7 +8,7 @@ FunctionType *PredicateGenerator::getPredIRType(const TypedAST::PredicateDecl &p
     Type *i8ptr = Type::getInt8PtrTy(ctx, 0);
     std::vector<Type*> paramTypes;
     for(const TypedAST::Parameter &param : pred.parameters) {
-        Type *type = StructType::getTypeByName(ctx, param.type.string());
+        Type *type = StructType::getTypeByName(ctx, mangledTypeName(param.type));
         assert(type && "type was not already lowered!");
         paramTypes.push_back(type);
     }
