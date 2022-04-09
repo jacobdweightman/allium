@@ -245,7 +245,6 @@ ParserResult<EffectCtorRef> Parser::parseEffectCtorRef() {
     Token identifier = lexer.take_next();
     if(identifier.type != Token::Type::identifier) {
         errors.push_back(SyntaxError("Expected identifier after \"do\".", identifier.location));
-        lexer.rewind(identifier);
     }
 
     if(lexer.take(Token::Type::paren_l)) {
