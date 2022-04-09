@@ -220,6 +220,7 @@ public:
         for(const auto &type : ast.types) visit(type);
         for(const auto &effect : ast.effects) visit(effect);
         for(const auto &predicate : ast.predicates) visit(predicate);
+        for(const auto &handler : ast.handlers) visit(handler);
         --depth;
     }
 

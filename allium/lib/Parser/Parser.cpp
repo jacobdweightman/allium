@@ -311,6 +311,8 @@ ParserResult<Handler> Parser::parseHandler() {
         } else {
             errors.push_back(SyntaxError("Expected \"}\" at the end of a handler definition.", lexer.peek_next().location));
         }
+    } else {
+        errors.push_back(SyntaxError("Expected \"{\" after handler name.", lexer.peek_next().location));
     }
 
     return ParserResult<Handler>(errors);
@@ -776,7 +778,7 @@ ParserResult<AST> Parser::parseAST() {
         }
     } while(!reached_eof);
 
-    return ParserResult<AST>(AST(types, effects, predicates), errors);
+    return ParserResult<AST>(AST(types, effects, predicates, handlers), errors);
 }
 
 } // namespace parser

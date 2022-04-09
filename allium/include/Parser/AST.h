@@ -447,8 +447,8 @@ std::ostream& operator<<(std::ostream &out, const Handler &type);
 struct AST {
     AST() {}
     AST(std::vector<Type> types, std::vector<Effect> effects,
-        std::vector<Predicate> predicates
-    ): types(types), effects(effects), predicates(predicates) {}
+        std::vector<Predicate> predicates, std::vector<Handler> handlers
+    ): types(types), effects(effects), predicates(predicates), handlers(handlers) {}
 
     Optional<Type> resolveTypeRef(const Name<Type> &tr) const;
     Optional<const Effect*> resolveEffectRef(const EffectRef &er) const;
@@ -457,6 +457,7 @@ struct AST {
     std::vector<Type> types;
     std::vector<Effect> effects;
     std::vector<Predicate> predicates;
+    std::vector<Handler> handlers;
 };
 
 bool operator==(const AST &lhs, const AST &rhs);
