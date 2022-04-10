@@ -449,9 +449,10 @@ ParserResult<Predicate> Parser::parsePredicate() {
 
     PredicateDecl decl;
     std::vector<Implication> implications;
+    std::vector<Handler> handlers;
 
     // <predicate> :=
-    //     "pred" <predicate-name> "{" <0-or-more-implications> "}"
+    //     "pred" <predicate-name> "{" <0-or-more-implications> <0-or-more-effect-handlers> "}"
     if(!lexer.take(Token::Type::kw_pred)) {
         return rewindAndReturn();
     }
@@ -466,8 +467,13 @@ ParserResult<Predicate> Parser::parsePredicate() {
             implications.push_back(impl);
         }
 
+        Handler h;
+        while(parseHandler().unwrapResultInto(h, errors)) {
+            handlers.push_back(h);
+        }
+
         if(lexer.take(Token::Type::brace_r)) {
-            return ParserResult<Predicate>(Predicate(decl, implications), errors);
+            return ParserResult<Predicate>(Predicate(decl, implications, handlers), errors);
         } else {
             errors.push_back(SyntaxError("Expected \"}\" at the end of a predicate definition.", lexer.peek_next().location));
             return ParserResult<Predicate>(errors);
@@ -750,11 +756,9 @@ ParserResult<AST> Parser::parseAST() {
     std::vector<Predicate> predicates;
     std::vector<Type> types;
     std::vector<Effect> effects;
-    std::vector<Handler> handlers;
     Predicate p;
     Type t;
     Effect e;
-    Handler h;
     std::vector<SyntaxError> errors;
 
     bool reached_eof = false;
@@ -766,8 +770,6 @@ ParserResult<AST> Parser::parseAST() {
             types.push_back(t);
         } else if(parseEffect().unwrapResultInto(e, errors)) {
             effects.push_back(e);
-        } else if(parseHandler().unwrapResultInto(h, errors)) {
-            handlers.push_back(h);
         } else {
             Token unexpectedToken = lexer.peek_next();
             if(unexpectedToken.type != Token::Type::end_of_file) {
@@ -777,7 +779,7 @@ ParserResult<AST> Parser::parseAST() {
         }
     } while(!reached_eof);
 
-    return ParserResult<AST>(AST(types, effects, predicates, handlers), errors);
+    return ParserResult<AST>(AST(types, effects, predicates), errors);
 }
 
 } // namespace parser

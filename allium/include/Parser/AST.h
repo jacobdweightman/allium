@@ -203,13 +203,14 @@ std::ostream& operator<<(std::ostream &out, const Implication &impl);
 /// Represents a complete predicate definition in the AST.
 struct Predicate {
     Predicate() {}
-    Predicate(PredicateDecl name, std::vector<Implication> implications):
-        name(name), implications(implications) {}
+    Predicate(PredicateDecl name, std::vector<Implication> implications, std::vector<Handler> handlers):
+        name(name), implications(implications), handlers(handlers) {}
 
     Predicate operator=(Predicate other) {
         using std::swap;
         swap(name, other.name);
         swap(implications, other.implications);
+        swap(handlers, other.handlers);
         return *this;
     }
 
@@ -447,8 +448,8 @@ std::ostream& operator<<(std::ostream &out, const Handler &type);
 struct AST {
     AST() {}
     AST(std::vector<Type> types, std::vector<Effect> effects,
-        std::vector<Predicate> predicates, std::vector<Handler> handlers
-    ): types(types), effects(effects), predicates(predicates), handlers(handlers) {}
+        std::vector<Predicate> predicates
+    ): types(types), effects(effects), predicates(predicates) {}
 
     Optional<Type> resolveTypeRef(const Name<Type> &tr) const;
     Optional<const Effect*> resolveEffectRef(const EffectRef &er) const;
@@ -457,7 +458,6 @@ struct AST {
     std::vector<Type> types;
     std::vector<Effect> effects;
     std::vector<Predicate> predicates;
-    std::vector<Handler> handlers;
 };
 
 bool operator==(const AST &lhs, const AST &rhs);

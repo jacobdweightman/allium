@@ -82,9 +82,8 @@ public:
         out << "<Predicate>\n";
         ++depth;
         visit(p.name);
-        for(const auto &impl : p.implications) {
-            visit(impl);
-        }
+        for(const auto &impl : p.implications) visit(impl);
+        for(const auto &handler : p.handlers) visit(handler);
         --depth;
     }
 
@@ -220,7 +219,6 @@ public:
         for(const auto &type : ast.types) visit(type);
         for(const auto &effect : ast.effects) visit(effect);
         for(const auto &predicate : ast.predicates) visit(predicate);
-        for(const auto &handler : ast.handlers) visit(handler);
         --depth;
     }
 
