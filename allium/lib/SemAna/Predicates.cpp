@@ -26,10 +26,6 @@ class SemAna {
     /// The lexical scope enclosing the current AST node being analyzed.
     mutable Optional<TypedAST::Scope> enclosingScope;
 
-    /// Whether or not the current AST node being analyzed occurs in the body of
-    /// an implication.
-    mutable bool inBody = false;
-
     /// True if the current AST node must not contain variable definitions. This
     /// should be true inside an argument passed to an `in` parameter outside of
     /// the predicate definition/effect handler, and false otherwise.
@@ -253,9 +249,7 @@ public:
     Optional<TypedAST::Implication> visit(const Implication &impl) {
         enclosingScope = TypedAST::Scope();
         auto head = visit(impl.lhs);
-        inBody = true;
         auto body = visit(impl.rhs);
-        inBody = false;
         enclosingScope = Optional<TypedAST::Scope>();
 
         return head.flatMap<TypedAST::Implication>([&](TypedAST::PredicateRef h) {
@@ -382,7 +376,13 @@ public:
             raisedTypes.end(),
             [&](const TypedAST::Type &rt) { return rt.declaration.name.string() == type.declaration.name.string(); });
 
-        assert(raisedType != raisedTypes.end());
+        if(raisedType == raisedTypes.end()) {
+            raisedType = std::find_if(
+                TypedAST::builtinTypes.begin(),
+                TypedAST::builtinTypes.end(),
+                [&](const TypedAST::Type &rt) { return rt.declaration.name.string() == type.declaration.name.string(); });
+            assert(raisedType != TypedAST::builtinTypes.end());
+        }
 
         TypedAST::Scope *scope;
         if(enclosingScope.unwrapGuard(scope)) {
@@ -395,17 +395,10 @@ public:
             return Optional<TypedAST::Variable>();
         }
  
-        // A variable is existential iff it is defined in the body of an
-        // implication. Record this information for each variable in the scope.
-        bool isExistential;
         if(v.isDefinition) {
             auto name = Name<TypedAST::Variable>(v.name.string());
             if(scope->find(name) == scope->end()) {
-                scope->insert({
-                    name,
-                    TypedAST::VariableInfo(*raisedType, inBody)
-                });
-                isExistential = inBody;
+                scope->insert({ name, *raisedType });
             } else {
                 error.emit(v.location, ErrorMessage::variable_redefined, v.name.string());
                 return Optional<TypedAST::Variable>();
@@ -421,14 +414,12 @@ public:
                     type.declaration.name.string());
                 return Optional<TypedAST::Variable>();
             }
-            isExistential = iterVariableInfo->second.isExistential;
-            TypedAST::Type &variableTypeAtDefinition = iterVariableInfo->second.type;
-            if(*raisedType != variableTypeAtDefinition) {
+            if(*raisedType != iterVariableInfo->second) {
                 error.emit(
                     v.location,
                     ErrorMessage::variable_type_mismatch,
                     v.name.string(),
-                    variableTypeAtDefinition.declaration.name.string(),
+                    iterVariableInfo->second.declaration.name.string(),
                     type.declaration.name.string());
                 return Optional<TypedAST::Variable>();
             }
@@ -437,8 +428,7 @@ public:
         return TypedAST::Variable(
             v.name.string(),
             raisedType->declaration.name,
-            v.isDefinition,
-            isExistential);
+            v.isDefinition);
     }
 
     Optional<TypedAST::ConstructorRef> visitNamedValueAsConstructorRef(const Type &t, const Constructor &ctor, const NamedValue &cr) {
@@ -644,8 +634,7 @@ public:
     }
 
     TypedAST::AST visit(const AST &ast) {
-        raisedTypes = TypedAST::builtinTypes;
-        raisedTypes += compactMap<Type, TypedAST::Type>(
+        raisedTypes = compactMap<Type, TypedAST::Type>(
             ast.types,
             [&](Type type) { return visit(type); }
         );

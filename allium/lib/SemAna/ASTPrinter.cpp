@@ -149,8 +149,6 @@ void ASTPrinter::visit(const Variable &var) {
     out << "<Variable \"" << var.name << "\"";
     if(var.isDefinition)
         out << " definition";
-    if(var.isExistential)
-        out << " existential";
     out << ">\n";
 }
 

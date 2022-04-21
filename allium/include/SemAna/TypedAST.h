@@ -98,15 +98,12 @@ struct Variable {
     Variable(
         std::string name,
         Name<Type> type,
-        bool isDefinition,
-        bool isExistential
-    ): name(name), type(type), isDefinition(isDefinition),
-        isExistential(isExistential) {}
+        bool isDefinition
+    ): name(name), type(type), isDefinition(isDefinition) {}
 
     Name<Variable> name;
     Name<Type> type;
     bool isDefinition;
-    bool isExistential;
 };
 
 bool operator==(Variable left, Variable right);
@@ -371,18 +368,8 @@ public:
     std::vector<Predicate> predicates;
 };
 
-struct VariableInfo {
-    VariableInfo(
-        Type type,
-        bool isExistential
-    ): type(type), isExistential(isExistential) {}
-
-    Type type;
-    bool isExistential;
-};
-
 /// Represents the variables and their types defined in a scope.
-typedef std::map<Name<Variable>, VariableInfo> Scope;
+typedef std::map<Name<Variable>, const Type &> Scope;
 
 };
 
