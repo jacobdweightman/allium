@@ -2,6 +2,7 @@
 #include <limits>
 
 #include "Interpreter/ASTLower.h"
+#include "SemAna/Builtins.h"
 #include "SemAna/InhabitableAnalysis.h"
 #include "SemAna/TypedAST.h"
 #include "SemAna/VariableAnalysis.h"
@@ -191,9 +192,29 @@ private:
             ast.effects.begin(),
             ast.effects.end(),
             [&](const Effect &e) { return ecr.effectName == e.declaration.name; });
-        
-        assert(effect != ast.effects.end());
 
+        if(effect != ast.effects.end()) {
+            auto eCtor = std::find_if(
+                effect->constructors.begin(),
+                effect->constructors.end(),
+                [&](const EffectCtor &eCtor) { return ecr.ctorName == eCtor.name; });
+            
+            assert(eCtor != effect->constructors.end());
+
+            return {
+                effect - ast.effects.begin() + TypedAST::builtinEffects.size(),
+                eCtor - effect->constructors.begin()
+            };
+        }
+
+        effect = std::find_if(
+            builtinEffects.begin(),
+            builtinEffects.end(),
+            [&](const Effect &e) { return e.declaration.name == ecr.effectName; });
+        
+        // The effect must either be in the AST or a builtin effect.
+        assert(effect != builtinEffects.end());
+        
         auto eCtor = std::find_if(
             effect->constructors.begin(),
             effect->constructors.end(),
@@ -201,7 +222,7 @@ private:
         
         assert(eCtor != effect->constructors.end());
         return {
-            effect - ast.effects.begin(),
+            effect - builtinEffects.begin(),
             eCtor - effect->constructors.begin()
         };
     }

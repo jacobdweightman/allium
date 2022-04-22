@@ -314,54 +314,15 @@ public:
         std::vector<Predicate> predicates
     ): types(types), effects(effects), predicates(predicates) {}
 
-    const Type &resolveTypeRef(const Name<Type> &tr) const {
-        const auto x = std::find_if(
-            types.begin(),
-            types.end(),
-            [&](const Type &type) { return type.declaration.name == tr; });
+    const Type &resolveTypeRef(const Name<Type> &tr) const;
 
-        assert(x != types.end());
-        return *x;
-    }
+    const Constructor &resolveConstructorRef(const Name<Type> &tr, const ConstructorRef &cr) const;
 
-    const Constructor &resolveConstructorRef(const Name<Type> &tr, const ConstructorRef &cr) const {
-        const Type &type = resolveTypeRef(tr);
+    const Effect &resolveEffectRef(const Name<Effect> &er) const;
 
-        const auto ctor = std::find_if(
-            type.constructors.begin(),
-            type.constructors.end(),
-            [&](const Constructor &ctor) { return ctor.name == cr.name; });
+    const EffectCtor &resolveEffectCtorRef(const EffectCtorRef &ecr) const;
 
-        assert(ctor != type.constructors.end());
-        return *ctor;
-    }
-
-    const EffectCtor &resolveEffectCtorRef(const EffectCtorRef &ecr) const {
-        const auto effect = std::find_if(
-            effects.begin(),
-            effects.end(),
-            [&](const Effect &e) { return e.declaration.name == ecr.effectName; });
-        
-        assert(effect != effects.end());
-
-        const auto eCtor = std::find_if(
-            effect->constructors.begin(),
-            effect->constructors.end(),
-            [&](const EffectCtor &eCtor) { return eCtor.name == ecr.ctorName; });
-        
-        assert(eCtor != effect->constructors.end());
-        return *eCtor;
-    }
-
-    const Predicate &resolvePredicateRef(const PredicateRef &pr) const {
-        const auto p = std::find_if(
-            predicates.begin(),
-            predicates.end(),
-            [&](const Predicate &p) { return p.declaration.name == pr.name; });
-
-        assert(p != predicates.end());
-        return *p;
-    }
+    const Predicate &resolvePredicateRef(const PredicateRef &pr) const;
 
     std::vector<Type> types;
     std::vector<Effect> effects;

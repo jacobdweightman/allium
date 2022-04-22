@@ -639,8 +639,7 @@ public:
             [&](Type type) { return visit(type); }
         );
 
-        raisedEffects = TypedAST::builtinEffects;
-        raisedEffects += compactMap<Effect, TypedAST::Effect>(
+        raisedEffects = compactMap<Effect, TypedAST::Effect>(
             ast.effects,
             [&](Effect effect) { return visit(effect); }
         );
