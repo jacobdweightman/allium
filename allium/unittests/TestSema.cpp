@@ -65,7 +65,8 @@ TEST_F(TestSemAnaPredicates, undefined_predicate) {
                     PredicateRef("a", SourceLocation(2, 4)),
                     Expression(PredicateRef("b", errorLocation))
                 )
-            }
+            },
+            {}
         )
     };
 
@@ -75,7 +76,7 @@ TEST_F(TestSemAnaPredicates, undefined_predicate) {
 }
 
 TEST_F(TestSemAnaPredicates, implication_head_mismatch) {
-    SourceLocation errorLocation(2, 4);    
+    SourceLocation errorLocation(2, 4);
     std::vector<Predicate> ps = {
         Predicate(
             PredicateDecl("a", {}, {}, SourceLocation(1, 4)),
@@ -84,10 +85,12 @@ TEST_F(TestSemAnaPredicates, implication_head_mismatch) {
                     PredicateRef("b", errorLocation),
                     TruthLiteral(true, SourceLocation(2, 8))
                 )
-            }
+            },
+            {}
         ),
         Predicate(
             PredicateDecl("b", {}, {}, SourceLocation(4, 4)),
+            {},
             {}
         )
     };
@@ -123,7 +126,8 @@ TEST_F(TestSemAnaPredicates, predicate_argument_count_mismatch) {
                     ),
                     Expression(TruthLiteral(true, SourceLocation(2, 30)))
                 )
-            }
+            },
+            {}
         )
     };
 
@@ -167,7 +171,8 @@ TEST_F(TestSemAnaPredicates, constructor_argument_count_mismatch) {
                     ),
                     TruthLiteral(true, SourceLocation(2, 34))
                 )
-            }
+            },
+            {}
         )
     };
 
@@ -205,7 +210,8 @@ TEST_F(TestSemAnaPredicates, predicate_argument_with_arguments_type_mismatch) {
                     ),
                     TruthLiteral(true, SourceLocation(2, 8))
                 )
-            }
+            },
+            {}
         )
     };
 
@@ -241,7 +247,8 @@ TEST_F(TestSemAnaPredicates, predicate_argument_type_mismatch) {
                     ),
                     Expression(TruthLiteral(true, SourceLocation(2, 8)))
                 )
-            }
+            },
+            {}
         )
     };
 
@@ -259,10 +266,12 @@ TEST_F(TestSemAnaPredicates, predicate_redefined) {
     std::vector<Predicate> ps = {
         Predicate(
             PredicateDecl("p", {}, {}, originalLocation),
+            {},
             {}
         ),
         Predicate(
             PredicateDecl("p", {}, {}, errorLocation),
+            {},
             {}
         )
     };
@@ -287,6 +296,7 @@ TEST_F(TestSemAnaPredicates, existential_variable_as_input_only_parameter) {
                 {},
                 SourceLocation(1, 5)
             ),
+            {},
             {}
         ),
         Predicate(
@@ -300,7 +310,8 @@ TEST_F(TestSemAnaPredicates, existential_variable_as_input_only_parameter) {
                         SourceLocation(3, 9)
                     ))
                 )
-            }
+            },
+            {}
         )
     };
 
@@ -337,6 +348,7 @@ TEST_F(TestSemAnaPredicates, existential_variable_inside_constructor_as_input_on
                 {},
                 SourceLocation(5, 5)
             ),
+            {},
             {}
         ),
         Predicate(
@@ -346,7 +358,7 @@ TEST_F(TestSemAnaPredicates, existential_variable_inside_constructor_as_input_on
                     PredicateRef("q", SourceLocation(7, 4)),
                     Expression(PredicateRef(
                         "p",
-                        { 
+                        {
                             Value(NamedValue(
                                 "S",
                                 {
@@ -364,7 +376,8 @@ TEST_F(TestSemAnaPredicates, existential_variable_inside_constructor_as_input_on
                         SourceLocation(7, 9)
                     ))
                 )
-            }
+            },
+            {}
         )
     };
 
@@ -378,6 +391,7 @@ TEST_F(TestSemAnaPredicates, predicate_with_undefined_type_parameter) {
     std::vector<Predicate> ps = {
         Predicate(
             PredicateDecl("p", { Parameter("Foo", false, errorLocation) }, {}, SourceLocation(3, 5)),
+            {},
             {}
         )
     };
@@ -399,11 +413,12 @@ TEST_F(TestSemAnaPredicates, predicate_undefined_type_error_type_inference) {
     std::vector<Predicate> ps = {
         Predicate(
             PredicateDecl("p", { Parameter("Foo", false, errorLocation) }, {}, {1, 5}),
+            {},
             {}
         ),
         Predicate(
             PredicateDecl("q", {}, {}, SourceLocation(2, 5)),
-            { 
+            {
                 Implication(
                     PredicateRef("q", {3, 5}),
                     Expression(PredicateRef(
@@ -412,7 +427,8 @@ TEST_F(TestSemAnaPredicates, predicate_undefined_type_error_type_inference) {
                         {3, 9}
                     ))
                 )
-            }
+            },
+            {}
         )
     };
 
@@ -432,6 +448,7 @@ TEST_F(TestSemAnaPredicates, string_builtin_does_not_require_definition) {
                 {},
                 SourceLocation(1, 5)
             ),
+            {},
             {}
         )
     };
@@ -448,28 +465,31 @@ TEST_F(TestSemAnaPredicates, variable_redefinition) {
     SourceLocation errorLocation(3, 17);
     std::vector<Type> ts = { Type(TypeDecl("Foo", SourceLocation(1, 5)), {}) };
     std::vector<Predicate> ps = {
-        Predicate(PredicateDecl(
-            "p",
+        Predicate(
+            PredicateDecl(
+                "p",
+                {
+                    Parameter("Foo", false, SourceLocation(2, 7)),
+                    Parameter("Foo", false, SourceLocation(2, 12))
+                },
+                {},
+                SourceLocation(2, 5)
+            ),
             {
-                Parameter("Foo", false, SourceLocation(2, 7)),
-                Parameter("Foo", false, SourceLocation(2, 12))
+                Implication(
+                    PredicateRef(
+                        "p",
+                        {
+                            NamedValue("x", true, SourceLocation(3, 10)),
+                            NamedValue("x", true, errorLocation),
+                        },
+                        SourceLocation(3, 4)
+                    ),
+                    Expression(TruthLiteral(true, SourceLocation(3, 23)))
+                )
             },
-            {},
-            SourceLocation(2, 5)
-        ),
-        {
-            Implication(
-                PredicateRef(
-                    "p",
-                    {
-                        NamedValue("x", true, SourceLocation(3, 10)),
-                        NamedValue("x", true, errorLocation),
-                    },
-                    SourceLocation(3, 4)
-                ),
-                Expression(TruthLiteral(true, SourceLocation(3, 23)))
-            )
-        })
+            {}
+        )
     };
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::variable_redefined, "x"));
@@ -480,7 +500,7 @@ TEST_F(TestSemAnaPredicates, variable_redefinition) {
 TEST_F(TestSemAnaPredicates, variable_type_mismatch) {
     // type Foo {}
     // type Bar {}
-    // 
+    //
     // pred p(Foo) {}
     // pred q(Bar) {
     //     q(let x) <- p(x);
@@ -494,6 +514,7 @@ TEST_F(TestSemAnaPredicates, variable_type_mismatch) {
     std::vector<Predicate> ps = {
         Predicate(
             PredicateDecl("p", { Parameter("Foo", false, SourceLocation(4, 7)) }, {}, SourceLocation(4, 5)),
+            {},
             {}
         ),
         Predicate(
@@ -503,7 +524,8 @@ TEST_F(TestSemAnaPredicates, variable_type_mismatch) {
                     PredicateRef("q", { NamedValue("x", true, SourceLocation(6, 10)) }, SourceLocation(6, 4)),
                     Expression(PredicateRef("p", { NamedValue("x", false, errorLocation) }, SourceLocation(6, 16)))
                 )
-            }
+            },
+            {}
         )
     };
 
@@ -563,12 +585,13 @@ TEST_F(TestSemAnaPredicates, constructor_with_parameter_of_undefined_type_type_i
     std::vector<Predicate> ps = {
         Predicate(
             PredicateDecl("p", { Parameter("T", false, {4, 7}) }, {}, SourceLocation(4, 5)),
-            { 
+            {
                 Implication(
                     PredicateRef("p", { NamedValue("t", { NamedValue("u", {}, {5, 8}) }, {5, 6}) }, {5, 4}),
                     Expression(TruthLiteral(true, {5, 15}))
                 )
-            }
+            },
+            {}
         )
     };
 
@@ -595,7 +618,8 @@ TEST_F(TestSemAnaPredicates, string_literal_not_convertible) {
                     PredicateRef("p", { Value(StringLiteral("hi", errorLocation)) }, SourceLocation(3, 4)),
                     TruthLiteral(true, SourceLocation(3, 15))
                 )
-            }
+            },
+            {}
         )
     };
 
@@ -622,7 +646,8 @@ TEST_F(TestSemAnaPredicates, int_literal_not_convertible) {
                     PredicateRef("p", { Value(IntegerLiteral(14, errorLocation)) }, SourceLocation(3, 4)),
                     TruthLiteral(true, SourceLocation(3, 15))
                 )
-            }
+            },
+            {}
         )
     };
 
@@ -643,6 +668,7 @@ TEST_F(TestSemAnaPredicates, undefined_effect) {
                 { EffectRef("Foo", errorLocation) },
                 SourceLocation(1, 5)
             ),
+            {},
             {}
         )
     };
@@ -675,7 +701,8 @@ TEST_F(TestSemAnaPredicates, unhandled_effect) {
                     PredicateRef("p", SourceLocation(5, 4)),
                     Expression(EffectCtorRef("abort", {}, errorLocation))
                 )
-            }
+            },
+            {}
         )
     };
 
@@ -725,7 +752,8 @@ TEST_F(TestSemAnaPredicates, effect_argument_count) {
                         errorLocation
                     ))
                 )
-            }
+            },
+            {}
         )
     };
 
@@ -792,7 +820,8 @@ TEST_F(TestSemAnaPredicates, effect_ctor_with_undefined_type_error_type_inferenc
                     PredicateRef("p", {5, 4}),
                     Expression(EffectCtorRef("bar", { NamedValue("Baz", {}, {5, 16}) }, {5, 12}))
                 )
-            }
+            },
+            {}
         )
     };
 
@@ -821,6 +850,7 @@ TEST_F(TestSemAnaPredicates, predicate_proves_predicate_with_unhandled_effect) {
                 { EffectRef("Foo", SourceLocation(2, 8)) },
                 SourceLocation(2, 5)
             ),
+            {},
             {}
         ),
         Predicate(
@@ -830,7 +860,8 @@ TEST_F(TestSemAnaPredicates, predicate_proves_predicate_with_unhandled_effect) {
                     PredicateRef("q", SourceLocation(4, 4)),
                     Expression(PredicateRef("p", errorLocation))
                 )
-            }
+            },
+            {}
         )
     };
 

@@ -21,6 +21,7 @@ TEST(TestASTRaise, predicate_with_variable_of_builtin_type) {
                 {},
                 SourceLocation()
             ),
+            {},
             {}
         ),
         Predicate(
@@ -34,7 +35,8 @@ TEST(TestASTRaise, predicate_with_variable_of_builtin_type) {
                         SourceLocation()
                     ))
                 )
-            }
+            },
+            {}
         )
     };
 
