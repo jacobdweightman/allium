@@ -3,8 +3,8 @@ import subprocess
 import sys
 import tempfile
 
-allium = sys.argv[1]
-filecheck = sys.argv[2]
+allium = os.path.normpath(sys.argv[1])
+filecheck = os.path.normpath(sys.argv[2])
 
 tests_run = 0
 tests_passed = 0
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     for dirpath, _, files in os.walk(testdir):
         for file in files:
             if(file.endswith(".allium")):
-                full_test_path = os.path.join(dirpath, file)
+                full_test_path = os.path.normpath(os.path.join(dirpath, file))
                 run(full_test_path)
 
     if failed_tests:

@@ -98,15 +98,12 @@ struct Variable {
     Variable(
         std::string name,
         Name<Type> type,
-        bool isDefinition,
-        bool isExistential
-    ): name(name), type(type), isDefinition(isDefinition),
-        isExistential(isExistential) {}
+        bool isDefinition
+    ): name(name), type(type), isDefinition(isDefinition) {}
 
     Name<Variable> name;
     Name<Type> type;
     bool isDefinition;
-    bool isExistential;
 };
 
 bool operator==(Variable left, Variable right);
@@ -224,11 +221,15 @@ typedef TaggedUnion<
     Conjunction
 > Expression;
 
+std::ostream& operator<<(std::ostream &out, const Expression &expr);
+
 struct TruthLiteral {
     TruthLiteral(bool value): value(value) {}
 
     bool value;
 };
+
+std::ostream& operator<<(std::ostream &out, const TruthLiteral &tl);
 
 struct PredicateDecl {
     PredicateDecl(
@@ -249,6 +250,8 @@ struct PredicateRef {
     std::vector<Value> arguments;
 };
 
+std::ostream& operator<<(std::ostream &out, const PredicateRef &pr);
+
 struct EffectCtorRef {
     EffectCtorRef(
         std::string effectName,
@@ -263,6 +266,8 @@ struct EffectCtorRef {
     std::vector<Value> arguments;
     SourceLocation location;
 };
+
+std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr);
 
 struct Conjunction {
     Conjunction(Expression left, Expression right);
@@ -285,6 +290,8 @@ struct Implication {
     Expression body;
 };
 
+std::ostream& operator<<(std::ostream &out, const Implication &impl);
+
 struct Predicate {
     Predicate(
         PredicateDecl declaration,
@@ -299,7 +306,6 @@ struct Predicate {
 };
 
 std::ostream& operator<<(std::ostream &out, const Value &val);
-std::ostream& operator<<(std::ostream &out, const PredicateRef &pr);
 
 class AST {
 public:
@@ -308,72 +314,23 @@ public:
         std::vector<Predicate> predicates
     ): types(types), effects(effects), predicates(predicates) {}
 
-    const Type &resolveTypeRef(const Name<Type> &tr) const {
-        const auto x = std::find_if(
-            types.begin(),
-            types.end(),
-            [&](const Type &type) { return type.declaration.name == tr; });
+    const Type &resolveTypeRef(const Name<Type> &tr) const;
 
-        assert(x != types.end());
-        return *x;
-    }
+    const Constructor &resolveConstructorRef(const Name<Type> &tr, const ConstructorRef &cr) const;
 
-    const Constructor &resolveConstructorRef(const Name<Type> &tr, const ConstructorRef &cr) const {
-        const Type &type = resolveTypeRef(tr);
+    const Effect &resolveEffectRef(const Name<Effect> &er) const;
 
-        const auto ctor = std::find_if(
-            type.constructors.begin(),
-            type.constructors.end(),
-            [&](const Constructor &ctor) { return ctor.name == cr.name; });
+    const EffectCtor &resolveEffectCtorRef(const EffectCtorRef &ecr) const;
 
-        assert(ctor != type.constructors.end());
-        return *ctor;
-    }
-
-    const EffectCtor &resolveEffectCtorRef(const EffectCtorRef &ecr) const {
-        const auto effect = std::find_if(
-            effects.begin(),
-            effects.end(),
-            [&](const Effect &e) { return e.declaration.name == ecr.effectName; });
-        
-        assert(effect != effects.end());
-
-        const auto eCtor = std::find_if(
-            effect->constructors.begin(),
-            effect->constructors.end(),
-            [&](const EffectCtor &eCtor) { return eCtor.name == ecr.ctorName; });
-        
-        assert(eCtor != effect->constructors.end());
-        return *eCtor;
-    }
-
-    const Predicate &resolvePredicateRef(const PredicateRef &pr) const {
-        const auto p = std::find_if(
-            predicates.begin(),
-            predicates.end(),
-            [&](const Predicate &p) { return p.declaration.name == pr.name; });
-
-        assert(p != predicates.end());
-        return *p;
-    }
+    const Predicate &resolvePredicateRef(const PredicateRef &pr) const;
 
     std::vector<Type> types;
     std::vector<Effect> effects;
     std::vector<Predicate> predicates;
 };
 
-struct VariableInfo {
-    VariableInfo(
-        Type type,
-        bool isExistential
-    ): type(type), isExistential(isExistential) {}
-
-    Type type;
-    bool isExistential;
-};
-
 /// Represents the variables and their types defined in a scope.
-typedef std::map<Name<Variable>, VariableInfo> Scope;
+typedef std::map<Name<Variable>, const Type &> Scope;
 
 };
 

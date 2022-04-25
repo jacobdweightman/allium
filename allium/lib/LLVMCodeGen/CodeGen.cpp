@@ -4,58 +4,40 @@
 #include <cstdio>
 #include <vector>
 
-#include "SemAna/TypedAST.h"
+#include <llvm/ADT/APInt.h>
+#include <llvm/Analysis/LoopAnalysisManager.h>
+#include <llvm/Analysis/CGSCCPassManager.h>
+#include <llvm/Transforms/Coroutines.h>
+#include <llvm/Transforms/IPO.h>
+#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/PassManager.h>
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Support/Host.h>
+// #include <llvm/Support/TargetRegistry.h>
+#include <llvm/MC/TargetRegistry.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Target/TargetOptions.h>
+
+#include "LLVMCodeGen/CGType.h"
+#include "LLVMCodeGen/CGPred.h"
 #include "LLVMCodeGen/CodeGen.h"
-
-#include "llvm/ADT/APInt.h"
-#include "llvm/Analysis/LoopAnalysisManager.h"
-#include "llvm/Analysis/CGSCCPassManager.h"
-#include "llvm/Transforms/Coroutines.h"
-#include "llvm/Transforms/IPO.h"
-#include "llvm/IR/LegacyPassManager.h"
-#include "llvm/IR/PassManager.h"
-#include "llvm/Passes/PassBuilder.h"
-#include "llvm/Support/Host.h"
-// #include "llvm/Support/TargetRegistry.h"
-#include "llvm/MC/TargetRegistry.h"
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/Target/TargetOptions.h"
-
-#include "CodeGenInternal.h"
+#include "SemAna/TypedAST.h"
 
 using namespace llvm;
 
-Function *LLVMCodeGen::createMain() {
-    Function *main = Function::Create(
-        FunctionType::get(IntegerType::get(ctx, 32), {}, false),
-        Function::ExternalLinkage,
-        "main",
-        mod);
+void lower(CGContext &cgctx) {
+    Constant *logLevel = cgctx.mod.getOrInsertGlobal("logLevel", Type::getInt32Ty(cgctx.ctx));
+    cgctx.mod.getNamedGlobal("logLevel")->setLinkage(GlobalValue::ExternalLinkage);
 
-    BasicBlock *entry = BasicBlock::Create(ctx, "entry", main);
-    BasicBlock *failure = BasicBlock::Create(ctx, "failure", main);
-    
-    builder.SetInsertPoint(entry);
-    lower(TypedAST::PredicateRef("main", {}), failure);
+    TypeGenerator typeGenerator(cgctx);
+    typeGenerator.lowerAllTypes();
 
-    // This goes into the "success" block created by lower
-    builder.CreateRet(ConstantInt::get(ctx, APInt(32, 0, true)));
-
-    builder.SetInsertPoint(failure);
-    builder.CreateRet(ConstantInt::get(ctx, APInt(32, 1, true)));
-
-    return main;
-}
-
-void LLVMCodeGen::lower(const TypedAST::AST &ast) {
-    this->ast = &ast;
-    lowerAllTypes();
-
-    for(const auto &pred : ast.predicates) {
-        lower(pred);
+    PredicateGenerator predGenerator(cgctx);
+    for(const auto &pred : cgctx.ast.predicates) {
+        predGenerator.lower(pred);
     }
 
-    createMain();
+    predGenerator.createMain();
 }
 
 static TargetMachine *initLLVM() {
@@ -88,12 +70,12 @@ void cgProgram(const TypedAST::AST &ast, compiler::Config config) {
         exit(1);
     }
 
-    LLVMCodeGen cg(tm);
-    cg.lower(ast);
+    CGContext cgctx(ast, tm);
+    cgctx.instrumentWithLogs = config.debug;
+    lower(cgctx);
 
-    std::cout << "print IR: " << config.printLLVMIR << "\n";
     if(config.printLLVMIR) {
-        cg.mod.print(llvm::outs(), nullptr);
+        cgctx.mod.print(llvm::outs(), nullptr);
     }
 
     std::string objFileName;
@@ -130,7 +112,7 @@ void cgProgram(const TypedAST::AST &ast, compiler::Config config) {
     // The default pipeline includes coroutine lowering.
     ModulePassManager mpm = pb.buildPerModuleDefaultPipeline(OptimizationLevel::O1);
 
-    mpm.run(cg.mod, mam);
+    mpm.run(cgctx.mod, mam);
 
     // As of LLVM 14, backend code generation only works with the legacy pass
     // manager.
@@ -139,11 +121,11 @@ void cgProgram(const TypedAST::AST &ast, compiler::Config config) {
         errs() << "TheTargetMachine can't emit a file of this type";
         return;
     }
-    pm.run(cg.mod);
+    pm.run(cgctx.mod);
     dest.flush();
     // TODO: this presumably only works on MacOS!
     system(
-        (std::string("ld64.lld -arch x86_64 -platform_version macos 12.0.0 12.0 -o ") +
-        config.outputFile + " " + std::string(objFileName) +
-        std::string(" -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.sdk -lSystem")).c_str());
+        (std::string("ld -o ") + config.outputFile + " " + std::string(objFileName) +
+        std::string(" -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX12.sdk -lSystem"
+                    " -L /Users/jacobweightman/code/cpp/allium/build/allium -lAllium")).c_str());
 }

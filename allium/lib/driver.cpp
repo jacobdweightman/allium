@@ -128,6 +128,9 @@ struct Arguments {
             } else if(arg == "-c") {
                 arguments.compilerOnly();
                 arguments.compilerConfig.outputType = compiler::OutputType::OBJECT;
+            } else if(arg == "-g") {
+                arguments.compilerOnly();
+                arguments.compilerConfig.debug = true;
             } else if(arg == "--print-llvm") {
                 arguments.compilerOnly();
                 arguments.compilerConfig.printLLVMIR = true;

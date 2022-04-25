@@ -24,22 +24,17 @@ std::set<Name<Type>> getInhabitableTypes(const std::vector<Type> &types) {
         uninhabitedTypes.insert(&type);
     }
 
+    // Literal types are inhabited, even if they have no constructors. They
+    // are also never user-defined types.
+    inhabitedTypes.insert(Name<Type>("Int"));
+    inhabitedTypes.insert(Name<Type>("String"));
+
     bool changed;
     do {
         changed = false;
         auto type = uninhabitedTypes.begin();
         while(type != uninhabitedTypes.end()) {
             bool typeIsInhabited = false;
-
-            // Literal types are inhabited, even if they have no constructors.
-            if( (*type)->declaration.name == "String" ||
-                (*type)->declaration.name == "Int") {
-                    inhabitedTypes.insert((*type)->declaration.name);
-                    type = uninhabitedTypes.erase(type);
-                    typeIsInhabited = true;
-                    changed = true;
-                    continue;
-            }
 
             // A type is inhabited if it has a constructor whose arguments are
             // all of inhabited types.

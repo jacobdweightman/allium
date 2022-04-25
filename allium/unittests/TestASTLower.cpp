@@ -54,7 +54,7 @@ TEST(TestASTLower, string_is_inhabited) {
                 {
                     Implication(
                         PredicateRef("p", {
-                            Value(Variable("x", Name<Type>("String"), true, false))
+                            Value(Variable("x", Name<Type>("String"), true))
                         }),
                         Expression(TruthLiteral(true))
                     )
@@ -95,7 +95,7 @@ TEST(TestASTLower, string_is_inhabited_2) {
     EXPECT_EQ(actualVariable, expectedVariable);
 }
 
-TEST(TestASTLower, existential_variables_are_uniquely_indexed) {
+TEST(TestASTLower, variables_are_uniquely_indexed) {
     AST ast(
         {
             Type(
@@ -114,8 +114,8 @@ TEST(TestASTLower, existential_variables_are_uniquely_indexed) {
                             AnonymousVariable(Name<Type>("T"))
                         }),
                         Expression(PredicateRef("foo", {
-                            Value(Variable("x", Name<Type>("T"), true, true)),
-                            Value(Variable("y", Name<Type>("T"), true, true))
+                            Value(Variable("x", Name<Type>("T"), true)),
+                            Value(Variable("y", Name<Type>("T"), true))
                         }))
                     )
                 },

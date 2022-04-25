@@ -67,6 +67,9 @@ if(BUILD_COMPILER)
   add_subdirectory(lib/LLVMCodeGen)
 endif()
 
+add_library(Allium SHARED
+  lib/LibAllium/libAllium.c)
+
 #############################
 # unit tests
 #############################

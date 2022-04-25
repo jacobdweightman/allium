@@ -1,3 +1,4 @@
+#include "SemAna/Builtins.h"
 #include "SemAna/TypedAST.h"
 
 namespace TypedAST {
@@ -162,10 +163,93 @@ std::ostream& operator<<(std::ostream &out, const Value &val) {
     });
 }
 
+std::ostream& operator<<(std::ostream &out, const Expression &expr) {
+    expr.switchOver(
+    [&](TruthLiteral tl) { out << tl; },
+    [&](const PredicateRef &pr) { out << pr; },
+    [&](const EffectCtorRef &ecr) { out << ecr; },
+    [&](const Conjunction &conj) { out << conj.getLeft() << ", " << conj.getRight(); }
+    );
+    return out;
+}
+
+std::ostream& operator<<(std::ostream &out, const TruthLiteral &tl) {
+    return out << (tl.value ? "true" : "false");
+}
+
 std::ostream& operator<<(std::ostream &out, const PredicateRef &pr) {
     out << pr.name << "(";
     for(const auto &x : pr.arguments) out << x << ", ";
     return out << ")";
+}
+
+std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr) {
+    return out << "do " << ecr.effectName << "." << ecr.ctorName;
+}
+
+std::ostream& operator<<(std::ostream &out, const Implication &impl) {
+    return out << impl.head << " <- " << impl.body;
+}
+
+const Type &AST::resolveTypeRef(const Name<Type> &tr) const {
+    const auto x = std::find_if(
+        types.begin(),
+        types.end(),
+        [&](const Type &type) { return type.declaration.name == tr; });
+
+    assert(x != types.end());
+    return *x;
+}
+
+const Constructor &AST::resolveConstructorRef(const Name<Type> &tr, const ConstructorRef &cr) const {
+    const Type &type = resolveTypeRef(tr);
+
+    const auto ctor = std::find_if(
+        type.constructors.begin(),
+        type.constructors.end(),
+        [&](const Constructor &ctor) { return ctor.name == cr.name; });
+
+    assert(ctor != type.constructors.end());
+    return *ctor;
+}
+
+const Effect &AST::resolveEffectRef(const Name<Effect> &er) const {
+    auto effect = std::find_if(
+        effects.begin(),
+        effects.end(),
+        [&](const Effect &e) { return e.declaration.name == er; });
+    
+    if(effect == effects.end()) {
+        effect = std::find_if(
+            builtinEffects.begin(),
+            builtinEffects.end(),
+            [&](const Effect &e) { return e.declaration.name == er; });
+        assert(effect != builtinEffects.end());
+    }
+
+    return *effect;
+}
+
+const EffectCtor &AST::resolveEffectCtorRef(const EffectCtorRef &ecr) const {
+    const Effect &effect = resolveEffectRef(ecr.effectName);
+
+    const auto eCtor = std::find_if(
+        effect.constructors.begin(),
+        effect.constructors.end(),
+        [&](const EffectCtor &eCtor) { return eCtor.name == ecr.ctorName; });
+    
+    assert(eCtor != effect.constructors.end());
+    return *eCtor;
+}
+
+const Predicate &AST::resolvePredicateRef(const PredicateRef &pr) const {
+    const auto p = std::find_if(
+        predicates.begin(),
+        predicates.end(),
+        [&](const Predicate &p) { return p.declaration.name == pr.name; });
+
+    assert(p != predicates.end());
+    return *p;
 }
 
 }

@@ -1,15 +1,11 @@
 #ifndef PARSER_BUILTINS_H
 #define PARSER_BUILTINS_H
 
-#include <vector>
+#include <set>
 
 #include "Parser/AST.h"
 
 namespace parser {
-
-extern std::vector<Type> builtinTypes;
-
-Optional<Type *> getTypeIfBuiltin(Name<Type> tn);
 
 bool nameIsBuiltinType(Name<Type> tn);
 
