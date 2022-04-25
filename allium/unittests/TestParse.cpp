@@ -923,3 +923,56 @@ TEST(TestParser, parse_effect_with_constructors_and_arguments) {
         )
     );
 }
+
+TEST(TestParser, parse_empty_effect_handler) {
+    std::istringstream f(
+        "handle Log {}");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseHandler(),
+        Handler(
+            EffectRef("Log", SourceLocation(1, 7)),
+            {}
+        )
+    );
+}
+
+TEST(TestParser, parse_effect_handler_with_implications) {
+    std::istringstream f(
+        "handle Log {do message(Error, let s) <- do print(\"Error:\"), do print(s), false;}");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseHandler(),
+        Handler(
+            EffectRef("Log", SourceLocation(1, 7)),
+            {
+                EffectImplication(
+                    EffectCtorRef(
+                        "message",
+                        {
+                            NamedValue("Error", {}, SourceLocation(1, 23)),
+                            NamedValue("s", true, SourceLocation(1, 34))
+                        },
+                        SourceLocation(1, 15)
+                    ),
+                    Expression(Conjunction(
+                        Expression(Conjunction(
+                                Expression(EffectCtorRef(
+                                "print",
+                                {Value(StringLiteral("Error:", SourceLocation(1, 49)))},
+                                SourceLocation(1, 43)
+                            )),
+                            Expression(EffectCtorRef(
+                                "print",
+                                {NamedValue("s", {}, SourceLocation(1, 69))},
+                                SourceLocation(1, 63)
+                            )))),
+                        Expression(TruthLiteral(false, SourceLocation(1, 73)))
+                    ))
+                )
+            }
+        )
+    );
+}
