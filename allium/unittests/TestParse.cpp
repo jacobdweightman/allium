@@ -373,7 +373,8 @@ TEST(TestParser, parse_trivial_predicate) {
         p.parsePredicate(),
         Predicate(
             PredicateDecl("trivial", {}, {}, SourceLocation(1, 5)),
-            std::vector<Implication>()
+            {},
+            {}
         )
     );
 }
@@ -386,7 +387,8 @@ TEST(TestParser, parse_predicate_unspaced_braces) {
         p.parsePredicate(),
         Predicate(
             PredicateDecl("trivial", {}, {}, SourceLocation(1, 5)),
-            std::vector<Implication>()
+            {},
+            {}
         )
     );
 }
@@ -438,7 +440,8 @@ TEST(TestParser, parse_predicate_with_implications) {
                     PredicateRef("trivial", SourceLocation(1, 15)),
                     Expression(TruthLiteral(true, SourceLocation(1, 26)))
                 )
-            })
+            }),
+            {}
         )
     );
 }
@@ -456,7 +459,8 @@ TEST(TestParser, parse_predicate_minimal_whitespace) {
                     PredicateRef("trivial", SourceLocation(1, 13)),
                     Expression(TruthLiteral(true, SourceLocation(1, 24)))
                 )
-            })
+            }),
+            {}
         )
     );
 }
@@ -482,7 +486,8 @@ TEST(TestParser, parse_predicate_multiple_implications) {
                     PredicateRef("a", SourceLocation(3, 4)),
                     Expression(PredicateRef("c", SourceLocation(3, 9)))
                 )
-            })
+            }),
+            {}
         )
     );
 }
@@ -495,6 +500,7 @@ TEST(TestParser, parse_predicate_with_unhandled_effect) {
         p.parsePredicate(),
         Predicate(
             PredicateDecl("p", {}, { EffectRef("print", SourceLocation(1, 8)) }, SourceLocation(1, 5)),
+            {},
             {}
         )
     );
@@ -515,6 +521,7 @@ TEST(TestParser, parse_predicate_with_multiple_unhandled_effects) {
                     EffectRef("abort", SourceLocation(1, 15))
                 },
                 SourceLocation(1, 5)),
+            {},
             {}
         )
     );
@@ -911,6 +918,59 @@ TEST(TestParser, parse_effect_with_constructors_and_arguments) {
                     "Close",
                     { Parameter("File", false, SourceLocation(3, 15)) },
                     SourceLocation(3, 9)
+                )
+            }
+        )
+    );
+}
+
+TEST(TestParser, parse_empty_effect_handler) {
+    std::istringstream f(
+        "handle Log {}");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseHandler(),
+        Handler(
+            EffectRef("Log", SourceLocation(1, 7)),
+            {}
+        )
+    );
+}
+
+TEST(TestParser, parse_effect_handler_with_implications) {
+    std::istringstream f(
+        "handle Log {do message(Error, let s) <- do print(\"Error:\"), do print(s), false;}");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseHandler(),
+        Handler(
+            EffectRef("Log", SourceLocation(1, 7)),
+            {
+                EffectImplication(
+                    EffectCtorRef(
+                        "message",
+                        {
+                            NamedValue("Error", {}, SourceLocation(1, 23)),
+                            NamedValue("s", true, SourceLocation(1, 34))
+                        },
+                        SourceLocation(1, 15)
+                    ),
+                    Expression(Conjunction(
+                        Expression(Conjunction(
+                                Expression(EffectCtorRef(
+                                "print",
+                                {Value(StringLiteral("Error:", SourceLocation(1, 49)))},
+                                SourceLocation(1, 43)
+                            )),
+                            Expression(EffectCtorRef(
+                                "print",
+                                {NamedValue("s", {}, SourceLocation(1, 69))},
+                                SourceLocation(1, 63)
+                            )))),
+                        Expression(TruthLiteral(false, SourceLocation(1, 73)))
+                    ))
                 )
             }
         )

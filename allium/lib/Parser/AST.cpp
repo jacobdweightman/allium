@@ -244,7 +244,7 @@ Optional<Type> AST::resolveTypeRef(const Name<Type> &tr) const {
         types.begin(),
         types.end(),
         [&](const Type &type) { return type.declaration.name == tr; });
-    
+
     if(x == types.end()) {
         return Optional<Type>();
     } else {
@@ -272,7 +272,7 @@ Optional<const Effect*> AST::resolveEffectRef(const EffectRef &er) const {
         effects.begin(),
         effects.end(),
         [&](const Effect &e) { return e.declaration.name == er.name; });
-    
+
     if(x == effects.end()) {
         return Optional<const Effect*>();
     } else {
@@ -285,7 +285,7 @@ Optional<Predicate> AST::resolvePredicateRef(const PredicateRef &pr) const {
         predicates.begin(),
         predicates.end(),
         [&](const Predicate &p) { return p.name.name == pr.name; });
-    
+
     if(x == predicates.end()) {
         return Optional<Predicate>();
     } else {
@@ -361,15 +361,30 @@ std::ostream& operator<<(std::ostream &out, const Effect &effect) {
 }
 
 bool operator==(const Handler &lhs, const Handler &rhs) {
-    assert(false && "handlers aren't implemented yet!");
-    return true;
+    return lhs.effect == rhs.effect &&
+        lhs.implications == rhs.implications;
 }
+
 bool operator!=(const Handler &lhs, const Handler &rhs) {
     return !(lhs == rhs);
 }
 
 std::ostream& operator<<(std::ostream &out, const Handler &h) {
     ASTPrinter(out).visit(h);
+    return out;
+}
+
+bool operator==(const EffectImplication &lhs, const EffectImplication &rhs) {
+    return lhs.ctor == rhs.ctor &&
+        lhs.expression == rhs.expression;
+}
+
+bool operator!=(const EffectImplication &lhs, const EffectImplication &rhs) {
+    return !(lhs == rhs);
+}
+
+std::ostream& operator<<(std::ostream &out, const EffectImplication &ei) {
+    ASTPrinter(out).visit(ei);
     return out;
 }
 

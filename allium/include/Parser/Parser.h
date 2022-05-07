@@ -157,6 +157,7 @@ public:
     ParserResult<Predicate> parsePredicate();
     ParserResult<Type> parseType();
     ParserResult<Effect> parseEffect();
+    ParserResult<Handler> parseHandler();
     ParserResult<AST> parseAST();
 
     // Exposed for test
@@ -180,6 +181,7 @@ private:
     ParserResult<std::vector<EffectRef>> parseEffectList();
     ParserResult<EffectDecl> parseEffectDecl();
     ParserResult<EffectConstructor> parseEffectConstructor();
+    ParserResult<EffectImplication> parseEffectImplication();
 
     Lexer lexer;
     std::ostream &out;

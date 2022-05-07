@@ -49,6 +49,7 @@ struct EffectRef;
 struct EffectConstructor;
 
 struct Handler;
+struct EffectImplication;
 
 /// Represents a truth value literal in the AST.
 struct TruthLiteral {
@@ -202,13 +203,14 @@ std::ostream& operator<<(std::ostream &out, const Implication &impl);
 /// Represents a complete predicate definition in the AST.
 struct Predicate {
     Predicate() {}
-    Predicate(PredicateDecl name, std::vector<Implication> implications):
-        name(name), implications(implications) {}
+    Predicate(PredicateDecl name, std::vector<Implication> implications, std::vector<Handler> handlers):
+        name(name), implications(implications), handlers(handlers) {}
 
     Predicate operator=(Predicate other) {
         using std::swap;
         swap(name, other.name);
         swap(implications, other.implications);
+        swap(handlers, other.handlers);
         return *this;
     }
 
@@ -226,7 +228,7 @@ struct TypeDecl {
     TypeDecl() {}
     TypeDecl(std::string name, SourceLocation location):
         name(name), location(location) {}
-    
+
     Name<Type> name;
     SourceLocation location;
 };
@@ -356,7 +358,7 @@ struct EffectDecl {
     EffectDecl() {}
     EffectDecl(std::string name, SourceLocation location):
         name(name), location(location) {}
-    
+
     Name<Effect> name;
     SourceLocation location;
 };
@@ -404,7 +406,7 @@ bool operator==(const EffectConstructor &lhs, const EffectConstructor &rhs);
 bool operator!=(const EffectConstructor &lhs, const EffectConstructor &rhs);
 std::ostream& operator<<(std::ostream &out, const EffectConstructor &type);
 
-/// Represents the complete definition of a type in the AST.
+/// Represents the complete definition of an effect in the AST.
 struct Effect {
     Effect() {}
     Effect(EffectDecl declaration, std::vector<EffectConstructor> ctors):
@@ -418,11 +420,24 @@ bool operator==(const Effect &lhs, const Effect &rhs);
 bool operator!=(const Effect &lhs, const Effect &rhs);
 std::ostream& operator<<(std::ostream &out, const Effect &type);
 
-// TODO: model syntax for handlers
+// Represents the complete definition of an effect handler in the AST
 struct Handler {
-    Handler(Name<Effect> effectName): effectName(effectName) {}
+    Handler() {}
+    Handler(EffectRef effect, std::vector<EffectImplication> implications):
+        effect(effect), implications(implications) {}
 
-    Name<Effect> effectName;
+    EffectRef effect;
+    std::vector<EffectImplication> implications;
+};
+
+// Represents an individual effect implication in an effect handler
+struct EffectImplication {
+    EffectImplication() {}
+    EffectImplication(EffectCtorRef ctor, Expression expression):
+        ctor(ctor), expression(expression) {}
+
+    EffectCtorRef ctor;
+    Expression expression;
 };
 
 bool operator==(const Handler &lhs, const Handler &rhs);
@@ -432,7 +447,7 @@ std::ostream& operator<<(std::ostream &out, const Handler &type);
 /// An AST representing a complete source file.
 struct AST {
     AST() {}
-    AST(std::vector<Type> types, std::vector<Effect> effects, 
+    AST(std::vector<Type> types, std::vector<Effect> effects,
         std::vector<Predicate> predicates
     ): types(types), effects(effects), predicates(predicates) {}
 

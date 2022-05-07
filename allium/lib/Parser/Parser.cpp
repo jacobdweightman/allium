@@ -245,7 +245,6 @@ ParserResult<EffectCtorRef> Parser::parseEffectCtorRef() {
     Token identifier = lexer.take_next();
     if(identifier.type != Token::Type::identifier) {
         errors.push_back(SyntaxError("Expected identifier after \"do\".", identifier.location));
-        lexer.rewind(identifier);
     }
 
     if(lexer.take(Token::Type::paren_l)) {
@@ -276,6 +275,79 @@ ParserResult<EffectCtorRef> Parser::parseEffectCtorRef() {
     }
 
     return ParserResult<EffectCtorRef>(EffectCtorRef(identifier.text, {}, identifier.location), errors);
+}
+
+/// Parses an effect handler declaration
+ParserResult<Handler> Parser::parseHandler() {
+    std::vector<SyntaxError> errors;
+    Token first = lexer.peek_next();
+
+    auto rewindAndReturn = [&]() {
+        lexer.rewind(first);
+        return ParserResult<Handler>(errors);
+    };
+
+    // <handler> := "handle" <effect-ref> "{" <0-or-more-effect-implications> "}"
+    if(!lexer.take(Token::Type::kw_handle)) {
+        return rewindAndReturn();
+    }
+
+    Token effectRef;
+    if(lexer.take_token(Token::Type::identifier).unwrapGuard(effectRef)) {
+        errors.push_back(SyntaxError("Expected effect name after \"handle\".", lexer.peek_next().location));
+    }
+
+    if(lexer.take(Token::Type::brace_l)) {
+        std::vector<EffectImplication> implications;
+        EffectImplication impl;
+
+        while(parseEffectImplication().unwrapResultInto(impl, errors)) {
+            implications.push_back(impl);
+        }
+
+        if(lexer.take(Token::Type::brace_r)) {
+            return ParserResult<Handler>(Handler(EffectRef(effectRef.text, effectRef.location), implications), errors);
+        } else {
+            errors.push_back(SyntaxError("Expected \"}\" at the end of a handler definition.", lexer.peek_next().location));
+        }
+    } else {
+        errors.push_back(SyntaxError("Expected \"{\" after handler name.", lexer.peek_next().location));
+    }
+
+    return ParserResult<Handler>(errors);
+}
+
+/// Parses an effect implication within an effect handler
+ParserResult<EffectImplication> Parser::parseEffectImplication() {
+    std::vector<SyntaxError> errors;
+    Token first = lexer.peek_next();
+
+    auto rewindAndReturn = [&]() {
+        lexer.rewind(first);
+        return ParserResult<EffectImplication>(errors);
+    };
+
+    EffectCtorRef ec;
+
+    // <effect-implication> := <effect-ctor-ref> "<-" <expression> ";"
+    if(parseEffectCtorRef().unwrapResultInto(ec, errors)) {
+        if(!lexer.take(Token::Type::implied_by)) {
+            errors.push_back(SyntaxError("Expected a \"<-\" after the head of an effect implication.", lexer.peek_next().location));
+        }
+
+        Expression expr;
+        if(parseExpression().unwrapResultGuard(expr, errors)) {
+            errors.push_back(SyntaxError("Expected an expression after \"<-\" in an effect implication.", lexer.peek_next().location));
+        }
+
+        if(lexer.take(Token::Type::end_of_statement)) {
+            return ParserResult<EffectImplication>(EffectImplication(ec, expr), errors);
+        } else {
+            errors.push_back(SyntaxError("Expected a \";\" at the end of an effect implication.", lexer.peek_next().location));
+        }
+    }
+
+    return ParserResult<EffectImplication>(errors);
 }
 
 /// Parses a truth literal, predicate, or effect constructor from the stream.
@@ -377,9 +449,10 @@ ParserResult<Predicate> Parser::parsePredicate() {
 
     PredicateDecl decl;
     std::vector<Implication> implications;
+    std::vector<Handler> handlers;
 
     // <predicate> :=
-    //     "pred" <predicate-name> "{" <0-or-more-implications> "}"
+    //     "pred" <predicate-name> "{" <0-or-more-implications> <0-or-more-effect-handlers> "}"
     if(!lexer.take(Token::Type::kw_pred)) {
         return rewindAndReturn();
     }
@@ -394,8 +467,13 @@ ParserResult<Predicate> Parser::parsePredicate() {
             implications.push_back(impl);
         }
 
+        Handler h;
+        while(parseHandler().unwrapResultInto(h, errors)) {
+            handlers.push_back(h);
+        }
+
         if(lexer.take(Token::Type::brace_r)) {
-            return ParserResult<Predicate>(Predicate(decl, implications), errors);
+            return ParserResult<Predicate>(Predicate(decl, implications, handlers), errors);
         } else {
             errors.push_back(SyntaxError("Expected \"}\" at the end of a predicate definition.", lexer.peek_next().location));
             return ParserResult<Predicate>(errors);

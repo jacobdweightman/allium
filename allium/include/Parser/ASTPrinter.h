@@ -82,9 +82,8 @@ public:
         out << "<Predicate>\n";
         ++depth;
         visit(p.name);
-        for(const auto &impl : p.implications) {
-            visit(impl);
-        }
+        for(const auto &impl : p.implications) visit(impl);
+        for(const auto &handler : p.handlers) visit(handler);
         --depth;
     }
 
@@ -193,8 +192,24 @@ public:
         --depth;
     }
 
-    void visit(const Handler &h) {
-        assert(false && "Handlers aren't implemented yet!");
+    void visit(const Handler &handler) {
+        indent();
+        out << "<Handler>\n";
+        ++depth;
+        visit(handler.effect);
+        for(const auto &effectImplication : handler.implications) {
+            visit(effectImplication);
+        }
+        --depth;
+    }
+
+    void visit(const EffectImplication &effectImplication) {
+        indent();
+        out << "<EffectImplication>\n";
+        ++depth;
+        visit(effectImplication.ctor);
+        visit(effectImplication.expression);
+        --depth;
     }
 
     void visit(const AST &ast) {
