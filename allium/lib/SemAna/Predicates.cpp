@@ -101,10 +101,10 @@ public:
                 [&](const Handler &h) { return h.effect.name == unhandledEffect.name; }
             ) != enclosingPred.handlers.end();
 
-            bool handledAboveEnclosing = std::find(
+            bool handledAboveEnclosing = std::find_if(
                 enclosingPred.name.effects.begin(),
                 enclosingPred.name.effects.end(),
-                unhandledEffect
+                [&](const EffectRef &er) { return er.name == unhandledEffect.name; }
             ) != enclosingPred.name.effects.end();
 
             if(!handledInEnclosing && !handledAboveEnclosing) {

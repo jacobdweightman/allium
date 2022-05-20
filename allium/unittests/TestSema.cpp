@@ -656,6 +656,37 @@ TEST_F(TestSemAnaPredicates, int_literal_not_convertible) {
     checkAll(AST(ts, {}, ps), error);
 }
 
+TEST_F(TestSemAnaPredicates, effect_handled_in_parent) {
+    // effect Foo {}
+    // pred p: Foo {}
+    // pred q: Foo {
+    //     q <- p;
+    // }
+
+    std::vector<Effect> es = {
+        Effect(EffectDecl("Foo", {1, 7}), {})
+    };
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", {}, { EffectRef("Foo", {2, 8}) }, {2, 5}),
+            {},
+            {}
+        ),
+        Predicate(
+            PredicateDecl("q", {}, { EffectRef("Foo", {3, 8}) }, {3, 5}),
+            {
+                Implication(
+                    PredicateRef("q", {}, {4, 4}),
+                    Expression(PredicateRef("p", {4, 8}))
+                )
+            },
+            {}
+        )
+    };
+
+    checkAll(AST({}, es, ps), error);
+}
+
 TEST_F(TestSemAnaPredicates, undefined_effect) {
     // pred p: Foo {}
 
