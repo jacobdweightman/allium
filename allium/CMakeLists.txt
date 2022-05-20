@@ -67,8 +67,10 @@ if(BUILD_COMPILER)
   add_subdirectory(lib/LLVMCodeGen)
 endif()
 
-add_library(Allium SHARED
+add_library(AlliumRuntime SHARED
   lib/LibAllium/libAllium.c)
+set_target_properties(AlliumRuntime PROPERTIES
+  OUTPUT_NAME Allium)
 
 #############################
 # unit tests
