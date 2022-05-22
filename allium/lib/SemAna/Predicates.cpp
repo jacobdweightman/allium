@@ -85,8 +85,8 @@ public:
             return Optional<TypedAST::PredicateRef>();
         }
 
-        Predicate referencedPred;
-        if(ast.resolvePredicateRef(pr).unwrapGuard(referencedPred)) {
+        PredicateDecl pDecl;
+        if(ast.resolvePredicateRef(pr).unwrapGuard(pDecl)) {
             error.emit(
                 pr.location,
                 ErrorMessage::undefined_predicate,
@@ -94,7 +94,7 @@ public:
             return Optional<TypedAST::PredicateRef>();
         }
 
-        for(const auto &unhandledEffect : referencedPred.name.effects) {
+        for(const auto &unhandledEffect : pDecl.effects) {
             bool handledInEnclosing = std::find_if(
                 enclosingPred.handlers.begin(),
                 enclosingPred.handlers.end(),
@@ -118,16 +118,16 @@ public:
             }
         }
 
-        if(referencedPred.name.parameters.size() != pr.arguments.size()) {
+        if(pDecl.parameters.size() != pr.arguments.size()) {
             error.emit(
                 pr.location,
                 ErrorMessage::predicate_argument_count,
                 pr.name.string(),
-                std::to_string(referencedPred.name.parameters.size()));
+                std::to_string(pDecl.parameters.size()));
             return Optional<TypedAST::PredicateRef>();
         }
 
-        auto parameter = referencedPred.name.parameters.begin();
+        auto parameter = pDecl.parameters.begin();
         auto arguments = compactMap<Value, TypedAST::Value>(
             pr.arguments,
             [&](Value argument) {

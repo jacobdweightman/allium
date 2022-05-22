@@ -11,6 +11,8 @@ bool nameIsBuiltinType(Name<Type> tn);
 
 extern std::vector<Effect> builtinEffects;
 
+extern std::vector<PredicateDecl> builtinPredicates;
+
 } // end namespace parser
 
 #endif // SEMANA_BUILTINS_H
