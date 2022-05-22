@@ -71,12 +71,12 @@ void ASTPrinter::visit(const Effect &e) {
     depth--;
 }
 
-void ASTPrinter::visit(const Predicate &p) {
+void ASTPrinter::visit(const UserPredicate &up) {
     indent();
     out << "<Predicate>\n";
     depth++;
-    visit(p.declaration);
-    for(const auto &x : p.implications) visit(x);
+    visit(up.declaration);
+    for(const auto &x : up.implications) visit(x);
     depth--;
 }
 

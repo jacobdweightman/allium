@@ -20,7 +20,7 @@ public:
     void visit(const Parameter &p);
     void visit(const EffectCtor &eCtor);
     void visit(const Effect &e);
-    void visit(const Predicate &p);
+    void visit(const UserPredicate &up);
     void visit(const TruthLiteral &tl);
     void visit(const PredicateDecl &pd);
     void visit(const PredicateRef &pr);

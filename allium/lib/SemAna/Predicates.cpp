@@ -259,13 +259,13 @@ public:
         });
     }
 
-    Optional<TypedAST::Predicate> visit(const Predicate &p) {
+    Optional<TypedAST::UserPredicate> visit(const Predicate &p) {
         enclosingPredicate = p;
 
         std::unique_ptr<TypedAST::PredicateDecl> declaration;
         if(visit(p.name).unwrapGuard(declaration)) {
             enclosingPredicate = Optional<Predicate>();
-            return Optional<TypedAST::Predicate>();
+            return Optional<TypedAST::UserPredicate>();
         }
 
         std::vector<TypedAST::Implication> raisedImplications;
@@ -289,7 +289,7 @@ public:
         }
 
         enclosingPredicate = Optional<Predicate>();
-        return TypedAST::Predicate(
+        return TypedAST::UserPredicate(
             *declaration,
             raisedImplications,
             raisedHandlers);
@@ -644,7 +644,7 @@ public:
             [&](Effect effect) { return visit(effect); }
         );
 
-        auto raisedPredicates = compactMap<Predicate, TypedAST::Predicate>(
+        auto raisedPredicates = compactMap<Predicate, TypedAST::UserPredicate>(
             ast.predicates,
             [&](Predicate predicate) { return visit(predicate); }
         );

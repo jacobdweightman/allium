@@ -17,6 +17,8 @@ PUBLIC_GLOBAL extern std::vector<Type> builtinTypes;
 
 PUBLIC_GLOBAL extern std::vector<Effect> builtinEffects;
 
+PUBLIC_GLOBAL extern std::vector<BuiltinPredicate> builtinPredicates;
+
 } // end namespace TypedAST
 
 #endif // SEMANA_BUILTINS_H

@@ -78,9 +78,9 @@ public:
         size_t predicateIndex = getPredicateIndex(pr.name);
 
         std::vector<interpreter::MatcherValue> arguments;
-        const Predicate &p = ast.resolvePredicateRef(pr);
-        for(int i=0; i<p.declaration.parameters.size(); ++i) {
-            auto loweredCtorRef = visit(pr.arguments[i], p.declaration.parameters[i].type);
+        const PredicateDecl &pDecl = ast.resolvePredicateRef(pr).getDeclaration();
+        for(int i=0; i<pDecl.parameters.size(); ++i) {
+            auto loweredCtorRef = visit(pr.arguments[i], pDecl.parameters[i].type);
             arguments.push_back(loweredCtorRef);
         }
         
@@ -126,10 +126,10 @@ public:
         return interpreter::Implication(head, body, variableCount);
     }
 
-    interpreter::Predicate visit(const Predicate &p) {
+    interpreter::Predicate visit(const UserPredicate &up) {
         std::vector<interpreter::Implication> implications;
-        implications.reserve(p.implications.size());
-        for(const Implication &impl : p.implications) {
+        implications.reserve(up.implications.size());
+        for(const Implication &impl : up.implications) {
             implications.push_back(visit(impl));
         }
         return interpreter::Predicate(implications);
@@ -150,13 +150,14 @@ public:
     void visit(const Type &t) { assert(false && "not implemented"); };
 
 private:
+    // This should only be called with the name of user-defined predicates.
     size_t getPredicateIndex(const Name<Predicate> &pn) {
         // TODO: it should be possible to do this in logarithmic time,
         // but the current implementation is linear.
         auto x = std::find_if(
             ast.predicates.begin(),
             ast.predicates.end(),
-            [&](const Predicate &p) { return p.declaration.name == pn; });
+            [&](const UserPredicate &up) { return up.declaration.name == pn; });
 
         assert(x != ast.predicates.end());
         return x - ast.predicates.begin();

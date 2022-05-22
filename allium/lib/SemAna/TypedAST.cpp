@@ -242,14 +242,23 @@ const EffectCtor &AST::resolveEffectCtorRef(const EffectCtorRef &ecr) const {
     return *eCtor;
 }
 
-const Predicate &AST::resolvePredicateRef(const PredicateRef &pr) const {
-    const auto p = std::find_if(
+const Predicate AST::resolvePredicateRef(const PredicateRef &pr) const {
+    const auto up = std::find_if(
         predicates.begin(),
         predicates.end(),
-        [&](const Predicate &p) { return p.declaration.name == pr.name; });
+        [&](const UserPredicate &up) { return up.declaration.name == pr.name; });
 
-    assert(p != predicates.end());
-    return *p;
+    if(up == predicates.end()) {
+        const auto bp = std::find_if(
+            builtinPredicates.begin(),
+            builtinPredicates.end(),
+            [&](const BuiltinPredicate &bp) { return bp.declaration.name == pr.name; });
+        assert(bp != builtinPredicates.end());
+        return Predicate(&*bp);
+    }
+
+    assert(up != predicates.end());
+    return Predicate(&*up);
 }
 
 }

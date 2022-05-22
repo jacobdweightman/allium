@@ -10,7 +10,7 @@ TEST(TestASTLower, variables_of_uninhabited_types_are_marked) {
         { Type(TypeDecl("Void"), {}) },
         {},
         {
-            Predicate(
+            UserPredicate(
                 PredicateDecl("foo", { Parameter("Void", false) }, {}),
                 {
                     Implication(
@@ -49,7 +49,7 @@ TEST(TestASTLower, string_is_inhabited) {
         TypedAST::builtinTypes,
         {},
         {
-            Predicate(
+            UserPredicate(
                 PredicateDecl("p", { Parameter("String", false) }, {}),
                 {
                     Implication(
@@ -75,7 +75,7 @@ TEST(TestASTLower, string_is_inhabited_2) {
         TypedAST::builtinTypes,
         {},
         {
-            Predicate(
+            UserPredicate(
                 PredicateDecl("p", { Parameter("String", false) }, {}),
                 {
                     Implication(
@@ -105,7 +105,7 @@ TEST(TestASTLower, variables_are_uniquely_indexed) {
         },
         {},
         {
-            Predicate(
+            UserPredicate(
                 PredicateDecl("foo", { Parameter("T", false), Parameter("T", false) }, {}),
                 {
                     Implication(
