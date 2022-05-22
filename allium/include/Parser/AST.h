@@ -453,7 +453,7 @@ struct AST {
 
     Optional<Type> resolveTypeRef(const Name<Type> &tr) const;
     Optional<const Effect*> resolveEffectRef(const EffectRef &er) const;
-    Optional<Predicate> resolvePredicateRef(const PredicateRef &pr) const;
+    Optional<PredicateDecl> resolvePredicateRef(const PredicateRef &pr) const;
 
     std::vector<Type> types;
     std::vector<Effect> effects;

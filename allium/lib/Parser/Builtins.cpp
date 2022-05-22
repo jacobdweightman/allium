@@ -24,4 +24,16 @@ std::vector<Effect> builtinEffects = {
     )
 };
 
+std::vector<PredicateDecl> builtinPredicates = {
+    PredicateDecl(
+        "concat",
+        {
+            Parameter("String", true, SourceLocation()),
+            Parameter("String", true, SourceLocation()),
+            Parameter("String", false, SourceLocation())
+        },
+        {},
+        {})
+};
+
 } // end namespace parser

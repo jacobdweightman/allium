@@ -281,6 +281,37 @@ TEST_F(TestSemAnaPredicates, predicate_redefined) {
     checkAll(AST({}, {}, ps), error);
 }
 
+TEST_F(TestSemAnaPredicates, builtin_predicate_resolves_correctly) {
+    // pred p {
+    //     p <- concat("a", "b", "ab");
+    // }
+
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", {}, {}, {1, 5}),
+            {
+                Implication(
+                    PredicateRef("p", {2, 4}),
+                    Expression(
+                        PredicateRef(
+                            "concat",
+                            {
+                                Value(StringLiteral("a", {2, 16})),
+                                Value(StringLiteral("b", {2, 21})),
+                                Value(StringLiteral("ab", {2, 26}))
+                            },
+                            {2, 9}
+                        )
+                    )
+                )
+            },
+            {}
+        )
+    };
+
+    checkAll(AST({}, {}, ps), error);
+}
+
 TEST_F(TestSemAnaPredicates, existential_variable_as_input_only_parameter) {
     // pred p(in String) {}
     // pred q {

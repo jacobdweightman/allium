@@ -2,6 +2,7 @@
 
 #include "Parser/AST.h"
 #include "Parser/ASTPrinter.h"
+#include "Parser/Builtins.h"
 
 namespace parser {
 
@@ -280,16 +281,25 @@ Optional<const Effect*> AST::resolveEffectRef(const EffectRef &er) const {
     }
 }
 
-Optional<Predicate> AST::resolvePredicateRef(const PredicateRef &pr) const {
+Optional<PredicateDecl> AST::resolvePredicateRef(const PredicateRef &pr) const {
     const auto &x = std::find_if(
         predicates.begin(),
         predicates.end(),
         [&](const Predicate &p) { return p.name.name == pr.name; });
+    
+    if(x != predicates.end()) {
+        return x->name;
+    }
 
-    if(x == predicates.end()) {
-        return Optional<Predicate>();
+    const auto &y = std::find_if(
+        builtinPredicates.begin(),
+        builtinPredicates.end(),
+        [&](const PredicateDecl &pDecl) { return pDecl.name == pr.name; });
+
+    if(y == builtinPredicates.end()) {
+        return Optional<PredicateDecl>();
     } else {
-        return *x;
+        return *y;
     }
 }
 
