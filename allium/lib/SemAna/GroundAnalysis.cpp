@@ -370,7 +370,19 @@ class GroundAnalysis {
         // std::cout << "analyze: " << pr << std::endl;
 
         const Predicate &p = ast.resolvePredicateRef(pr);
+        return p.match<bool>(
+        [&](const UserPredicate *up) { return analyzeUserPredicateRef(ctx, *up, pr); },
+        [&](const BuiltinPredicate *bp) { return analyzeBuiltinPredicateRef(ctx, *bp, pr); }
+        );
+    }
 
+    bool analyzeBuiltinPredicateRef(Context &ctx, const BuiltinPredicate &p, const PredicateRef &pr) {
+        bool changed = false;
+
+        return changed;
+    }
+
+    bool analyzeUserPredicateRef(Context &ctx, const UserPredicate &p, const PredicateRef &pr) {
         // The groundness of the predicate arguments before the subproof.
         PRGroundness initialGroundness = getGroundness(ctx, pr);
 
@@ -433,13 +445,13 @@ class GroundAnalysis {
     }
 
     std::pair<std::vector<Implication>, std::vector<Implication>>
-    partitionRecursiveImpls(const Predicate &p) {
+    partitionRecursiveImpls(const UserPredicate &up) {
         std::vector<Implication> nonrecursiveImpls, recursiveImpls;
 
-        for(const auto &impl : p.implications) {
+        for(const auto &impl : up.implications) {
             bool implIsRecursive;
             forAllPredRefs(impl.body, [&](const PredicateRef &pr) {
-                implIsRecursive |= pdg.dependsOn(pr.name, p.declaration.name);
+                implIsRecursive |= pdg.dependsOn(pr.name, up.declaration.name);
             });
             if(implIsRecursive) {
                 recursiveImpls.push_back(impl);

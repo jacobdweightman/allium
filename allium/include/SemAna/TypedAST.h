@@ -207,6 +207,13 @@ bool operator!=(const Handler &left, const Handler &right);
  * Predicates
  */
 
+struct UserPredicate;
+struct BuiltinPredicate;
+
+typedef TaggedUnion<
+    const UserPredicate *,
+    const BuiltinPredicate *
+> PredicateBase;
 struct Predicate;
 
 struct TruthLiteral;
@@ -292,8 +299,9 @@ struct Implication {
 
 std::ostream& operator<<(std::ostream &out, const Implication &impl);
 
-struct Predicate {
-    Predicate(
+/// A predicate defined in user code.
+struct UserPredicate {
+    UserPredicate(
         PredicateDecl declaration,
         std::vector<Implication> implications,
         std::vector<Handler> handlers
@@ -305,13 +313,49 @@ struct Predicate {
     std::vector<Handler> handlers;
 };
 
+/// Represents the effect of executing a builtin predicate on the groundness of
+/// its arguments. Semantically, this is tied to Allium's left-to-right, depth-
+/// first-search execution model.
+struct Mode {
+    Mode(std::vector<bool> in, std::vector<bool> out):
+        inGroundness(in), outGroundness(out) {}
+    std::vector<bool> inGroundness;
+    std::vector<bool> outGroundness;
+};
+
+/// Represents a predicate which is hardcoded into the Allium interpreter. For
+/// example, `concat` is a builtin predicate because the user doesn't have to
+/// define it, and it is implemented in C++ inside the interpreter.
+struct BuiltinPredicate {
+    BuiltinPredicate(PredicateDecl declaration, std::vector<Mode> modes):
+        declaration(declaration), modes(modes) {}
+
+    /// A pointer to the coroutine which implements this predicate.
+    PredicateDecl declaration;
+
+    /// Represents all possible effects that executing this builtin predicate 
+    /// might have on its arguments' groundness.
+    std::vector<Mode> modes;
+};
+
+struct Predicate : public PredicateBase {
+    using PredicateBase::PredicateBase;
+
+    const PredicateDecl &getDeclaration() const {
+        return this->match<const PredicateDecl&>(
+        [](const UserPredicate *up) -> const PredicateDecl& { return up->declaration; },
+        [](const BuiltinPredicate *bp) -> const PredicateDecl& { return bp->declaration; }
+        );
+    }
+};
+
 std::ostream& operator<<(std::ostream &out, const Value &val);
 
 class AST {
 public:
     AST(std::vector<Type> types,
         std::vector<Effect> effects,
-        std::vector<Predicate> predicates
+        std::vector<UserPredicate> predicates
     ): types(types), effects(effects), predicates(predicates) {}
 
     const Type &resolveTypeRef(const Name<Type> &tr) const;
@@ -322,11 +366,11 @@ public:
 
     const EffectCtor &resolveEffectCtorRef(const EffectCtorRef &ecr) const;
 
-    const Predicate &resolvePredicateRef(const PredicateRef &pr) const;
+    const Predicate resolvePredicateRef(const PredicateRef &pr) const;
 
     std::vector<Type> types;
     std::vector<Effect> effects;
-    std::vector<Predicate> predicates;
+    std::vector<UserPredicate> predicates;
 };
 
 /// Represents the variables and their types defined in a scope.

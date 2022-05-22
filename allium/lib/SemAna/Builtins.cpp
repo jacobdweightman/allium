@@ -16,4 +16,17 @@ std::vector<Effect> builtinEffects = {
     )
 };
 
+std::vector<BuiltinPredicate> builtinPredicates = {
+    BuiltinPredicate(
+        PredicateDecl(
+            "concat",
+            {
+                Parameter("String", true),
+                Parameter("String", true),
+                Parameter("String", false)
+            },
+            {}),
+        { Mode({true, true, false}, {true, true, true}) })
+};
+
 } // end namespace TypedAST
