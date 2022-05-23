@@ -377,7 +377,30 @@ class GroundAnalysis {
     }
 
     bool analyzeBuiltinPredicateRef(Context &ctx, const BuiltinPredicate &p, const PredicateRef &pr) {
+        // The groundness of the predicate arguments before the subproof.
+        PRGroundness initialGroundness = getGroundness(ctx, pr);
+
+        // pr matches a mode iff initialGroundness is sufficiently grounded for
+        // the mode to apply. This means that all arguments that must be ground
+        // for it to apply are actually ground.
+        auto matches = [&](const Mode &m) {
+            for(size_t i=0; i<pr.arguments.size(); ++i) {
+                if(m.inGroundness[i] && !initialGroundness.arguments[i].isGround())
+                    return false;
+            }
+            return true;
+        };
+
         bool changed = false;
+
+        for(const Mode &m : p.modes) {
+            if(matches(m)) {
+                for(size_t i=0; i<pr.arguments.size(); ++i) {
+                    if(m.outGroundness[i])
+                        changed |= groundAllVariables(ctx, pr.arguments[i]);
+                }
+            }
+        }
 
         return changed;
     }
