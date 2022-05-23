@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "Interpreter/ASTLower.h"
+#include "Interpreter/BuiltinPredicates.h"
 #include "SemAna/Builtins.h"
 
 using namespace TypedAST;
@@ -146,6 +147,52 @@ TEST(TestASTLower, variables_are_uniquely_indexed) {
                 })
             },
             Optional<interpreter::PredicateReference>()
+        )
+    );
+}
+
+TEST(TestASTLower, builtin_predicate_lowering) {
+    AST ast(
+        {},
+        {},
+        {
+            UserPredicate(
+                PredicateDecl("main", {}, {}),
+                {
+                    Implication(
+                        PredicateRef("main", {}),
+                        Expression(PredicateRef("concat", {
+                            Value(StringLiteral("a")),
+                            Value(StringLiteral("b")),
+                            Value(StringLiteral("ab"))
+                        }))
+                    )
+                },
+                {}
+            )
+        }
+    );
+
+    EXPECT_EQ(
+        lower(ast),
+        interpreter::Program(
+            {
+                interpreter::Predicate({
+                    interpreter::Implication(
+                        interpreter::PredicateReference(0, {}),
+                        interpreter::Expression(interpreter::BuiltinPredicateReference(
+                            interpreter::getBuiltinPredicateByName("concat"),
+                            {
+                                interpreter::MatcherValue(interpreter::String("a")),
+                                interpreter::MatcherValue(interpreter::String("b")),
+                                interpreter::MatcherValue(interpreter::String("ab"))
+                            }
+                        )),
+                        0
+                    ),
+                })
+            },
+            interpreter::PredicateReference(0, {})
         )
     );
 }
