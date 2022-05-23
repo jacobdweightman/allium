@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "Interpreter/BuiltinPredicates.h"
 #include "Interpreter/Program.h"
 #include "Interpreter/WitnessProducer.h"
 #include "Utils/VectorUtils.h"
@@ -55,6 +56,7 @@ std::ostream& operator<<(std::ostream &out, const Expression &expr) {
     return expr.match<std::ostream&>(
     [&](TruthValue tv) -> std::ostream& { return out << tv; },
     [&](PredicateReference pr) -> std::ostream& { return out << pr; },
+    [&](BuiltinPredicateReference bpr) -> std::ostream& { return out << bpr; },
     [&](EffectCtorRef ecr) -> std::ostream& { return out << ecr; },
     [&](Conjunction conj) -> std::ostream& { return out << conj; }
     );
@@ -160,6 +162,12 @@ std::ostream& operator<<(std::ostream &out, const TruthValue &tv) {
 std::ostream& operator<<(std::ostream &out, const PredicateReference &pr) {
     out << pr.index << "(";
     for(const auto &arg : pr.arguments) out << arg << ", ";
+    return out << ")";
+}
+
+std::ostream& operator<<(std::ostream &out, const BuiltinPredicateReference &bpr) {
+    out << getBuiltinPredicateName(bpr.predicate) << "(";
+    for(const auto &arg : bpr.arguments) out << arg << ", ";
     return out << ")";
 }
 

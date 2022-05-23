@@ -57,6 +57,7 @@ GENERATE_EXPORT_HEADER(AlliumSemAna)
 add_library(AlliumInterpreter SHARED
   lib/Interpreter/ASTLower.cpp
   lib/Interpreter/BuiltinEffects.cpp
+  lib/Interpreter/BuiltinPredicates.cpp
   lib/Interpreter/Program.cpp
   lib/Interpreter/WitnessProducer.cpp)
 
@@ -81,6 +82,7 @@ add_executable(unittests
   unittests/TestASTRaise.cpp
   unittests/TestGenerator.cpp
   unittests/TestInterpreter.cpp
+  unittests/TestInterpreterBuiltins.cpp
   unittests/TestOptional.cpp
   unittests/TestParse.cpp
   unittests/TestSema.cpp

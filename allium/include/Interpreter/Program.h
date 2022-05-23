@@ -7,7 +7,9 @@
 #include <memory>
 #include <vector>
 
+#include "Utils/Generator.h"
 #include "Utils/TaggedUnion.h"
+#include "Utils/Unit.h"
 
 // Define the value types of the language which are used by the interpreter.
 // The AST is lowered into these types after semantic analysis so that the
@@ -31,12 +33,14 @@ namespace interpreter {
 
 struct TruthValue;
 struct PredicateReference;
+struct BuiltinPredicateReference;
 struct EffectCtorRef;
 struct Conjunction;
 
 typedef TaggedUnion<
     TruthValue,
     PredicateReference,
+    BuiltinPredicateReference,
     EffectCtorRef,
     Conjunction
 > Expression;
@@ -117,6 +121,7 @@ std::ostream& operator<<(std::ostream &out, const RuntimeCtorRef &ctor);
 
 /// Represents a value of the builtin type String.
 struct String {
+    String() {}
     String(std::string str): value(str) {}
 
     friend bool operator==(const String &lhs, const String &rhs) {
@@ -286,6 +291,30 @@ struct PredicateReference {
 };
 
 std::ostream& operator<<(std::ostream &out, const PredicateReference &pr);
+
+typedef Generator<Unit> (*BuiltinPredicate)(std::vector<RuntimeValue>);
+
+/// Represents a reference to a builtin predicate.
+struct BuiltinPredicateReference {
+    BuiltinPredicateReference(BuiltinPredicate p, std::vector<MatcherValue> arguments):
+        predicate(p), arguments(arguments) {}
+
+    friend bool operator==(const BuiltinPredicateReference &left, const BuiltinPredicateReference &right) {
+        return left.predicate == right.predicate && left.arguments == right.arguments;
+    }
+
+    friend bool operator!=(const BuiltinPredicateReference &left, const BuiltinPredicateReference &right) {
+        return !(left == right);
+    }
+
+    /// A pointer to the predicate's implementation.
+    BuiltinPredicate predicate;
+
+    /// The predicate's arguments.
+    std::vector<MatcherValue> arguments;
+};
+
+std::ostream& operator<<(std::ostream &out, const BuiltinPredicateReference &bpr);
 
 struct Conjunction {
     Conjunction(Expression left, Expression right):

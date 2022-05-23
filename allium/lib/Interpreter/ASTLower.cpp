@@ -2,6 +2,7 @@
 #include <limits>
 
 #include "Interpreter/ASTLower.h"
+#include "Interpreter/BuiltinPredicates.h"
 #include "SemAna/Builtins.h"
 #include "SemAna/InhabitableAnalysis.h"
 #include "SemAna/TypedAST.h"
@@ -74,7 +75,9 @@ public:
         return interpreter::TruthValue(tl.value);
     }
 
-    interpreter::PredicateReference visit(const PredicateRef &pr) {
+    interpreter::PredicateReference visitAsUserPredicate(
+        const PredicateRef &pr
+    ) {
         size_t predicateIndex = getPredicateIndex(pr.name);
 
         std::vector<interpreter::MatcherValue> arguments;
@@ -85,6 +88,27 @@ public:
         }
         
         return interpreter::PredicateReference(predicateIndex, arguments);
+    }
+
+    interpreter::Expression visit(const PredicateRef &pr) {
+        std::vector<interpreter::MatcherValue> arguments;
+        const PredicateDecl &pDecl = ast.resolvePredicateRef(pr).getDeclaration();
+        for(int i=0; i<pDecl.parameters.size(); ++i) {
+            auto loweredCtorRef = visit(pr.arguments[i], pDecl.parameters[i].type);
+            arguments.push_back(loweredCtorRef);
+        }
+    
+        return ast.resolvePredicateRef(pr).match<interpreter::Expression>(
+        [&](const UserPredicate *) {
+            size_t predicateIndex = getPredicateIndex(pr.name);
+            return interpreter::Expression(
+                interpreter::PredicateReference(predicateIndex, arguments));
+        },
+        [&](const BuiltinPredicate *bp) {
+            auto resolved = interpreter::getBuiltinPredicateByName(bp->declaration.name.string());
+            return interpreter::Expression(
+                interpreter::BuiltinPredicateReference(resolved, arguments));
+        });
     }
 
     interpreter::EffectCtorRef visit(const EffectCtorRef &ecr) {
@@ -118,7 +142,7 @@ public:
 
     interpreter::Implication visit(const Implication &impl) {
         enclosingImplication = impl;
-        auto head = visit(impl.head);
+        auto head = visitAsUserPredicate(impl.head);
         auto body = visit(impl.body);
         enclosingImplication = Optional<Implication>();
 
@@ -246,18 +270,18 @@ interpreter::Program lower(const AST &ast, interpreter::Config config) {
 
     Optional<interpreter::PredicateReference> main;
 
-    size_t i = 0;
     for(const auto &p : ast.predicates) {
         interpreter::Predicate lowered = lowerer.visit(p);
         loweredPredicates.push_back(lowered);
 
         predicateNameTable.push_back(p.declaration.name.string());
 
-        if(p.declaration.name == Name<Predicate>("main"))
+        if(p.declaration.name == Name<Predicate>("main")) {
             // If main did take arguments, this would be the place to
             // pass them to the program!
-            main = interpreter::PredicateReference(i, {});
-        ++i;
+            PredicateRef mainRef = PredicateRef(p.declaration.name.string(), {});
+            main = lowerer.visitAsUserPredicate(mainRef);
+        }
     }
 
     return interpreter::Program(
