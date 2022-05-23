@@ -1,6 +1,7 @@
 #include <vector>
 
 #include "Interpreter/BuiltinEffects.h"
+#include "Interpreter/BuiltinPredicates.h"
 #include "Interpreter/WitnessProducer.h"
 
 namespace interpreter {
@@ -42,6 +43,24 @@ Generator<Unit> witnesses(
 
 Generator<Unit> witnesses(
     const Program &prog,
+    const BuiltinPredicateReference &bpr,
+    Context &context
+) {
+    if(prog.config.debugLevel >= Config::LogLevel::LOUD)
+        std::cout << "prove: " << bpr << "\n";
+
+    size_t n = bpr.arguments.size();
+
+    std::vector<RuntimeValue> args;
+    for(size_t i=0; i<n; ++i) {
+        args.push_back(bpr.arguments[i].lower(context));
+    }
+
+    return bpr.predicate(args);
+}
+
+Generator<Unit> witnesses(
+    const Program &prog,
     const EffectCtorRef &ecr,
     Context &context
 ) {
@@ -77,6 +96,7 @@ Generator<Unit> witnesses(
     // Expression::switchOver here
     std::unique_ptr<TruthValue> tv;
     std::unique_ptr<PredicateReference> pr;
+    std::unique_ptr<BuiltinPredicateReference> bpr;
     std::unique_ptr<EffectCtorRef> ecr;
     std::unique_ptr<Conjunction> conj;
     if(expr.as_a<TruthValue>().unwrapInto(tv)) {
@@ -85,6 +105,10 @@ Generator<Unit> witnesses(
             co_yield {};
     } else if(expr.as_a<PredicateReference>().unwrapInto(pr)) {
         auto w = witnesses(prog, *pr, context);
+        while(w.next())
+            co_yield {};
+    } else if(expr.as_a<BuiltinPredicateReference>().unwrapInto(bpr)) {
+        auto w = witnesses(prog, *bpr, context);
         while(w.next())
             co_yield {};
     } else if(expr.as_a<EffectCtorRef>().unwrapInto(ecr)) {
@@ -98,7 +122,7 @@ Generator<Unit> witnesses(
     } else {
         // Unhandled expression type!
         std::cout << expr << std::endl;
-        abort();
+        assert(false && "unhandled expression type");
     }
 }
 

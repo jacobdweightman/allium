@@ -42,6 +42,13 @@ Generator<Unit> witnesses(
     Context &context
 );
 
+template <int N>
+Generator<Unit> witnesses(
+    const Program &prog,
+    BuiltinPredicateReference &bpr,
+    Context &context
+);
+
 Generator<Unit> witnesses(
     const Program &prog,
     const Conjunction conj,

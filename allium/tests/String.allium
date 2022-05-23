@@ -1,16 +1,21 @@
 pred saysHello(String) {
-    saysHello("Hello world!") <- true;
+    saysHello("Hello") <- true;
 }
 
-pred main {
+pred main: IO {
     main <-
+        saysHello("Hello"),
         saysHello(let x),
         saysHello(x),
-        saysHello("Hello world!");
+        concat(x, " world!", let y),
+        do print(y);
 }
 
 // CHECK: prove: main()
+// CHECK: prove: saysHello(Hello, )
 // CHECK: prove: saysHello(var 0, )
 // CHECK: prove: saysHello(var 0, )
-// CHECK: prove: saysHello(Hello world!, )
+// CHECK: prove: concat(var 0,  world!, var 1, )
+// CHECK: handle effect: do 0.0
+// CHECK: Hello world!
 // CHECK: Exit code: 0

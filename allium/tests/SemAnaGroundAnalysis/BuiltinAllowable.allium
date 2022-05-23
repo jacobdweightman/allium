@@ -1,0 +1,9 @@
+pred main: IO {
+    main <- concat("a", "b", "ab"),
+        concat("a", "b", let x),
+        // if x is not ground, this is a compile-time error.
+        do print(x);
+}
+
+// CHECK: {{^}}ab{{$}}
+// CHECK: Exit code: 0
