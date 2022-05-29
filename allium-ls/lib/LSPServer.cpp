@@ -76,7 +76,6 @@ void JSONRPCServer::serveNextRequest() {
     parseContentLength().error([&]() {
         out << "error parsing content length\n";
     }).map([&](int length) {
-        in.get(); // '\r'
         in.get(); // '\n'
 
         std::stringstream body;
@@ -94,7 +93,7 @@ void JSONRPCServer::serveNextRequest() {
             out << "Content-Length: " << buffer.str().size() << "\r\n\r\n" <<
                 buffer.str();
 
-            handle(request).serialize(log);
+            result.serialize(log);
             log << std::endl;
         });
     });

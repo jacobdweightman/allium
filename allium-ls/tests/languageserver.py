@@ -21,15 +21,16 @@ class LSPClient:
         }, separators=(',', ':'))
         length = len(content)
         self.requestCount += 1
-        return f"Content-Length: {length}\r\n\r\n{content}".encode('utf-8')
+        return f"Content-Length: {length}\n\n{content}".encode('utf-8')
     
     def send(self, method: str, params: Any) -> str:
         query = self.encode(method, params)
         self.serverStdIn.write(query)
         self.serverStdIn.flush()
         print("query:", query)
-        self.serverStdOut.readline() # Content-Length: ...\r\n
-        self.serverStdOut.readline() # \r\n
+        content_length = self.serverStdOut.readline() # Content-Length: ...\n
+        print(f"Content Length: {content_length}")
+        self.serverStdOut.readline() # \n
         response = self.serverStdOut.readline().decode('utf-8')
         print("output:", response)
         return response
@@ -41,7 +42,8 @@ class LanguageServerTest(unittest.TestCase):
         self.serverProc = subprocess.Popen(
             [alliumLSP],
             stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE)
+            stdout=sys.stdout,
+            stderr=sys.stdout)
         self.client = LSPClient(self.serverProc.stdin, self.serverProc.stdout)
     
     def tearDown(self) -> None:
