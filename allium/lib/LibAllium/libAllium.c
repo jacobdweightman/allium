@@ -11,3 +11,24 @@ void allium_init() {
         logLevel = atoi(s);
     }
 }
+
+#define UNBOUND 0
+#define VARIABLE 1
+
+typedef struct value_t {
+    char tag;
+
+    // This sufficies to model variables for the sake of __allium_get_value,
+    // but is not a good model of Allium values in general.
+    struct value_t *ptr;
+} value_t;
+
+// TODO: this should eventually go into a bitcode library and always get
+// inlined. For the sake of functional correctness, putting it into the runtime
+// library is adequate.
+value_t *__allium_get_value(value_t *value) {
+    while(value->tag == VARIABLE) {
+        value = value->ptr;
+    }
+    return value;
+}

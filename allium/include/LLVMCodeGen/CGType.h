@@ -42,6 +42,9 @@ public:
     /// Returns the identified struct type representing `type` in the IR.
     AlliumType getIRType(const TypedAST::Type &type);
 
+    /// Constructs a function to unify values of `type`.
+    Function *buildUnifyFunc(const TypedAST::Type &type, const AlliumType &loweredType);
+
     void lowerAllTypes();
 };
 
