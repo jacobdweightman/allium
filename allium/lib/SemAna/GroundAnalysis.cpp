@@ -494,8 +494,8 @@ class GroundAnalysis {
     ) {
         // std::cout << "next impl\n";
         Context innerCtx;
-        for(const auto &variable : getVariables(impl)) {
-            innerCtx.insert({ variable, false });
+        for(const auto &variable : getVariables(ast, impl)) {
+            innerCtx.insert({ variable.first, false });
         }
 
         // Propagate groundness from caller to head

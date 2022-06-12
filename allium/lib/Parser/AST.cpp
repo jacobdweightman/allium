@@ -233,13 +233,10 @@ std::ostream& operator<<(std::ostream &out, const Type &type) {
 }
 
 Optional<Type> AST::resolveTypeRef(const Name<Type> &tr) const {
-    // Type definitions for builtins
-    // TODO: this won't scale well with many builtin types.
-    if(tr == "String") {
-        return Type(TypeDecl("String", SourceLocation()), {});
-    } else if(tr == "Int") {
-        return Type(TypeDecl("Int", SourceLocation()), {});
-    }
+    // TODO: this works well for literal types, but won't work well
+    // for builtin types with constructors.
+    if(nameIsBuiltinType(tr))
+        return Type(TypeDecl(tr.string(), SourceLocation()), {});
 
     const auto &x = std::find_if(
         types.begin(),

@@ -192,12 +192,19 @@ std::ostream& operator<<(std::ostream &out, const Implication &impl) {
 }
 
 const Type &AST::resolveTypeRef(const Name<Type> &tr) const {
-    const auto x = std::find_if(
+    auto x = std::find_if(
         types.begin(),
         types.end(),
         [&](const Type &type) { return type.declaration.name == tr; });
 
-    assert(x != types.end());
+    if(x == types.end()) {
+        x = std::find_if(
+            builtinTypes.begin(),
+            builtinTypes.end(),
+            [&](const Type &type) { return type.declaration.name == tr; });
+        assert(x != builtinTypes.end());
+    }
+
     return *x;
 }
 

@@ -13,7 +13,7 @@ private:
         [&](Variable v) {
             if(v.isDefinition) {
                 const Type &type = ast.resolveTypeRef(v.type);
-                scope.insert({ v.name, VariableInfo(type, v.isExistential) });
+                scope.insert({ v.name, type });
             }
         },
         [&](ConstructorRef cr) {
