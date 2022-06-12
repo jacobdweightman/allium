@@ -4,14 +4,16 @@ namespace TypedAST {
 
 class VariableAnalysis {
 private:
-    std::vector<Name<Variable>> variables;
+    const AST &ast;
+    mutable Scope scope;
 
     void getVariables(const Value &value) {
         value.switchOver(
         [](AnonymousVariable av) {},
         [&](Variable v) {
             if(v.isDefinition) {
-                variables.push_back(v.name);
+                const Type &type = ast.resolveTypeRef(v.type);
+                scope.insert({ v.name, VariableInfo(type, v.isExistential) });
             }
         },
         [&](ConstructorRef cr) {
@@ -35,6 +37,8 @@ private:
     }
 
 public:
+    VariableAnalysis(const AST &ast): ast(ast) {}
+
     void getVariables(const PredicateRef &pr) {
         getVariables_(pr);
     }
@@ -48,16 +52,16 @@ public:
         );
     }
 
-    std::vector<Name<Variable>> getVariables() {
-        return variables;
+    Scope getScope() {
+        return scope;
     }
 };
 
-std::vector<Name<Variable>> getVariables(const Implication &impl) {
-    VariableAnalysis va;
+Scope getVariables(const AST &ast, const Implication &impl) {
+    VariableAnalysis va(ast);
     va.getVariables(impl.head);
     va.getVariables(impl.body);
-    return va.getVariables();
+    return va.getScope();
 }
 
 }
