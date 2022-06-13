@@ -56,7 +56,14 @@ void PredicateGenerator::lower(
     Function *f = builder.GetInsertBlock()->getParent();
     BasicBlock *success = BasicBlock::Create(ctx, "", f);
 
-    Value *hdl = builder.CreateCall(pFunc, {}, "hdl");
+    std::vector<Value*> arguments;
+    for(size_t i=0; i<pr.arguments.size(); ++i) {
+        const auto &astType = ast.resolveTypeRef(p.declaration.parameters[i].type);
+        Type *irType = getTypeIRType(astType.declaration.name);
+        arguments.push_back(lower(scope, irType, astType, pr.arguments[i]));
+    }
+
+    Value *hdl = builder.CreateCall(pFunc, arguments, "hdl");
     Function *coroDone = Intrinsic::getDeclaration(&mod, Intrinsic::coro_done);
     Value *done = builder.CreateCall(
         coroDone->getFunctionType(),
@@ -244,6 +251,28 @@ Function *PredicateGenerator::lower(const TypedAST::Predicate &pred) {
             Value *tagPtr = builder.CreateStructGEP(irType, var, getTagIndex());
             builder.CreateStore(ConstantInt::get(ctx, APInt(8, 0)), tagPtr);
             scope.insert({ variable.first, var });
+        }
+
+        // Generate code for unifying arguments in the head.
+        for(unsigned int i=0; i<pred.declaration.parameters.size(); ++i) {
+            const auto &param  = pred.declaration.parameters[i];
+            Value *matcher = lower(
+                scope,
+                getTypeIRType(param.type),
+                ast.resolveTypeRef(param.type),
+                impl->head.arguments[i]);
+            Function *unify = mod.getFunction(unifyFuncName(param.type));
+            Value *unified = builder.CreateCall(
+                unify->getFunctionType(),
+                unify,
+                { coro.func->getArg(i), matcher });
+
+            // If unification succeeded, try to unify the next argument. If not,
+            // then continue with the next implication.
+            // TODO: roll back any changes made during unification.
+            BasicBlock *unifyNext = BasicBlock::Create(ctx, "", coro.func, nextBB);
+            builder.CreateCondBr(unified, unifyNext, nextBB);
+            builder.SetInsertPoint(unifyNext);
         }
 
         // Generate code for the implication body. On failure, continue with

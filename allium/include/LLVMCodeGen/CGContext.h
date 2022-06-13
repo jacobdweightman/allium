@@ -32,6 +32,7 @@ inline unsigned int getTagIndex() { return 0; }
 inline unsigned int getPayloadIndex() { return 2; }
 
 std::string mangledTypeName(Name<TypedAST::Type> name);
+std::string unifyFuncName(Name<TypedAST::Type> name);
 std::string mangledPredName(Name<TypedAST::Predicate> p);
 
 #endif // LLVMCODEGEN_CG_CONTEXT_H
