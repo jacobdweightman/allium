@@ -104,6 +104,16 @@ bool operator!=(const ConstructorRef &left, const ConstructorRef &right) {
     return !(left == right);
 }
 
+size_t getConstructorIndex(const Type &type, const ConstructorRef &cr) {
+    auto ctor = std::find_if(
+        type.constructors.begin(),
+        type.constructors.end(),
+        [&](const Constructor &ctor) { return ctor.name == cr.name; });
+
+    assert(ctor != type.constructors.end());
+    return ctor - type.constructors.begin();
+}
+
 bool operator==(const Type &left, const Type &right) {
     return left.declaration == right.declaration &&
         left.constructors == right.constructors;

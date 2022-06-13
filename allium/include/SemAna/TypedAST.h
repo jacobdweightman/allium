@@ -120,6 +120,8 @@ struct ConstructorRef {
 bool operator==(const ConstructorRef &left, const ConstructorRef &right);
 bool operator!=(const ConstructorRef &left, const ConstructorRef &right);
 
+size_t getConstructorIndex(const Type &type, const ConstructorRef &cr);
+
 /// Represents string literals, which are used to construct values of the
 /// builtin type String.
 struct StringLiteral {

@@ -42,7 +42,7 @@ public:
     /// Note: To support type inference, this requires the additional
     /// context information of the type. 
     interpreter::MatcherCtorRef visit(const ConstructorRef &cr, const Name<Type> &tr) {
-        size_t index = getConstructorIndex(tr, cr);
+        size_t index = getTypeConstructorIndex(tr, cr);
         const Constructor &ctor = ast.resolveConstructorRef(tr, cr);
 
         std::vector<interpreter::MatcherValue> arguments;
@@ -187,21 +187,14 @@ private:
         return x - ast.predicates.begin();
     }
 
-    size_t getConstructorIndex(const Name<Type> &tr, const ConstructorRef &cr) {
+    size_t getTypeConstructorIndex(const Name<Type> &tr, const ConstructorRef &cr) {
         auto type = std::find_if(
             ast.types.begin(),
             ast.types.end(),
             [&](const Type &type) { return type.declaration.name == tr; });
         
         assert(type != ast.types.end());
-        
-        auto ctor = std::find_if(
-            type->constructors.begin(),
-            type->constructors.end(),
-            [&](const Constructor &ctor) { return ctor.name == cr.name; });
-
-        assert(ctor != type->constructors.end());
-        return ctor - type->constructors.begin();
+        return getConstructorIndex(*type, cr);
     }
 
     /// Computes the implication's variable list and returns the variable's
