@@ -214,7 +214,6 @@ Function *TypeGenerator::buildUnifyFunc(const TypedAST::Type &type, const Allium
                     bbPrefix + std::to_string(j),
                     func, retTrue);
                 builder.SetInsertPoint(argBB);
-                Type *payloadType = loweredType.payloadTypes[j];
                 Type *argType = payloadType->getStructElementType(j);
                 Type *argTypePtr = PointerType::get(argType, 0);
                 Value *argX = builder.CreateStructGEP(payloadType, xPayloadPtr, j, "arg.x");
