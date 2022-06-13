@@ -25,6 +25,12 @@ public:
     }
 };
 
+// The index of the tag inside of an Allium data structure.
+inline unsigned int getTagIndex() { return 0; }
+
+// The index of the payload inside of an Allium data structure.
+inline unsigned int getPayloadIndex() { return 2; }
+
 std::string mangledTypeName(Name<TypedAST::Type> name);
 std::string mangledPredName(Name<TypedAST::Predicate> p);
 

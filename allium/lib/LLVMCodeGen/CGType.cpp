@@ -55,9 +55,19 @@ AlliumType TypeGenerator::getIRType(const TypedAST::Type &type) {
         }
     }
 
-    // Build the actual type
+    // Putting the tag first means the tag is always at offset 0. This will
+    // throw off the payload alignment for all types on most architectures
+    // since the payload always at least fits a pointer, but it allows the tag
+    // to be accessed consistently across all types. This means that e.g.
+    // __allium_get_value doesn't need to know what type it is working with. It
+    // will probably make sense to optimize this in the future.
+
+    // Following the way that Clang implements _Alignas, this padding is done
+    // with an unused byte array member. This feels a bit hackish, since the
+    // alignment of the whole structure will be 1 on most architectures.
     Type *i8 = Type::getInt8Ty(ctx);
-    llvmType->setBody({ ArrayType::get(i8, maxPayloadSize), i8 });
+    Type *padding = ArrayType::get(i8, maxPayloadAlignment.value() - 1);
+    llvmType->setBody({ i8, padding, ArrayType::get(i8, maxPayloadSize) });
     return loweredType;
 }
 
@@ -114,13 +124,13 @@ Function *TypeGenerator::buildUnifyFunc(const TypedAST::Type &type, const Allium
     Value *xI8 = builder.CreatePointerCast(x, i8Ptr, "x.ptr.i8");
     Value *xValI8 = builder.CreateCall(getValueFunc, { xI8 }, "x.val.i8");
     Value *xVal = builder.CreatePointerCast(xValI8, loweredTypePtr, "x.val");
-    Value *xIdxPtr = builder.CreateStructGEP(loweredType.irType, xVal, 1, "x.idx.ptr");
+    Value *xIdxPtr = builder.CreateStructGEP(loweredType.irType, xVal, getTagIndex(), "x.idx.ptr");
     Value *xIdx = builder.CreateLoad(i8, xIdxPtr, "x.idx");
 
     Value *yI8 = builder.CreatePointerCast(y, i8Ptr, "y.ptr.i8");
     Value *yValI8 = builder.CreateCall(getValueFunc, { yI8 }, "y.val.i8");
     Value *yVal = builder.CreatePointerCast(yValI8, loweredTypePtr, "y.val");
-    Value *yIdxPtr = builder.CreateStructGEP(loweredType.irType, yVal, 1, "y.idx.ptr");
+    Value *yIdxPtr = builder.CreateStructGEP(loweredType.irType, yVal, getTagIndex(), "y.idx.ptr");
     Value *yIdx = builder.CreateLoad(i8, yIdxPtr, "y.idx");
 
     Value *yIdxIsZero = builder.CreateCmp(
@@ -143,7 +153,7 @@ Function *TypeGenerator::buildUnifyFunc(const TypedAST::Type &type, const Allium
     //   ret i1 1
     builder.SetInsertPoint(asgX);
     builder.CreateStore(ConstantInt::get(i8, 1), xIdxPtr);
-    Value *xPayloadPtrI8 = builder.CreateStructGEP(loweredType.irType, xVal, 0, "x.payload.ptr");
+    Value *xPayloadPtrI8 = builder.CreateStructGEP(loweredType.irType, xVal, getPayloadIndex(), "x.payload.ptr");
     Value *xPayloadPtr = builder.CreatePointerCast(
         xPayloadPtrI8,
         PointerType::get(loweredTypePtr, 0),
@@ -159,7 +169,7 @@ Function *TypeGenerator::buildUnifyFunc(const TypedAST::Type &type, const Allium
     //   ret i1 1
     builder.SetInsertPoint(asgY);
     builder.CreateStore(ConstantInt::get(i8, 1), yIdxPtr);
-    Value *yPayloadPtrI8 = builder.CreateStructGEP(loweredType.irType, yVal, 0, "y.payload.ptr");
+    Value *yPayloadPtrI8 = builder.CreateStructGEP(loweredType.irType, yVal, getPayloadIndex(), "y.payload.ptr");
     Value *yPayloadPtr = builder.CreatePointerCast(
         yPayloadPtrI8,
         PointerType::get(loweredTypePtr, 0),
@@ -183,9 +193,9 @@ Function *TypeGenerator::buildUnifyFunc(const TypedAST::Type &type, const Allium
         builder.SetInsertPoint(bb);
         Type *payloadType = loweredType.payloadTypes[i];
         Type *payloatTypePtr = PointerType::get(payloadType, 0);
-        Value *xPayloadPtrI8 = builder.CreateStructGEP(loweredType.irType, xVal, 0, "x.payload.ptr.i8");
+        Value *xPayloadPtrI8 = builder.CreateStructGEP(loweredType.irType, xVal, getPayloadIndex(), "x.payload.ptr.i8");
         Value *xPayloadPtr = builder.CreatePointerCast(xPayloadPtrI8, payloatTypePtr, "x.payload.ptr");
-        Value *yPayloadPtrI8 = builder.CreateStructGEP(loweredType.irType, yVal, 0, "y.payload.ptr.i8");
+        Value *yPayloadPtrI8 = builder.CreateStructGEP(loweredType.irType, yVal, getPayloadIndex(), "y.payload.ptr.i8");
         Value *yPayloadPtr = builder.CreatePointerCast(yPayloadPtrI8, payloatTypePtr, "y.payload.ptr");
 
         Value *ctorsAreEq = builder.CreateCmp(CmpInst::Predicate::ICMP_EQ, xIdx, yIdx, "ctors.are.eq");

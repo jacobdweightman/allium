@@ -27,6 +27,8 @@ typedef struct value_t {
 // inlined. For the sake of functional correctness, putting it into the runtime
 // library is adequate.
 value_t *__allium_get_value(value_t *value) {
+    // Assume that all variables have non-null pointers. If a "user variable"
+    // has no value, it should have the UNDEFINED tag.
     while(value->tag == VARIABLE) {
         value = value->ptr;
     }
