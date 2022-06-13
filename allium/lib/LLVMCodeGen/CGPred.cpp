@@ -100,11 +100,12 @@ void PredicateGenerator::lower(
 PredCoroutine PredicateGenerator::createPredicateCoroutine(const TypedAST::Predicate &pred) {
     PredCoroutine coro;
 
-    coro.func = Function::Create(
-        getPredIRType(pred.declaration),
-        GlobalValue::LinkageTypes::ExternalLinkage,
-        mangledPredName(pred.declaration.name),
-        mod);
+    coro.func = cast<Function>(
+        mod.getOrInsertFunction(
+            mangledPredName(pred.declaration.name),
+            getPredIRType(pred.declaration)
+        ).getCallee());
+    coro.func->setLinkage(GlobalValue::LinkageTypes::ExternalLinkage);
     coro.func->addFnAttr("coroutine.presplit", "0");
 
     // This initializes coro's id and handle, so it must precede the other
