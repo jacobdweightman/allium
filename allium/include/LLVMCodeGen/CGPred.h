@@ -38,7 +38,7 @@ private:
 
     /// Creates the coroutine into which `pred` will be lowered, and sets up the
     /// entry block for an Allium predicate coroutine.
-    PredCoroutine createPredicateCoroutine(const TypedAST::Predicate &pred);
+    PredCoroutine createPredicateCoroutine(const TypedAST::PredicateDecl &pDecl);
 
     /// Adds code to set up the coroutine by allocating the frame and creating a
     /// coroutine handle. This should only be called by createPredicateCoroutine.
@@ -94,7 +94,7 @@ public:
         cg(cg), ast(cg.ast), builder(cg.builder), ctx(cg.ctx), mod(cg.mod) {}
 
     /// Lowers an Allium predicate into an LLVM coroutine.
-    Function *lower(const TypedAST::Predicate &pred);
+    Function *lower(const TypedAST::UserPredicate &pred);
 
     /// Creates a main function which calls the Allium main predicate.
     Function *createMain();

@@ -44,10 +44,10 @@ void PredicateGenerator::lower(
     const TypedAST::PredicateRef &pr,
     BasicBlock *fail
 ) {
-    const TypedAST::Predicate &p = ast.resolvePredicateRef(pr);
+    const auto &pDecl = ast.resolvePredicateRef(pr).getDeclaration();
     FunctionCallee pFunc = mod.getOrInsertFunction(
         mangledPredName(pr.name),
-        getPredIRType(p.declaration));
+        getPredIRType(pDecl));
 
     if(cg.instrumentWithLogs) {
         LogInstrumentor(cg).logSubproof(pr);
@@ -58,7 +58,7 @@ void PredicateGenerator::lower(
 
     std::vector<Value*> arguments;
     for(size_t i=0; i<pr.arguments.size(); ++i) {
-        AlliumType type = cg.loweredTypes.at(p.declaration.parameters[i].type);
+        AlliumType type = cg.loweredTypes.at(pDecl.parameters[i].type);
         arguments.push_back(lower(scope, type, pr.arguments[i]));
     }
 
@@ -96,13 +96,13 @@ void PredicateGenerator::lower(
     );
 }
 
-PredCoroutine PredicateGenerator::createPredicateCoroutine(const TypedAST::Predicate &pred) {
+PredCoroutine PredicateGenerator::createPredicateCoroutine(const TypedAST::PredicateDecl &pDecl) {
     PredCoroutine coro;
 
     coro.func = cast<Function>(
         mod.getOrInsertFunction(
-            mangledPredName(pred.declaration.name),
-            getPredIRType(pred.declaration)
+            mangledPredName(pDecl.name),
+            getPredIRType(pDecl)
         ).getCallee());
     coro.func->setLinkage(GlobalValue::LinkageTypes::ExternalLinkage);
     coro.func->addFnAttr("coroutine.presplit", "0");
@@ -224,8 +224,8 @@ void PredicateGenerator::addCleanup(PredCoroutine &coro) {
 }
 
 // Note: assumes all types have already been lowered.
-Function *PredicateGenerator::lower(const TypedAST::Predicate &pred) {
-    PredCoroutine coro = createPredicateCoroutine(pred);
+Function *PredicateGenerator::lower(const TypedAST::UserPredicate &pred) {
+    PredCoroutine coro = createPredicateCoroutine(pred.declaration);
 
     Function *coroSuspend = Intrinsic::getDeclaration(&mod, Intrinsic::coro_suspend);
 
