@@ -10,6 +10,17 @@
 
 using namespace llvm;
 
+struct AlliumType {
+    /// The Allium type's representation in the typed AST.
+    const TypedAST::Type *astType = nullptr;
+
+    /// The LLVM type corresponding to the Allium type.
+    Type *irType = nullptr;
+
+    /// The payload types for each of the Allium type's constructors.
+    std::vector<Type *> payloadTypes;
+};
+
 class CGContext {
 public:
     const TypedAST::AST &ast;
@@ -18,6 +29,11 @@ public:
     Module mod;
 
     bool instrumentWithLogs = false;
+
+    /// Relates a type's name with detailed information about it. This is built
+    /// during type lowering, and is fully populated before any predicate
+    /// lowering.
+    std::map<Name<TypedAST::Type>, AlliumType> loweredTypes;
 
     CGContext(const TypedAST::AST &ast, TargetMachine *tm):
             ast(ast), ctx(), mod("allium", ctx), builder(ctx) {

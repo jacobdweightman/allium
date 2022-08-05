@@ -87,11 +87,7 @@ private:
     /// Recursively lowers an Allium value into stack-allocated memory. This
     /// consists of an alloca followed by one or more stores to initialize the
     /// value.
-    Value *lower(
-        const Scope &scope,
-        Type *irType,
-        const TypedAST::Type &type,
-        const TypedAST::Value &v);
+    Value *lower(const Scope &scope, AlliumType type, const TypedAST::Value &v);
 
 public:
     PredicateGenerator(CGContext &cg):

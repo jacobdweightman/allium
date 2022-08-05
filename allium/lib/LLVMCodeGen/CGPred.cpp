@@ -58,9 +58,8 @@ void PredicateGenerator::lower(
 
     std::vector<Value*> arguments;
     for(size_t i=0; i<pr.arguments.size(); ++i) {
-        const auto &astType = ast.resolveTypeRef(p.declaration.parameters[i].type);
-        Type *irType = getTypeIRType(astType.declaration.name);
-        arguments.push_back(lower(scope, irType, astType, pr.arguments[i]));
+        AlliumType type = cg.loweredTypes.at(p.declaration.parameters[i].type);
+        arguments.push_back(lower(scope, type, pr.arguments[i]));
     }
 
     Value *hdl = builder.CreateCall(pFunc, arguments, "hdl");
@@ -256,11 +255,10 @@ Function *PredicateGenerator::lower(const TypedAST::Predicate &pred) {
 
         // Generate code for unifying arguments in the head.
         for(unsigned int i=0; i<pred.declaration.parameters.size(); ++i) {
-            const auto &param  = pred.declaration.parameters[i];
+            const auto &param = pred.declaration.parameters[i];
             Value *matcher = lower(
                 scope,
-                getTypeIRType(param.type),
-                ast.resolveTypeRef(param.type),
+                cg.loweredTypes.at(param.type),
                 impl->head.arguments[i]);
             Function *unify = mod.getFunction(unifyFuncName(param.type));
             Value *unified = builder.CreateCall(
@@ -302,8 +300,7 @@ Function *PredicateGenerator::lower(const TypedAST::Predicate &pred) {
 
 Value *PredicateGenerator::lower(
     const Scope &scope,
-    Type *irType,
-    const TypedAST::Type &astType,
+    AlliumType type,
     const TypedAST::Value &v
 ) {
     return v.match<llvm::Value*>(
@@ -318,9 +315,9 @@ Value *PredicateGenerator::lower(
         assert(cr.arguments.size() == 0 && "ctor argument lowering not implemented");
         // Tags of 0 and 1 are reserved for undefined and pointer values, so
         // constructors start from 2.
-        size_t tag = getConstructorIndex(astType, cr) + 2;
-        Value *alloc = builder.CreateAlloca(irType);
-        Value *tagPtr = builder.CreateStructGEP(irType, alloc, getTagIndex());
+        size_t tag = getConstructorIndex(*type.astType, cr) + 2;
+        Value *alloc = builder.CreateAlloca(type.irType);
+        Value *tagPtr = builder.CreateStructGEP(type.irType, alloc, getTagIndex());
         builder.CreateStore(ConstantInt::get(ctx, APInt(8, tag)), tagPtr);
         return alloc;
     },

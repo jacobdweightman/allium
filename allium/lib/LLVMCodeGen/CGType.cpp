@@ -10,13 +10,14 @@ std::string mangledTypeName(Name<TypedAST::Type> name) {
 
 AlliumType TypeGenerator::getIRType(const TypedAST::Type &type) {
     // Don't create multiple identified struct types for the same type!
-    if(loweredTypes.contains(type.declaration.name)) {
-        return loweredTypes.at(type.declaration.name);
+    if(cgctx.loweredTypes.contains(type.declaration.name)) {
+        return cgctx.loweredTypes.at(type.declaration.name);
     }
 
     // The lowered type is an identified struct. It's body will be set
     // once it is known.
     AlliumType loweredType;
+    loweredType.astType = &type;
     std::string name = mangledTypeName(type.declaration.name);
     StructType *llvmType = StructType::create(ctx, name);
     loweredType.irType = llvmType;
@@ -31,11 +32,12 @@ AlliumType TypeGenerator::getIRType(const TypedAST::Type &type) {
         std::vector<Type*> loweredParameterTypes;
         for(const auto &param : ctor.parameters) {
             const TypedAST::Type &pType = ast.resolveTypeRef(param.type);
+            Type *loweredParamType = getIRType(pType).irType;
             if(typeRecursionAnalysis.areMutuallyRecursive(type, pType)) {
-                loweredParameterTypes.push_back(ptr);
+                Type *paramPtrType = PointerType::get(loweredParamType, 0);
+                loweredParameterTypes.push_back(paramPtrType);
             } else {
-                Type *loweredPType = getIRType(pType).irType;
-                loweredParameterTypes.push_back(loweredPType);
+                loweredParameterTypes.push_back(loweredParamType);
             }
         }
 
@@ -68,6 +70,7 @@ AlliumType TypeGenerator::getIRType(const TypedAST::Type &type) {
     Type *i8 = Type::getInt8Ty(ctx);
     Type *padding = ArrayType::get(i8, maxPayloadAlignment.value() - 1);
     llvmType->setBody({ i8, padding, ArrayType::get(i8, maxPayloadSize) });
+    cgctx.loweredTypes.insert({ type.declaration.name, loweredType });
     return loweredType;
 }
 
