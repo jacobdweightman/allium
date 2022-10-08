@@ -278,6 +278,32 @@ Optional<const Effect*> AST::resolveEffectRef(const EffectRef &er) const {
     }
 }
 
+Optional<std::pair<const Effect*, const EffectConstructor*>>
+AST::resolveEffectCtorRef(const EffectCtorRef &ecr) const {
+    // Type definitions for builtins
+    // TODO: this won't scale well with many builtin effect types.
+    if(ecr.name == "print") {
+        const Effect *e;
+        if(resolveEffectRef(EffectRef("IO", {})).unwrapGuard(e)) {
+            assert(false && "failed to resolve IO!");
+            return Optional<std::pair<const Effect*, const EffectConstructor*>>();
+        }
+        return std::make_pair(e, &e->constructors[0]);
+    }
+
+    for(const auto &e : effects) {
+        const auto eCtor = std::find_if(
+            e.constructors.begin(),
+            e.constructors.end(),
+            [&](const EffectConstructor &eCtor) { return eCtor.name == ecr.name; });
+        
+        if(eCtor != e.constructors.end()) {
+            return std::make_pair(&e, &*eCtor);
+        }
+    }
+    return Optional<std::pair<const Effect*, const EffectConstructor*>>();
+}
+
 Optional<PredicateDecl> AST::resolvePredicateRef(const PredicateRef &pr) const {
     const auto &x = std::find_if(
         predicates.begin(),
@@ -382,8 +408,8 @@ std::ostream& operator<<(std::ostream &out, const Handler &h) {
 }
 
 bool operator==(const EffectImplication &lhs, const EffectImplication &rhs) {
-    return lhs.ctor == rhs.ctor &&
-        lhs.expression == rhs.expression;
+    return lhs.head == rhs.head &&
+        lhs.body == rhs.body;
 }
 
 bool operator!=(const EffectImplication &lhs, const EffectImplication &rhs) {

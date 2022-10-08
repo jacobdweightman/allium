@@ -433,11 +433,11 @@ struct Handler {
 // Represents an individual effect implication in an effect handler
 struct EffectImplication {
     EffectImplication() {}
-    EffectImplication(EffectCtorRef ctor, Expression expression):
-        ctor(ctor), expression(expression) {}
+    EffectImplication(EffectCtorRef head, Expression body):
+        head(head), body(body) {}
 
-    EffectCtorRef ctor;
-    Expression expression;
+    EffectCtorRef head;
+    Expression body;
 };
 
 bool operator==(const Handler &lhs, const Handler &rhs);
@@ -453,6 +453,7 @@ struct AST {
 
     Optional<Type> resolveTypeRef(const Name<Type> &tr) const;
     Optional<const Effect*> resolveEffectRef(const EffectRef &er) const;
+    Optional<std::pair<const Effect*, const EffectConstructor*>> resolveEffectCtorRef(const EffectCtorRef &ecr) const;
     Optional<PredicateDecl> resolvePredicateRef(const PredicateRef &pr) const;
 
     std::vector<Type> types;

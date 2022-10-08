@@ -26,9 +26,17 @@ enum class ErrorMessage {
     /// An effect type reference could not be matched to its definition.
     effect_type_undefined,
 
-    /// The definition of an effect constructor use could not be deduced.
-    effect_unknown,
+    /// An effect constructor could not be resolved to any effect type in the program.
+    effect_constructor_undefined,
 
+    /// An effect is used inside of a predicate without a handler or being declared
+    /// as unhandled.
+    effect_unhandled,
+
+    /// The head of an effect implication isn't a constructor of the handled effect type.
+    effect_impl_head_mismatches_effect,
+
+    /// The head of an implication isn't a reference to the enclosing predicate.
     impl_head_mismatches_predicate,
 
     /// A parameter marked `in` contains a variable definition.

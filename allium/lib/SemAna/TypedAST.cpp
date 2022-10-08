@@ -61,9 +61,17 @@ bool operator!=(const Effect &left, const Effect &right) {
     return !(left == right);
 }
 
+bool operator==(const EffectImplication &left, const EffectImplication &right) {
+    assert(false && "effect implications not implemented yet!");
+}
+
+bool operator!=(const EffectImplication &left, const EffectImplication &right) {
+    return !(left == right);
+}
+
+
 bool operator==(const Handler &left, const Handler &right) {
-    assert(false && "handlers not implemented yet!");
-    return true;
+    return left.implications == right.implications;
 }
 
 bool operator!=(const Handler &left, const Handler &right) {

@@ -246,7 +246,7 @@ Function *PredicateGenerator::lower(const TypedAST::UserPredicate &pred) {
         Scope scope;
         const auto variables = getVariables(ast, *impl);
         for(const auto &variable : variables) {
-            StructType *irType = getTypeIRType(variable.second.declaration.name);
+            StructType *irType = getTypeIRType(variable.second->declaration.name);
             Value *var = builder.CreateAlloca(irType);
             Value *tagPtr = builder.CreateStructGEP(irType, var, getTagIndex());
             builder.CreateStore(ConstantInt::get(ctx, APInt(8, 0)), tagPtr);

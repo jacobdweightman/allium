@@ -740,6 +740,30 @@ TEST_F(TestSemAnaPredicates, undefined_effect) {
     checkAll(AST({}, {}, ps), error);
 }
 
+TEST_F(TestSemAnaPredicates, undefined_effect_ctor) {
+    // pred p {
+    //     p <- do fake;
+    // }
+
+    SourceLocation errorLocation(2, 9);
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", {}, {}, SourceLocation(1, 5)),
+            {
+                Implication(
+                    PredicateRef("p", SourceLocation(2, 4)),
+                    Expression(EffectCtorRef("fake", {}, errorLocation))
+                )
+            },
+            {}
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::effect_constructor_undefined, "fake"));
+
+    checkAll(AST({}, {}, ps), error);
+}
+
 TEST_F(TestSemAnaPredicates, unhandled_effect) {
     // effect Abort {
     //     ctor abort;
@@ -768,7 +792,47 @@ TEST_F(TestSemAnaPredicates, unhandled_effect) {
         )
     };
 
-    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::effect_unknown, "abort", "p"));
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::effect_unhandled, "p", "abort"));
+
+    checkAll(AST({}, es, ps), error);
+}
+
+TEST_F(TestSemAnaPredicates, effect_impl_head_mismatch) {
+    // effect Repeat {
+    //    ctor repeat;
+    // }
+    // pred p {
+    //     handle Repeat {
+    //         do repat <- true;
+    //     }
+    // }
+
+    SourceLocation errorLocation(6, 11);
+    std::vector<Effect> es = {
+        Effect(
+            EffectDecl("Repeat", SourceLocation(1, 7)),
+            { EffectConstructor("repeat", {}, SourceLocation(2, 9)) }
+        )
+    };
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", {}, {}, {4, 5}),
+            {},
+            {
+                Handler(
+                    EffectRef("Repeat", {5, 11}),
+                    {
+                        EffectImplication(
+                            EffectCtorRef("repat", {}, {6, 11}),
+                            Expression(TruthLiteral(true, {6, 20}))
+                        )
+                    }
+                )
+            }
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::effect_impl_head_mismatches_effect, "repat", "Repeat"));
 
     checkAll(AST({}, es, ps), error);
 }

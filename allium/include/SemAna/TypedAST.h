@@ -198,12 +198,6 @@ struct Effect {
 bool operator==(const Effect &left, const Effect &right);
 bool operator!=(const Effect &left, const Effect &right);
 
-// TODO: full implementation of handlers
-struct Handler {};
-
-bool operator==(const Handler &left, const Handler &right);
-bool operator!=(const Handler &left, const Handler &right);
-
 
 /*
  * Predicates
@@ -301,6 +295,27 @@ struct Implication {
 
 std::ostream& operator<<(std::ostream &out, const Implication &impl);
 
+struct EffectImplication {
+    EffectImplication(EffectCtorRef head, Expression body):
+        head(head), body(body) {}
+
+    EffectCtorRef head;
+    Expression body; // TODO: handler expression, which can include continuation?
+};
+
+bool operator==(const EffectImplication &left, const EffectImplication &right);
+bool operator!=(const EffectImplication &left, const EffectImplication &right);
+
+struct Handler {
+    Handler(std::vector<EffectImplication> implications):
+        implications(implications) {}
+
+    std::vector<EffectImplication> implications;
+};
+
+bool operator==(const Handler &left, const Handler &right);
+bool operator!=(const Handler &left, const Handler &right);
+
 /// A predicate defined in user code.
 struct UserPredicate {
     UserPredicate(
@@ -376,7 +391,7 @@ public:
 };
 
 /// Represents the variables and their types defined in a scope.
-typedef std::map<Name<Variable>, const Type &> Scope;
+typedef std::map<Name<Variable>, const Type *> Scope;
 
 };
 

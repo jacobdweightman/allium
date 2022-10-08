@@ -207,8 +207,8 @@ public:
         indent();
         out << "<EffectImplication>\n";
         ++depth;
-        visit(effectImplication.ctor);
-        visit(effectImplication.expression);
+        visit(effectImplication.head);
+        visit(effectImplication.body);
         --depth;
     }
 
