@@ -13,6 +13,7 @@
 namespace parser {
 
 struct TruthLiteral;
+struct Continuation;
 struct PredicateRef;
 struct EffectCtorRef;
 struct Conjunction;
@@ -20,6 +21,7 @@ struct Conjunction;
 /// Represents a logical expression in the AST.
 typedef TaggedUnion<
     TruthLiteral,
+    Continuation,
     PredicateRef,
     EffectCtorRef,
     Conjunction
@@ -65,6 +67,18 @@ struct TruthLiteral {
 bool operator==(const TruthLiteral &lhs, const TruthLiteral &rhs);
 bool operator!=(const TruthLiteral &lhs, const TruthLiteral &rhs);
 std::ostream& operator<<(std::ostream &out, const TruthLiteral &tl);
+
+/// Represents an effect's continuation inside of a handler in the AST.
+struct Continuation {
+    Continuation(): location(SourceLocation()) {}
+    Continuation(SourceLocation location): location(location) {}
+
+    SourceLocation location;
+};
+
+bool operator==(const Continuation &lhs, const Continuation &rhs);
+bool operator!=(const Continuation &lhs, const Continuation &rhs);
+std::ostream& operator<<(std::ostream &out, const Continuation &tl);
 
 /// Represents the signature of a predicate at the start of its definition.
 struct PredicateDecl {
@@ -514,6 +528,7 @@ struct has_visit {
 template <typename Subclass>
 constexpr bool has_all_visitors() {
     static_assert(has_visit<Subclass, TruthLiteral>::value, "missing TruthLiteral visitor");
+    static_assert(has_visit<Subclass, Continuation>::value, "missing Continuation visitor");
     static_assert(has_visit<Subclass, PredicateDecl>::value, "missing PredicateDecl visitor");
     static_assert(has_visit<Subclass, PredicateRef>::value, "missing PredicateRef visitor");
     static_assert(has_visit<Subclass, EffectCtorRef>::value, "missing EffectCtorRef visitor");
@@ -537,6 +552,7 @@ constexpr bool has_all_visitors() {
     static_assert(has_visit<Subclass, Handler>::value, "missing Handler visitor");
 
     return has_visit<Subclass, TruthLiteral>::value &&
+        has_visit<Subclass, Continuation>::value &&
         has_visit<Subclass, PredicateDecl>::value &&
         has_visit<Subclass, PredicateRef>::value &&
         has_visit<Subclass, EffectCtorRef>::value &&

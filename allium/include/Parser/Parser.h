@@ -163,6 +163,7 @@ public:
     // Exposed for test
     // TODO: guard these declarations with a compile flag.
     ParserResult<TruthLiteral> parseTruthLiteral();
+    ParserResult<Continuation> parseContinuation();
     ParserResult<PredicateDecl> parsePredicateDecl();
     ParserResult<PredicateRef> parsePredicateRef();
     ParserResult<Expression> parseExpression();

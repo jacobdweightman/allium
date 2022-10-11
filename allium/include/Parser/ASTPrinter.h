@@ -15,6 +15,11 @@ public:
             " line:" << tl.location << ">\n";
     }
 
+    void visit(const Continuation &k) {
+        indent();
+        out << "<Continuation line:" << k.location << ">\n";
+    }
+
     void visit(const PredicateDecl &pd) {
         indent();
         out << "<PredicateDecl \"" << pd.name << "\" line:" <<
@@ -75,6 +80,7 @@ public:
     void visit(const Expression &expr) {
         expr.switchOver(
         [&](TruthLiteral tl) { visit(tl); },
+        [&](Continuation k) { visit(k); },
         [&](PredicateRef pr) { visit(pr); },
         [&](EffectCtorRef ecr) { visit(ecr); },
         [&](Conjunction conj) { visit(conj); }

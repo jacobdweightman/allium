@@ -20,6 +20,17 @@ ParserResult<TruthLiteral> Parser::parseTruthLiteral() {
     }
 }
 
+/// Consumes a "continue" token from the lexer, and produces an AST node to match.
+///
+/// Note: rewinds the lexer on failure.
+ParserResult<Continuation> Parser::parseContinuation() {
+    Token token;
+    if(lexer.take_token(Token::Type::kw_continue).unwrapGuard(token)) {
+        return ParserResult<Continuation>();
+    }
+    return Continuation(token.location);
+}
+
 /// Consumes an identifier from the lexer, and produces an AST node to match.
 ///
 /// Note: rewinds the lexer on failure.
@@ -429,6 +440,7 @@ ParserResult<EffectImplication> Parser::parseEffectImplication() {
 /// Parses a truth literal, predicate, or effect constructor from the stream.
 ParserResult<Expression> Parser::parseAtom() {
     TruthLiteral tl;
+    Continuation k;
     PredicateRef p;
     EffectCtorRef ecr;
     std::vector<SyntaxError> errors;
@@ -437,11 +449,16 @@ ParserResult<Expression> Parser::parseAtom() {
     if(parseTruthLiteral().unwrapResultInto(tl, errors)) {
         return ParserResult<Expression>(Expression(tl), errors);
 
+    // <atom> := <continuation>
+    } else if(parseContinuation().unwrapResultInto(k, errors)) {
+        return ParserResult<Expression>(Expression(k), errors);
+
     // <atom> := <predicate-name>
     } else if(parsePredicateRef().unwrapResultInto(p, errors)) {
         return ParserResult<Expression>(Expression(p), errors);
 
     // <atom> := <effect-constructor-ref>
+    // Note: <effect-constructor-ref> also includes the continuation.
     } else if(parseEffectCtorRef().unwrapResultInto(ecr, errors)) {
         return ParserResult<Expression>(Expression(ecr), errors);
     } else {

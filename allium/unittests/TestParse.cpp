@@ -25,6 +25,16 @@ TEST(TestParser, parse_false_as_truth_literal) {
     );
 }
 
+TEST(TestParser, parse_continue) {
+    std::istringstream f("continue");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseContinuation(),
+        Continuation(SourceLocation(1, 0))
+    );
+}
+
 TEST(TestParser, lexer_ignores_comments) {
     std::istringstream f("// comment\ntrue");
     Parser p(f);
@@ -222,6 +232,16 @@ TEST(TestParser, parse_truth_literal_as_expression) {
     EXPECT_EQ(
         p.parseExpression(),
         Expression(TruthLiteral(false, SourceLocation(1, 0)))
+    );
+}
+
+TEST(TestParser, parse_continue_as_expression) {
+    std::istringstream f("continue;");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseExpression(),
+        Expression(Continuation(SourceLocation(1, 0)))
     );
 }
 

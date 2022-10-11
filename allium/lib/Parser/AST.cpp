@@ -9,6 +9,7 @@ namespace parser {
 std::ostream& operator<<(std::ostream &out, const Expression &e) {
     return e.match<std::ostream&>(
         [&](TruthLiteral tl) -> std::ostream& { out << tl; return out; },
+        [&](Continuation k) -> std::ostream& { out << k; return out; },
         [&](PredicateRef p) -> std::ostream& { out << p; return out; },
         [&](EffectCtorRef ecr) -> std::ostream& { out << ecr; return out; },
         [&](Conjunction conj) -> std::ostream& {
@@ -36,6 +37,19 @@ bool operator!=(const TruthLiteral &lhs, const TruthLiteral &rhs) {
 
 std::ostream& operator<<(std::ostream &out, const TruthLiteral &tl) {
     ASTPrinter(out).visit(tl);
+    return out;
+}
+
+bool operator==(const Continuation &lhs, const Continuation &rhs) {
+    return lhs.location == rhs.location;
+}
+
+bool operator!=(const Continuation &lhs, const Continuation &rhs) {
+    return !(lhs == rhs);
+}
+
+std::ostream& operator<<(std::ostream &out, const Continuation &k) {
+    ASTPrinter(out).visit(k);
     return out;
 }
 

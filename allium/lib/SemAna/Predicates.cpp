@@ -45,6 +45,13 @@ public:
         return TypedAST::TruthLiteral(tl.value);
     }
 
+    TypedAST::TruthLiteral visit(const Continuation &k) {
+        // TODO: must be inside of a handler!
+        // TODO: return type!
+        assert(false && "not implemented!");
+        return TypedAST::TruthLiteral(false);
+    }
+
     Optional<TypedAST::PredicateDecl> visit(const PredicateDecl &pd) {
         const auto originalDeclaration = std::find_if(
             ast.predicates.begin(),
@@ -258,6 +265,7 @@ public:
     Optional<TypedAST::Expression> visit(const Expression &expr) {
         return expr.match<Optional<TypedAST::Expression> >(
         [&](TruthLiteral tl) { return TypedAST::Expression(visit(tl)); },
+        [&](Continuation k) { return TypedAST::Expression(visit(k)); },
         [&](PredicateRef pr) {
             return visit(pr).map<TypedAST::Expression>(
                 [](TypedAST::PredicateRef tpr) { return TypedAST::Expression(tpr); }

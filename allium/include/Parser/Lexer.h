@@ -21,6 +21,7 @@ struct Token {
         identifier,
         implied_by,
         integer_literal,
+        kw_continue,
         kw_ctor,
         kw_do,
         kw_effect,
