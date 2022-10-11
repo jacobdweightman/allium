@@ -29,6 +29,7 @@ private:
 
     void getVariables(const EffectCtorRef &ecr) {
         for(const auto &arg : ecr.arguments) getVariables(arg);
+        getVariables(ecr.getContinuation());
     }
 
     void getVariables(const Conjunction &conj) {

@@ -63,6 +63,7 @@ bool operator!=(const Effect &left, const Effect &right) {
 
 bool operator==(const EffectImplication &left, const EffectImplication &right) {
     assert(false && "effect implications not implemented yet!");
+    return false;
 }
 
 bool operator!=(const EffectImplication &left, const EffectImplication &right) {
@@ -80,6 +81,32 @@ bool operator!=(const Handler &left, const Handler &right) {
 
 PredicateRef::PredicateRef(std::string name, std::vector<Value> arguments):
     name(name), arguments(arguments) {}
+
+EffectCtorRef::EffectCtorRef(
+    std::string effectName,
+    std::string ctorName,
+    std::vector<Value> arguments,
+    Expression continuation,
+    SourceLocation location
+): effectName(effectName), ctorName(ctorName), arguments(arguments),
+    _continuation(new auto(continuation)), location(location) {}
+
+EffectCtorRef::EffectCtorRef(const EffectCtorRef &other):
+    effectName(other.effectName), ctorName(other.ctorName),
+    arguments(other.arguments), _continuation(new auto(*other._continuation)),
+    location(other.location) {}
+
+EffectCtorRef& EffectCtorRef::operator=(EffectCtorRef other) {
+    using std::swap;
+    swap(effectName, other.effectName);
+    swap(ctorName, other.ctorName);
+    swap(arguments, other.arguments);
+    swap(_continuation, other._continuation);
+    swap(location, other.location);
+    return *this;
+}
+
+Expression& EffectCtorRef::getContinuation() const { return *_continuation; }
 
 Conjunction::Conjunction(Expression left, Expression right):
     _left(new auto(left)), _right(new auto(right)) {}
@@ -202,7 +229,8 @@ std::ostream& operator<<(std::ostream &out, const PredicateRef &pr) {
 }
 
 std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr) {
-    return out << "do " << ecr.effectName << "." << ecr.ctorName;
+    return out << "do " << ecr.effectName << "." << ecr.ctorName <<
+        " { " << ecr.getContinuation() << " }";
 }
 
 std::ostream& operator<<(std::ostream &out, const Implication &impl) {

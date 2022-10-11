@@ -255,8 +255,10 @@ struct PredicateRef {
 
 std::ostream& operator<<(std::ostream &out, const PredicateRef &pr);
 
-struct EffectCtorRef {
-    EffectCtorRef(
+/// Represents the head of an implication inside of a handler definition. This
+/// is essentially an EffectCtorRef with no continuation.
+struct EffectImplHead {
+    EffectImplHead(
         std::string effectName,
         std::string ctorName,
         std::vector<Value> arguments,
@@ -268,6 +270,29 @@ struct EffectCtorRef {
     Name<EffectCtor> ctorName;
     std::vector<Value> arguments;
     SourceLocation location;
+};
+
+/// Represents a use of an effect inside of a logical expression, including its
+/// continuation.
+struct EffectCtorRef {
+    EffectCtorRef(
+        std::string effectName,
+        std::string ctorName,
+        std::vector<Value> arguments,
+        Expression continuation,
+        SourceLocation location);
+    EffectCtorRef(const EffectCtorRef &other);
+    EffectCtorRef& operator=(EffectCtorRef other);
+
+    Name<Effect> effectName;
+    Name<EffectCtor> ctorName;
+    std::vector<Value> arguments;
+    SourceLocation location;
+
+    Expression& getContinuation() const;
+
+protected:
+    std::unique_ptr<Expression> _continuation;
 };
 
 std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr);
@@ -296,10 +321,10 @@ struct Implication {
 std::ostream& operator<<(std::ostream &out, const Implication &impl);
 
 struct EffectImplication {
-    EffectImplication(EffectCtorRef head, Expression body):
+    EffectImplication(EffectImplHead head, Expression body):
         head(head), body(body) {}
 
-    EffectCtorRef head;
+    EffectImplHead head;
     Expression body; // TODO: handler expression, which can include continuation?
 };
 

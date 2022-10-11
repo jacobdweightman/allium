@@ -171,8 +171,34 @@ std::ostream& operator<<(std::ostream &out, const BuiltinPredicateReference &bpr
     return out << ")";
 }
 
+EffectCtorRef::EffectCtorRef(
+    size_t effectIndex,
+    size_t effectCtorIndex,
+    std::vector<MatcherValue> arguments,
+    Expression continuation
+): effectIndex(effectIndex), effectCtorIndex(effectCtorIndex),
+    arguments(arguments), _continuation(new auto(continuation)) {}
+
+EffectCtorRef::EffectCtorRef(const EffectCtorRef &other):
+    effectIndex(other.effectIndex),
+    effectCtorIndex(other.effectCtorIndex),
+    arguments(other.arguments),
+    _continuation(new auto(*other._continuation)) {}
+
+EffectCtorRef& EffectCtorRef::operator=(EffectCtorRef other) {
+    using std::swap;
+    effectIndex = other.effectIndex;
+    effectCtorIndex = other.effectCtorIndex;
+    std::swap(arguments, other.arguments);
+    std::swap(_continuation, other._continuation);
+    return *this;
+}
+
+Expression& EffectCtorRef::getContinuation() const { return *_continuation; }
+
 std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr) {
-    return out << "do " << ecr.effectIndex << "." << ecr.effectCtorIndex;
+    return out << "do " << ecr.effectIndex << "." << ecr.effectCtorIndex <<
+        " { " << ecr.getContinuation() << " }";
 }
 
 std::ostream& operator<<(std::ostream &out, const Conjunction &conj) {

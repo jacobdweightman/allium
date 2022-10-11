@@ -215,11 +215,35 @@ public:
             }
         );
 
-        return TypedAST::EffectCtorRef(
-            effect->declaration.name.string(),
-            eCtor->name.string(),
-            raisedArguments,
-            ecr.location);
+        auto continuation = visit(ecr.getContinuation());
+
+        return continuation.map<TypedAST::EffectCtorRef>(
+            [&](TypedAST::Expression continuation) {
+                return TypedAST::EffectCtorRef(
+                    effect->declaration.name.string(),
+                    eCtor->name.string(),
+                    raisedArguments,
+                    continuation,
+                    ecr.location);
+            }
+        );
+    }
+
+    Optional<TypedAST::EffectImplHead> visit(const EffectImplHead &eih) {
+        EffectCtorRef ecr(
+            eih.name.string(),
+            eih.arguments,
+            TruthLiteral(true, {}),
+            eih.location);
+        return visit(ecr).map<TypedAST::EffectImplHead>(
+            [](TypedAST::EffectCtorRef ecr) {
+                return TypedAST::EffectImplHead(
+                    ecr.effectName.string(),
+                    ecr.ctorName.string(),
+                    ecr.arguments,
+                    ecr.location);
+            }
+        );
     }
 
     Optional<TypedAST::Conjunction> visit(const Conjunction &conj) {
@@ -642,7 +666,7 @@ public:
         auto body = visit(eImpl.body);
         enclosingScope = previousScope;
 
-        return head.flatMap<TypedAST::EffectImplication>([&](TypedAST::EffectCtorRef h) {
+        return head.flatMap<TypedAST::EffectImplication>([&](TypedAST::EffectImplHead h) {
             return body.map<TypedAST::EffectImplication>([&](TypedAST::Expression b) {
                 return TypedAST::EffectImplication(h, b);
             });

@@ -40,6 +40,17 @@ public:
         --depth;
     }
 
+    void visit(const EffectImplHead &eih) {
+        indent();
+        out << "<EffectImplHead \"" << eih.name << "\" line:" << eih.location <<
+            ">\n";
+        ++depth;
+        for(const auto &argument : eih.arguments) {
+            visit(argument);
+        }
+        --depth;
+    }
+
     void visit(const EffectCtorRef &ecr) {
         indent();
         out << "<EffectCtorRef \"" << ecr.name << "\" line:" << ecr.location <<
@@ -48,6 +59,7 @@ public:
         for(const auto &argument : ecr.arguments) {
             visit(argument);
         }
+        visit(ecr.getContinuation());
         --depth;
     }
 

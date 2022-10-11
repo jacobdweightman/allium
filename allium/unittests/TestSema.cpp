@@ -752,7 +752,7 @@ TEST_F(TestSemAnaPredicates, undefined_effect_ctor) {
             {
                 Implication(
                     PredicateRef("p", SourceLocation(2, 4)),
-                    Expression(EffectCtorRef("fake", {}, errorLocation))
+                    Expression(EffectCtorRef("fake", {}, TruthLiteral(true, {}), errorLocation))
                 )
             },
             {}
@@ -785,7 +785,7 @@ TEST_F(TestSemAnaPredicates, unhandled_effect) {
             {
                 Implication(
                     PredicateRef("p", SourceLocation(5, 4)),
-                    Expression(EffectCtorRef("abort", {}, errorLocation))
+                    Expression(EffectCtorRef("abort", {}, TruthLiteral(true, {}), errorLocation))
                 )
             },
             {}
@@ -823,7 +823,7 @@ TEST_F(TestSemAnaPredicates, effect_impl_head_mismatch) {
                     EffectRef("Repeat", {5, 11}),
                     {
                         EffectImplication(
-                            EffectCtorRef("repat", {}, {6, 11}),
+                            EffectImplHead("repat", {}, {6, 11}),
                             Expression(TruthLiteral(true, {6, 20}))
                         )
                     }
@@ -875,6 +875,7 @@ TEST_F(TestSemAnaPredicates, effect_argument_count) {
                     Expression(EffectCtorRef(
                         "bar",
                         { Value(StringLiteral("a", SourceLocation(5, 17))) },
+                        TruthLiteral(true, {}),
                         errorLocation
                     ))
                 )
@@ -944,7 +945,11 @@ TEST_F(TestSemAnaPredicates, effect_ctor_with_undefined_type_error_type_inferenc
             {
                 Implication(
                     PredicateRef("p", {5, 4}),
-                    Expression(EffectCtorRef("bar", { NamedValue("Baz", {}, {5, 16}) }, {5, 12}))
+                    Expression(EffectCtorRef(
+                        "bar",
+                        { NamedValue("Baz", {}, {5, 16}) },
+                        TruthLiteral(true, {}),
+                        {5, 12}))
                 )
             },
             {}

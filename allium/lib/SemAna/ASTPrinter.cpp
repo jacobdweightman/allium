@@ -103,12 +103,13 @@ void ASTPrinter::visit(const PredicateRef &pr) {
 
 void ASTPrinter::visit(const EffectCtorRef &ecr) {
     indent();
-    out << "EffectCtorRef \"" << ecr.effectName << "." << ecr.ctorName <<
+    out << "<EffectCtorRef \"" << ecr.effectName << "." << ecr.ctorName <<
         "\">\n";
     depth++;
     for(const auto &arg : ecr.arguments) {
         visit(arg);
     }
+    visit(ecr.getContinuation());
     depth--;
 }
 

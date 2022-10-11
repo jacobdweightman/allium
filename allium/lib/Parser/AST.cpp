@@ -67,9 +67,47 @@ std::ostream& operator<<(std::ostream &out, const PredicateRef &p) {
     return out;
 }
 
-bool operator==(const EffectCtorRef &lhs, const EffectCtorRef &rhs) {
+bool operator==(const EffectImplHead &lhs, const EffectImplHead &rhs) {
     return lhs.location == rhs.location && lhs.name == rhs.name &&
         lhs.arguments == rhs.arguments;
+}
+
+bool operator!=(const EffectImplHead &lhs, const EffectImplHead &rhs) {
+    return !(lhs == rhs);
+}
+
+std::ostream& operator<<(std::ostream &out, const EffectImplHead &eih) {
+    ASTPrinter(out).visit(eih);
+    return out;
+}
+
+EffectCtorRef::EffectCtorRef(
+    std::string name,
+    std::vector<Value> arguments,
+    const Expression &continuation,
+    SourceLocation location
+): name(name), arguments(arguments), _continuation(new auto(continuation)),
+    location(location) {}
+
+EffectCtorRef::EffectCtorRef(const EffectCtorRef &other):
+    name(other.name), arguments(other.arguments), location(other.location),
+    _continuation(new auto(*other._continuation)) {}
+
+EffectCtorRef& EffectCtorRef::operator=(EffectCtorRef other) {
+    using std::swap;
+    swap(name, other.name);
+    swap(arguments, other.arguments);
+    swap(_continuation, other._continuation);
+    swap(location, other.location);
+    return *this;
+}
+
+Expression& EffectCtorRef::getContinuation() const { return *_continuation; }
+
+bool operator==(const EffectCtorRef &lhs, const EffectCtorRef &rhs) {
+    return lhs.location == rhs.location && lhs.name == rhs.name &&
+        lhs.arguments == rhs.arguments &&
+        lhs.getContinuation() == rhs.getContinuation();
 }
 
 bool operator!=(const EffectCtorRef &lhs, const EffectCtorRef &rhs) {

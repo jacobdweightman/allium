@@ -176,6 +176,7 @@ public:
     ParserResult<Value> parseValue();
 
 private:
+    ParserResult<EffectImplHead> parseEffectImplHead();
     ParserResult<EffectCtorRef> parseEffectCtorRef();
     ParserResult<Expression> parseAtom();
     ParserResult<std::vector<EffectRef>> parseEffectList();

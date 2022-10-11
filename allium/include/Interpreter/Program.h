@@ -228,9 +228,12 @@ struct EffectCtorRef {
     EffectCtorRef(
         size_t effectIndex,
         size_t effectCtorIndex,
-        std::vector<MatcherValue> arguments
-    ): effectIndex(effectIndex), effectCtorIndex(effectCtorIndex),
-        arguments(arguments) {}
+        std::vector<MatcherValue> arguments,
+        Expression continuation);
+
+    EffectCtorRef(const EffectCtorRef &other);
+
+    EffectCtorRef& operator=(EffectCtorRef other);
 
     friend bool operator==(const EffectCtorRef &lhs, const EffectCtorRef &rhs) {
         return lhs.effectIndex == rhs.effectIndex &&
@@ -252,6 +255,12 @@ struct EffectCtorRef {
 
     /// The arguments which should be passed to the effect handler.
     std::vector<MatcherValue> arguments;
+
+    /// The continuation of the effect, which may be invoked by the handler.
+    Expression& getContinuation() const;
+
+private:
+    std::unique_ptr<Expression> _continuation;
 };
 
 std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr);

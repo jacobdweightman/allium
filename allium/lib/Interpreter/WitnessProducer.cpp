@@ -69,7 +69,9 @@ Generator<Unit> witnesses(
     if(ecr.effectIndex == 0) {
         handleDefaultIO(ecr, context);
     }
-    co_yield {};
+    auto continuationW = witnesses(prog, ecr.getContinuation(), context);
+    while(continuationW.next())
+        co_yield {};
 }
 
 Generator<Unit> witnesses(

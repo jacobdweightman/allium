@@ -121,7 +121,13 @@ public:
             arguments.push_back(loweredCtorRef);
         }
 
-        return interpreter::EffectCtorRef(effectIndex, eCtorIndex, arguments);
+        auto continuation = visit(ecr.getContinuation());
+
+        return interpreter::EffectCtorRef(
+            effectIndex,
+            eCtorIndex,
+            arguments,
+            continuation);
     }
 
     interpreter::Conjunction visit(const Conjunction &conj) {
