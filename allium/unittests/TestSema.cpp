@@ -136,6 +136,28 @@ TEST_F(TestSemAnaPredicates, predicate_argument_count_mismatch) {
     checkAll(AST(ts, {}, ps), error);
 }
 
+TEST_F(TestSemAnaPredicates, continue_in_predicate) {
+    // pred p { p <- continue; }
+
+    SourceLocation errorLocation(1, 14);
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", {}, {}, {1, 5}),
+            {
+                Implication(
+                    PredicateRef("p", {1, 9}),
+                    Expression(Continuation({1, 14}))
+                )
+            },
+            {}
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::continue_in_predicate_impl));
+
+    checkAll(AST({}, {}, ps), error);
+}
+
 TEST_F(TestSemAnaPredicates, constructor_argument_count_mismatch) {
     // type Nat { ctor zero; ctor s(Nat); }
     // pred p(Nat) { p(s(zero, zero)) <- true; }

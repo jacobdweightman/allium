@@ -22,11 +22,14 @@ public:
     void visit(const Effect &e);
     void visit(const UserPredicate &up);
     void visit(const TruthLiteral &tl);
+    void visit(const Continuation &k);
     void visit(const PredicateDecl &pd);
     void visit(const PredicateRef &pr);
     void visit(const EffectCtorRef &ecr);
     void visit(const Conjunction &conj);
+    void visit(const HandlerConjunction &hConj);
     void visit(const Expression &expr);
+    void visit(const HandlerExpression &hExpr);
     void visit(const Implication &impl);
     void visit(const AnonymousVariable &av);
     void visit(const Variable &var);

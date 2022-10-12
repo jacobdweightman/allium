@@ -213,10 +213,13 @@ typedef TaggedUnion<
 struct Predicate;
 
 struct TruthLiteral;
+struct Continuation;
 struct PredicateRef;
 struct EffectCtorRef;
 struct Conjunction;
+struct HandlerConjunction;
 
+/// Represents a logical expression that may occur inside of a predicate.
 typedef TaggedUnion<
     TruthLiteral,
     PredicateRef,
@@ -226,6 +229,17 @@ typedef TaggedUnion<
 
 std::ostream& operator<<(std::ostream &out, const Expression &expr);
 
+/// Represents a logical expression that may occur inside of a handler.
+typedef TaggedUnion<
+    TruthLiteral,
+    Continuation,
+    PredicateRef,
+    EffectCtorRef,
+    HandlerConjunction
+> HandlerExpression;
+
+std::ostream& operator<<(std::ostream &out, const HandlerExpression &hExpr);
+
 struct TruthLiteral {
     TruthLiteral(bool value): value(value) {}
 
@@ -233,6 +247,9 @@ struct TruthLiteral {
 };
 
 std::ostream& operator<<(std::ostream &out, const TruthLiteral &tl);
+
+struct Continuation {};
+std::ostream& operator<<(std::ostream &out, const Continuation &k);
 
 struct PredicateDecl {
     PredicateDecl(
@@ -297,6 +314,8 @@ protected:
 
 std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr);
 
+/// Represents the conjunction of two logical expressions in the context of a
+/// predicate.
 struct Conjunction {
     Conjunction(Expression left, Expression right);
     Conjunction(const Conjunction &other);
@@ -310,6 +329,21 @@ protected:
     std::unique_ptr<Expression> _left, _right;
 };
 
+/// Represents the conjunction of two logical expressions in the context of a
+/// handler.
+struct HandlerConjunction {
+    HandlerConjunction(HandlerExpression left, HandlerExpression right);
+    HandlerConjunction(const HandlerConjunction &other);
+
+    HandlerConjunction operator=(HandlerConjunction other);
+
+    HandlerExpression &getLeft() const;
+    HandlerExpression &getRight() const;
+
+protected:
+    std::unique_ptr<HandlerExpression> _left, _right;
+};
+
 struct Implication {
     Implication(PredicateRef head, Expression body):
         head(head), body(body) {}
@@ -321,11 +355,11 @@ struct Implication {
 std::ostream& operator<<(std::ostream &out, const Implication &impl);
 
 struct EffectImplication {
-    EffectImplication(EffectImplHead head, Expression body):
+    EffectImplication(EffectImplHead head, HandlerExpression body):
         head(head), body(body) {}
 
     EffectImplHead head;
-    Expression body; // TODO: handler expression, which can include continuation?
+    HandlerExpression body;
 };
 
 bool operator==(const EffectImplication &left, const EffectImplication &right);

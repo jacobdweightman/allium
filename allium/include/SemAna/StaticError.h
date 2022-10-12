@@ -12,8 +12,16 @@ enum class ErrorMessage {
     /// An argument that must be ground contains an anonymous variable.
     argument_is_not_ground_anonymous,
 
+    /// The user has attempted to define something with the same name as a builtin.
     builtin_redefined,
+
+    /// A constructor was invoked with the wrong number of arguments.
     constructor_argument_count,
+
+    /// The "continue" keyword was used inside of an implication for a predicate.
+    continue_in_predicate_impl,
+
+    /// An effect was invoked with the wrong number of arguments.
     effect_argument_count,
 
     // A predicate uses another predicate in its subproof, but does not provide

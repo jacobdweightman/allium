@@ -125,6 +125,25 @@ Expression &Conjunction::getLeft() const { return *_left; }
 
 Expression &Conjunction::getRight() const { return *_right; }
 
+HandlerConjunction::HandlerConjunction(
+    HandlerExpression left,
+    HandlerExpression right
+): _left(new auto(left)), _right(new auto(right)) {}
+
+HandlerConjunction::HandlerConjunction(const HandlerConjunction &other):
+    _left(new auto(*other._left)), _right(new auto(*other._right)) {}
+
+HandlerConjunction HandlerConjunction::operator=(HandlerConjunction other) {
+    using std::swap;
+    swap(_left, other._right);
+    swap(_right, other._right);
+    return *this;
+}
+
+HandlerExpression &HandlerConjunction::getLeft() const { return *_left; }
+
+HandlerExpression &HandlerConjunction::getRight() const { return *_right; }
+
 ConstructorRef::ConstructorRef(std::string name, std::vector<Value> arguments):
     name(name), arguments(arguments) {}
 

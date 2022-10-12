@@ -45,11 +45,8 @@ public:
         return TypedAST::TruthLiteral(tl.value);
     }
 
-    TypedAST::TruthLiteral visit(const Continuation &k) {
-        // TODO: must be inside of a handler!
-        // TODO: return type!
-        assert(false && "not implemented!");
-        return TypedAST::TruthLiteral(false);
+    TypedAST::Continuation visit(const Continuation &k) {
+        return TypedAST::Continuation();
     }
 
     Optional<TypedAST::PredicateDecl> visit(const PredicateDecl &pd) {
@@ -262,10 +259,24 @@ public:
         return TypedAST::Conjunction(*left, *right);
     }
 
+    Optional<TypedAST::HandlerConjunction> visitHandlerConj(
+        const Conjunction &conj
+    ) {
+        std::unique_ptr<TypedAST::HandlerExpression> left, right;
+        if( visitHandlerExpr(conj.getLeft()).unwrapGuard(left) ||
+            visitHandlerExpr(conj.getRight()).unwrapGuard(right)) {
+                return Optional<TypedAST::HandlerConjunction>();
+        }
+        return TypedAST::HandlerConjunction(*left, *right);
+    }
+
     Optional<TypedAST::Expression> visit(const Expression &expr) {
         return expr.match<Optional<TypedAST::Expression> >(
         [&](TruthLiteral tl) { return TypedAST::Expression(visit(tl)); },
-        [&](Continuation k) { return TypedAST::Expression(visit(k)); },
+        [&](Continuation k) {
+            error.emit(k.location, ErrorMessage::continue_in_predicate_impl);
+            return Optional<TypedAST::Expression>();
+        },
         [&](PredicateRef pr) {
             return visit(pr).map<TypedAST::Expression>(
                 [](TypedAST::PredicateRef tpr) { return TypedAST::Expression(tpr); }
@@ -279,6 +290,27 @@ public:
         [&](Conjunction conj) {
             return visit(conj).map<TypedAST::Expression>(
                 [](TypedAST::Conjunction tconj) { return TypedAST::Expression(tconj); }
+            );
+        });
+    }
+
+    Optional<TypedAST::HandlerExpression> visitHandlerExpr(const Expression &expr) {
+        return expr.match<Optional<TypedAST::HandlerExpression> >(
+        [&](TruthLiteral tl) { return TypedAST::HandlerExpression(visit(tl)); },
+        [&](Continuation k) { return TypedAST::HandlerExpression(visit(k)); },
+        [&](PredicateRef pr) {
+            return visit(pr).map<TypedAST::HandlerExpression>(
+                [](TypedAST::PredicateRef tpr) { return TypedAST::HandlerExpression(tpr); }
+            );
+        },
+        [&](EffectCtorRef ecr) {
+            return visit(ecr).map<TypedAST::HandlerExpression>(
+                [](TypedAST::EffectCtorRef ecr) { return TypedAST::HandlerExpression(ecr); }
+            );
+        },
+        [&](Conjunction conj) {
+            return visitHandlerConj(conj).map<TypedAST::HandlerExpression>(
+                [](TypedAST::HandlerConjunction tconj) { return TypedAST::HandlerExpression(tconj); }
             );
         });
     }
@@ -671,11 +703,11 @@ public:
         auto previousScope = enclosingScope;
         enclosingScope = TypedAST::Scope();
         auto head = visit(eImpl.head);
-        auto body = visit(eImpl.body);
+        auto body = visitHandlerExpr(eImpl.body);
         enclosingScope = previousScope;
 
         return head.flatMap<TypedAST::EffectImplication>([&](TypedAST::EffectImplHead h) {
-            return body.map<TypedAST::EffectImplication>([&](TypedAST::Expression b) {
+            return body.map<TypedAST::EffectImplication>([&](TypedAST::HandlerExpression b) {
                 return TypedAST::EffectImplication(h, b);
             });
         });

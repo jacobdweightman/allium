@@ -13,6 +13,8 @@ std::string formatString(ErrorMessage msg) {
         return "Allium builtin \"%s\" cannot be redefined.";
     case ErrorMessage::constructor_argument_count:
         return "Constructor \"%s\" of type %s expects %s arguments.";
+    case ErrorMessage::continue_in_predicate_impl:
+        return "Predicates do not have a continuation. The \"continue\" keyword can only be used inside of a handler.";
     case ErrorMessage::effect_argument_count:
         return "Effect constructor \"%s\" of effect %s expects %s arguments.";
     case ErrorMessage::effect_from_predicate_unhandled:

@@ -85,6 +85,11 @@ void ASTPrinter::visit(const TruthLiteral &tl) {
     out << "<TruthLiteral " << tl.value << ">\n";
 }
 
+void ASTPrinter::visit(const Continuation &k) {
+    indent();
+    out << "<Continuation>\n";
+}
+
 void ASTPrinter::visit(const PredicateDecl &pd) {
     indent();
     out << "<PredicateDecl \"" << pd.name << "\">\n";
@@ -122,12 +127,31 @@ void ASTPrinter::visit(const Conjunction &conj) {
     depth--;
 }
 
+void ASTPrinter::visit(const HandlerConjunction &hConj) {
+    indent();
+    out << "<HandlerConjunction>\n";
+    depth++;
+    visit(hConj.getLeft());
+    visit(hConj.getRight());
+    depth--;
+}
+
 void ASTPrinter::visit(const Expression &expr) {
     expr.switchOver(
     [&](TruthLiteral tl) { visit(tl); },
     [&](PredicateRef pr) { visit(pr); },
     [&](EffectCtorRef ecr) { visit(ecr); },
     [&](Conjunction conj) { visit(conj); }
+    );
+}
+
+void ASTPrinter::visit(const HandlerExpression &hExpr) {
+    hExpr.switchOver(
+    [&](TruthLiteral tl) { visit(tl); },
+    [&](Continuation k) { visit(k); },
+    [&](PredicateRef pr) { visit(pr); },
+    [&](EffectCtorRef ecr) { visit(ecr); },
+    [&](HandlerConjunction hConj) { visit(hConj); }
     );
 }
 
