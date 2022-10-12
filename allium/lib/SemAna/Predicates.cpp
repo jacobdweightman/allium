@@ -740,7 +740,8 @@ public:
             });
         }
 
-        return TypedAST::Handler(raisedEffectImpls);
+        TypedAST::EffectRef effect(h.effect.name.string());
+        return TypedAST::Handler(effect, raisedEffectImpls);
     }
 
     TypedAST::AST visit(const AST &ast) {

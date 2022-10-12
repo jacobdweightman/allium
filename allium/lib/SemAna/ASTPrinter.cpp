@@ -77,6 +77,17 @@ void ASTPrinter::visit(const UserPredicate &up) {
     depth++;
     visit(up.declaration);
     for(const auto &x : up.implications) visit(x);
+    for(const auto &h : up.handlers) visit(h);
+    depth--;
+}
+
+void ASTPrinter::visit(const Handler &h) {
+    indent();
+    out << "<Handler " << h.effect << ">\n";
+    depth++;
+    for(const auto &eImpl : h.implications) {
+        visit(eImpl);
+    }
     depth--;
 }
 
@@ -103,6 +114,17 @@ void ASTPrinter::visit(const PredicateRef &pr) {
     out << "<PredicateRef \"" << pr.name << "\">\n";
     depth++;
     for(const auto &x : pr.arguments) visit(x);
+    depth--;
+}
+
+void ASTPrinter::visit(const EffectImplHead &eih) {
+    indent();
+    out << "<EffectCtorRef \"" << eih.effectName << "." << eih.ctorName <<
+        "\">\n";
+    depth++;
+    for(const auto &arg : eih.arguments) {
+        visit(arg);
+    }
     depth--;
 }
 
@@ -161,6 +183,15 @@ void ASTPrinter::visit(const Implication &impl) {
     depth++;
     visit(impl.head);
     visit(impl.body);
+    depth--;
+}
+
+void ASTPrinter::visit(const EffectImplication &eImpl) {
+    indent();
+    out << "<EffectImplication>\n";
+    depth++;
+    visit(eImpl.head);
+    visit(eImpl.body);
     depth--;
 }
 

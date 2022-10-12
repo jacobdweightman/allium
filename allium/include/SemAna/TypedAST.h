@@ -366,9 +366,10 @@ bool operator==(const EffectImplication &left, const EffectImplication &right);
 bool operator!=(const EffectImplication &left, const EffectImplication &right);
 
 struct Handler {
-    Handler(std::vector<EffectImplication> implications):
-        implications(implications) {}
+    Handler(EffectRef effect, std::vector<EffectImplication> implications):
+        effect(effect), implications(implications) {}
 
+    EffectRef effect;
     std::vector<EffectImplication> implications;
 };
 
