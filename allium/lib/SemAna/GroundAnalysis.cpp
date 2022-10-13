@@ -519,7 +519,9 @@ class GroundAnalysis {
     bool analyzeEffectCtorRef(Context &ctx, const EffectCtorRef &ecr) {
         // TODO: once handlers are supported, we will need to resolve them
         // in order to see if their arguments are provably ground.
-        const auto &parameters = ast.resolveEffectCtorRef(ecr).parameters;
+        const auto &parameters = ast
+            .resolveEffectCtorRef(ecr.effectName, ecr.ctorName)
+            .parameters;
         for(int i=0; i<parameters.size(); ++i) {
             if(parameters[i].isInputOnly && !isGround(ctx, ecr.arguments[i])) {
                 emitGroundingError(ecr.location);

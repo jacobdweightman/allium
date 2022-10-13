@@ -10,13 +10,25 @@ namespace interpreter {
 
 bool Program::prove(const Expression &expr) {
     // TODO: if `main` ever takes arguments, they need to be allocated here.
+    // TODO: push default handlers into the handler stack.
     Context mainContext;
+    HandlerStack handlers;
 
-    if(witnesses(*this, expr, mainContext).next()) {
+    if(witnesses(*this, expr, mainContext, handlers).next()) {
         return true;
     } else {
         return false;
     }
+}
+
+bool operator==(const EffectImplHead &left, const EffectImplHead &right) {
+    return left.effectIndex == right.effectIndex &&
+        left.effectCtorIndex == right.effectCtorIndex &&
+        left.arguments == right.arguments;
+}
+
+bool operator!=(const EffectImplHead &left, const EffectImplHead &right) {
+    return !(left == right);
 }
 
 bool operator==(const Implication &left, const Implication &right) {
@@ -25,6 +37,15 @@ bool operator==(const Implication &left, const Implication &right) {
 }
 
 bool operator!=(const Implication &left, const Implication &right) {
+    return !(left == right);
+}
+
+bool operator==(const EffectImplication &left, const EffectImplication &right) {
+    return left.head == right.head && left.body == right.body &&
+        left.variableCount == right.variableCount;
+}
+
+bool operator!=(const EffectImplication &left, const EffectImplication &right) {
     return !(left == right);
 }
 
@@ -59,6 +80,17 @@ std::ostream& operator<<(std::ostream &out, const Expression &expr) {
     [&](BuiltinPredicateReference bpr) -> std::ostream& { return out << bpr; },
     [&](EffectCtorRef ecr) -> std::ostream& { return out << ecr; },
     [&](Conjunction conj) -> std::ostream& { return out << conj; }
+    );
+}
+
+std::ostream& operator<<(std::ostream &out, const HandlerExpression &hExpr) {
+    return hExpr.match<std::ostream&>(
+    [&](TruthValue tv) -> std::ostream& { return out << tv; },
+    [&](Continuation k) -> std::ostream& { return out << k; },
+    [&](PredicateReference pr) -> std::ostream& { return out << pr; },
+    [&](BuiltinPredicateReference bpr) -> std::ostream& { return out << bpr; },
+    [&](EffectCtorRef ecr) -> std::ostream& { return out << ecr; },
+    [&](HandlerConjunction hConj) -> std::ostream& { return out << hConj; }
     );
 }
 
@@ -159,6 +191,14 @@ std::ostream& operator<<(std::ostream &out, const TruthValue &tv) {
     return out << (tv.value ? "true" : "false");
 }
 
+bool operator==(const Continuation &, const Continuation &) { return true; }
+
+bool operator!=(const Continuation &, const Continuation &) { return false; }
+
+std::ostream& operator<<(std::ostream &out, const Continuation &k) {
+    return out << "continue";
+}
+
 std::ostream& operator<<(std::ostream &out, const PredicateReference &pr) {
     out << pr.index << "(";
     for(const auto &arg : pr.arguments) out << arg << ", ";
@@ -201,12 +241,50 @@ std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr) {
         " { " << ecr.getContinuation() << " }";
 }
 
+std::ostream& operator<<(std::ostream &out, const EffectImplHead &eih) {
+    return out << "do " << eih.effectIndex << "." << eih.effectCtorIndex;
+}
+
 std::ostream& operator<<(std::ostream &out, const Conjunction &conj) {
     return out << "(" << conj.getLeft() << " and " << conj.getRight() << ")";
 }
 
+HandlerConjunction::HandlerConjunction(HandlerExpression left, HandlerExpression right):
+    left(new auto(left)), right(new auto(right)) {}
+
+HandlerConjunction::HandlerConjunction(const HandlerConjunction &other):
+    left(new auto(*other.left)), right(new auto(*other.right)) {}
+
+HandlerConjunction HandlerConjunction::operator=(HandlerConjunction other) {
+    using std::swap;
+    swap(left, other.left);
+    swap(right, other.right);
+    return *this;
+}
+
+bool operator==(const HandlerConjunction &left, const HandlerConjunction &right) {
+    return left.getLeft() == right.getLeft() && left.getRight() == right.getRight();
+}
+bool operator!=(const HandlerConjunction &left, const HandlerConjunction &right) {
+    return !(left == right);
+}
+
+std::ostream& operator<<(std::ostream &out, const HandlerConjunction &hConj) {
+    return out << "(" << hConj.getLeft() << " and " << hConj.getRight() << ")";
+}
+
 std::ostream& operator<<(std::ostream &out, const Implication &impl) {
     return out << impl.head << " <- " << impl.body;
+}
+
+std::ostream& operator<<(std::ostream &out, const EffectImplication &eImpl) {
+    return out << eImpl.head << " <- " << eImpl.body << ";";
+}
+
+std::ostream& operator<<(std::ostream &out, const Handler &h) {
+    out << "handle " << h.effect << "{\n";
+    for(const auto &hImpl : h.implications) out << "    " << hImpl << "\n";
+    return out << "}";
 }
 
 std::ostream& operator<<(std::ostream &out, const Predicate &p) {

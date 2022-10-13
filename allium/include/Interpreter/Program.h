@@ -32,10 +32,12 @@
 namespace interpreter {
 
 struct TruthValue;
+struct Continuation;
 struct PredicateReference;
 struct BuiltinPredicateReference;
 struct EffectCtorRef;
 struct Conjunction;
+struct HandlerConjunction;
 
 typedef TaggedUnion<
     TruthValue,
@@ -46,6 +48,17 @@ typedef TaggedUnion<
 > Expression;
 
 std::ostream& operator<<(std::ostream &out, const Expression &expr);
+
+typedef TaggedUnion<
+    TruthValue,
+    Continuation,
+    PredicateReference,
+    BuiltinPredicateReference,
+    EffectCtorRef,
+    HandlerConjunction
+> HandlerExpression;
+
+std::ostream& operator<<(std::ostream &out, const HandlerExpression &hExpr);
 
 class MatcherValue;
 class RuntimeValue;
@@ -265,6 +278,26 @@ private:
 
 std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr);
 
+struct EffectImplHead {
+    EffectImplHead(
+        size_t effectIndex,
+        size_t effectCtorIndex,
+        std::vector<MatcherValue> arguments
+    ): effectIndex(effectIndex), effectCtorIndex(effectCtorIndex),
+        arguments(arguments) {}
+
+    /// A number which uniquely identifies the effect type. This is used to
+    /// lookup handlers in the interpreter.
+    size_t effectIndex;
+
+    /// A number which uniquely identifies this effect's constructor. This is
+    /// necessary for pattern-matching in effect handlers.
+    size_t effectCtorIndex;
+
+    /// The arguments which should be passed to the effect handler.
+    std::vector<MatcherValue> arguments;
+};
+
 struct TruthValue {
     TruthValue(bool value): value(value) {}
 
@@ -280,6 +313,14 @@ struct TruthValue {
 };
 
 std::ostream& operator<<(std::ostream &out, const TruthValue &tv);
+
+struct Continuation {
+    Continuation() {}
+};
+
+bool operator==(const Continuation &, const Continuation &);
+bool operator!=(const Continuation &, const Continuation &);
+std::ostream& operator<<(std::ostream &out, const Continuation &k);
 
 struct PredicateReference {
     PredicateReference(size_t index, std::vector<MatcherValue> arguments): 
@@ -355,6 +396,21 @@ private:
 
 std::ostream& operator<<(std::ostream &out, const Conjunction &conj);
 
+struct HandlerConjunction {
+    HandlerConjunction(HandlerExpression left, HandlerExpression right);
+    HandlerConjunction(const HandlerConjunction &other);
+    HandlerConjunction operator=(HandlerConjunction other);
+
+    const HandlerExpression &getLeft() const { return *left; }
+    const HandlerExpression &getRight() const { return *right; }
+private:
+    std::unique_ptr<HandlerExpression> left, right;
+};
+
+bool operator==(const HandlerConjunction &left, const HandlerConjunction &right);
+bool operator!=(const HandlerConjunction &left, const HandlerConjunction &right);
+std::ostream& operator<<(std::ostream &out, const HandlerConjunction &hConj);
+
 struct Implication {
     Implication(
         PredicateReference head, Expression body,
@@ -378,9 +434,43 @@ bool operator==(const Implication &, const Implication &);
 bool operator!=(const Implication &, const Implication &);
 std::ostream& operator<<(std::ostream &out, const Implication &impl);
 
+struct EffectImplication {
+    EffectImplication(
+        EffectImplHead head,
+        HandlerExpression body,
+        size_t variableCount
+    ): head(head), body(body), variableCount(variableCount) {}
+
+    EffectImplHead head;
+    HandlerExpression body;
+    size_t variableCount;
+};
+
+bool operator==(const EffectImplication &, const EffectImplication &);
+bool operator!=(const EffectImplication &, const EffectImplication &);
+std::ostream& operator<<(std::ostream &out, const EffectImplication &eImpl);
+
+struct Handler {
+    Handler(size_t effect, std::vector<EffectImplication> implications):
+        effect(effect), implications(implications) {}
+
+    /// A number which uniquely identifies the effect type that this handler
+    /// handles.
+    size_t effect;
+
+    /// The implications which define the meaning of the effect.
+    std::vector<EffectImplication> implications;
+};
+
+bool operator==(const Handler &, const Handler &);
+bool operator!=(const Handler &, const Handler &);
+std::ostream& operator<<(std::ostream &out, const Handler &h);
+
 struct Predicate {
-    Predicate(std::vector<Implication> implications):
-        implications(implications) {}
+    Predicate(
+        std::vector<Implication> implications,
+        std::vector<Handler> handlers
+    ): implications(implications), handlers(handlers) {}
 
     Predicate operator=(Predicate other) {
         swap(implications, other.implications);
@@ -388,6 +478,7 @@ struct Predicate {
     }
 
     std::vector<Implication> implications;
+    std::vector<Handler> handlers;
 };
 
 bool operator==(const Predicate &, const Predicate &);

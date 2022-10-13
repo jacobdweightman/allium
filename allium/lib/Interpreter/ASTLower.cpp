@@ -75,6 +75,10 @@ public:
         return interpreter::TruthValue(tl.value);
     }
 
+    interpreter::Continuation visit(const Continuation &k) {
+        return interpreter::Continuation(); 
+    }
+
     interpreter::PredicateReference visitAsUserPredicate(
         const PredicateRef &pr
     ) {
@@ -111,22 +115,52 @@ public:
         });
     }
 
-    interpreter::EffectCtorRef visit(const EffectCtorRef &ecr) {
-        const EffectCtor &eCtor = ast.resolveEffectCtorRef(ecr);
-        auto [effectIndex, eCtorIndex] = getEffectIndices(ecr);
-
+    interpreter::HandlerExpression visitAsHandlerExpr(const PredicateRef &pr) {
         std::vector<interpreter::MatcherValue> arguments;
+        const PredicateDecl &pDecl = ast.resolvePredicateRef(pr).getDeclaration();
+        for(int i=0; i<pDecl.parameters.size(); ++i) {
+            auto loweredCtorRef = visit(pr.arguments[i], pDecl.parameters[i].type);
+            arguments.push_back(loweredCtorRef);
+        }
+    
+        return ast.resolvePredicateRef(pr).match<interpreter::HandlerExpression>(
+        [&](const UserPredicate *) {
+            size_t predicateIndex = getPredicateIndex(pr.name);
+            return interpreter::HandlerExpression(
+                interpreter::PredicateReference(predicateIndex, arguments));
+        },
+        [&](const BuiltinPredicate *bp) {
+            auto resolved = interpreter::getBuiltinPredicateByName(bp->declaration.name.string());
+            return interpreter::HandlerExpression(
+                interpreter::BuiltinPredicateReference(resolved, arguments));
+        });
+    }
+
+    interpreter::EffectImplHead visit(const EffectImplHead &eih) {
+        const EffectCtor &eCtor = ast.resolveEffectCtorRef(
+            eih.effectName,
+            eih.ctorName);
+        auto [effectIndex, eCtorIndex] = getEffectIndices(
+            eih.effectName,
+            eih.ctorName);
+        
+        std::vector<interpreter::MatcherValue> arguments;
+        arguments.reserve(eCtor.parameters.size());
         for(int i=0; i<eCtor.parameters.size(); ++i) {
-            auto loweredCtorRef = visit(ecr.arguments[i], eCtor.parameters[i].type);
+            auto loweredCtorRef = visit(eih.arguments[i], eCtor.parameters[i].type);
             arguments.push_back(loweredCtorRef);
         }
 
-        auto continuation = visit(ecr.getContinuation());
+        return interpreter::EffectImplHead(effectIndex, eCtorIndex, arguments);
+    }
 
+    interpreter::EffectCtorRef visit(const EffectCtorRef &ecr) {
+        auto eih = visit(EffectImplHead(ecr));
+        auto continuation = visit(ecr.getContinuation());
         return interpreter::EffectCtorRef(
-            effectIndex,
-            eCtorIndex,
-            arguments,
+            eih.effectIndex,
+            eih.effectCtorIndex,
+            eih.arguments,
             continuation);
     }
 
@@ -137,12 +171,29 @@ public:
         );
     }
 
+    interpreter::HandlerConjunction visit(const HandlerConjunction &hConj) {
+        return interpreter::HandlerConjunction(
+            visit(hConj.getLeft()),
+            visit(hConj.getRight())
+        );
+    }
+
     interpreter::Expression visit(const Expression &expr) {
         return expr.match<interpreter::Expression>(
         [&](TruthLiteral tl) { return interpreter::Expression(visit(tl)); },
         [&](PredicateRef pr) { return interpreter::Expression(visit(pr)); },
         [&](EffectCtorRef ecr) { return interpreter::Expression(visit(ecr)); },
         [&](Conjunction conj) { return interpreter::Expression(visit(conj)); }
+        );
+    }
+
+    interpreter::HandlerExpression visit(const HandlerExpression &hExpr) {
+        return hExpr.match<interpreter::HandlerExpression>(
+        [&](TruthLiteral tl) { return interpreter::HandlerExpression(visit(tl)); },
+        [&](Continuation k) {return interpreter::HandlerExpression(visit(k)); },
+        [&](PredicateRef pr) { return interpreter::HandlerExpression(visitAsHandlerExpr(pr)); },
+        [&](EffectCtorRef ecr) { return interpreter::HandlerExpression(visit(ecr)); },
+        [&](HandlerConjunction hConj) { return interpreter::HandlerExpression(visit(hConj)); }
         );
     }
 
@@ -156,13 +207,39 @@ public:
         return interpreter::Implication(head, body, variableCount);
     }
 
+    interpreter::EffectImplication visit(const EffectImplication &eImpl) {
+        auto head = visit(eImpl.head);
+        auto body = visit(eImpl.body);
+        // TODO: variables in handlers?
+        return interpreter::EffectImplication(head, body, 0);
+    }
+
+    interpreter::Handler visit(const Handler &h) {
+        size_t effectIndex = getEffectIndex(h.effect);
+
+        std::vector<interpreter::EffectImplication> implications;
+        implications.reserve(h.implications.size());
+        for(const EffectImplication &hImpl : h.implications) {
+            implications.push_back(visit(hImpl));
+        }
+
+        return interpreter::Handler(effectIndex, implications);
+    }
+
     interpreter::Predicate visit(const UserPredicate &up) {
         std::vector<interpreter::Implication> implications;
         implications.reserve(up.implications.size());
         for(const Implication &impl : up.implications) {
             implications.push_back(visit(impl));
         }
-        return interpreter::Predicate(implications);
+
+        std::vector<interpreter::Handler> handlers;
+        handlers.reserve(up.handlers.size());
+        for(const Handler &h : up.handlers) {
+            handlers.push_back(visit(h));
+        }
+
+        return interpreter::Predicate(implications, handlers);
     }
 
     void visit(const PredicateDecl &pd) { assert(false && "not implemented"); };
@@ -213,17 +290,40 @@ private:
         return index;
     }
 
-    std::pair<size_t, size_t> getEffectIndices(const EffectCtorRef &ecr) {
+    size_t getEffectIndex(const EffectRef &er) {
+        // search for a user-defined effect type with the given name.
         auto effect = std::find_if(
             ast.effects.begin(),
             ast.effects.end(),
-            [&](const Effect &e) { return ecr.effectName == e.declaration.name; });
+            [&](const Effect &e) { return er == e.declaration.name; });
+        
+        if(effect != ast.effects.end()) {
+            return effect - ast.effects.begin() + TypedAST::builtinEffects.size();
+        }
+
+        // If the effect type is not user-defined, it must be builtin.
+        effect = std::find_if(
+            builtinEffects.begin(),
+            builtinEffects.end(),
+            [&](const Effect &e) { return er == e.declaration.name; });
+        assert(effect != builtinEffects.end());
+        return effect - builtinEffects.begin();
+    }
+
+    std::pair<size_t, size_t> getEffectIndices(
+        const EffectRef &effectName,
+        const Name<EffectCtor> ctorName
+    ) {
+        auto effect = std::find_if(
+            ast.effects.begin(),
+            ast.effects.end(),
+            [&](const Effect &e) { return effectName == e.declaration.name; });
 
         if(effect != ast.effects.end()) {
             auto eCtor = std::find_if(
                 effect->constructors.begin(),
                 effect->constructors.end(),
-                [&](const EffectCtor &eCtor) { return ecr.ctorName == eCtor.name; });
+                [&](const EffectCtor &eCtor) { return ctorName == eCtor.name; });
             
             assert(eCtor != effect->constructors.end());
 
@@ -236,7 +336,7 @@ private:
         effect = std::find_if(
             builtinEffects.begin(),
             builtinEffects.end(),
-            [&](const Effect &e) { return e.declaration.name == ecr.effectName; });
+            [&](const Effect &e) { return e.declaration.name == effectName; });
         
         // The effect must either be in the AST or a builtin effect.
         assert(effect != builtinEffects.end());
@@ -244,7 +344,7 @@ private:
         auto eCtor = std::find_if(
             effect->constructors.begin(),
             effect->constructors.end(),
-            [&](const EffectCtor &eCtor) { return ecr.ctorName == eCtor.name; });
+            [&](const EffectCtor &eCtor) { return ctorName == eCtor.name; });
         
         assert(eCtor != effect->constructors.end());
         return {

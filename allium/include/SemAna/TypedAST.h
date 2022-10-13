@@ -153,7 +153,7 @@ public:
  */
 
 struct Effect;
-typedef Name<Type> EffectRef;
+typedef Name<Effect> EffectRef;
 
 struct EffectDecl {
     EffectDecl() {}
@@ -272,23 +272,6 @@ struct PredicateRef {
 
 std::ostream& operator<<(std::ostream &out, const PredicateRef &pr);
 
-/// Represents the head of an implication inside of a handler definition. This
-/// is essentially an EffectCtorRef with no continuation.
-struct EffectImplHead {
-    EffectImplHead(
-        std::string effectName,
-        std::string ctorName,
-        std::vector<Value> arguments,
-        SourceLocation location
-    ): effectName(effectName), ctorName(ctorName), arguments(arguments),
-        location(location) {}
-
-    Name<Effect> effectName;
-    Name<EffectCtor> ctorName;
-    std::vector<Value> arguments;
-    SourceLocation location;
-};
-
 /// Represents a use of an effect inside of a logical expression, including its
 /// continuation.
 struct EffectCtorRef {
@@ -313,6 +296,27 @@ protected:
 };
 
 std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr);
+
+/// Represents the head of an implication inside of a handler definition. This
+/// is essentially an EffectCtorRef with no continuation.
+struct EffectImplHead {
+    EffectImplHead(
+        std::string effectName,
+        std::string ctorName,
+        std::vector<Value> arguments,
+        SourceLocation location
+    ): effectName(effectName), ctorName(ctorName), arguments(arguments),
+        location(location) {}
+
+    EffectImplHead(const EffectCtorRef &ecr):
+        effectName(ecr.effectName), ctorName(ecr.ctorName),
+        arguments(ecr.arguments), location(ecr.location) {}
+
+    Name<Effect> effectName;
+    Name<EffectCtor> ctorName;
+    std::vector<Value> arguments;
+    SourceLocation location;
+};
 
 /// Represents the conjunction of two logical expressions in the context of a
 /// predicate.
@@ -441,7 +445,10 @@ public:
 
     const Effect &resolveEffectRef(const Name<Effect> &er) const;
 
-    const EffectCtor &resolveEffectCtorRef(const EffectCtorRef &ecr) const;
+    const EffectCtor &resolveEffectCtorRef(
+        const EffectRef &effectName,
+        const Name<EffectCtor> &ctorName
+    ) const;
 
     const Predicate resolvePredicateRef(const PredicateRef &pr) const;
 

@@ -31,13 +31,16 @@ TEST(TestASTLower, variables_of_uninhabited_types_are_marked) {
         lower(ast),
         interpreter::Program(
             {
-                interpreter::Predicate({
-                    interpreter::Implication(
-                        interpreter::PredicateReference(0, { anon }),
-                        interpreter::TruthValue(true),
-                        0
-                    ),
-                })
+                interpreter::Predicate(
+                    {
+                        interpreter::Implication(
+                            interpreter::PredicateReference(0, { anon }),
+                            interpreter::TruthValue(true),
+                            0
+                        ),
+                    },
+                    {}
+                )
             },
             Optional<interpreter::PredicateReference>()
         )
@@ -132,19 +135,22 @@ TEST(TestASTLower, variables_are_uniquely_indexed) {
         lower(ast),
         interpreter::Program(
             {
-                interpreter::Predicate({
-                    interpreter::Implication(
-                        interpreter::PredicateReference(0, { anon, anon }),
-                        interpreter::Expression(interpreter::PredicateReference(
-                            0,
-                            {
-                                interpreter::MatcherValue(interpreter::MatcherVariable(0, true)),
-                                interpreter::MatcherValue(interpreter::MatcherVariable(1, true))
-                            }
-                        )),
-                        2
-                    ),
-                })
+                interpreter::Predicate(
+                    {
+                        interpreter::Implication(
+                            interpreter::PredicateReference(0, { anon, anon }),
+                            interpreter::Expression(interpreter::PredicateReference(
+                                0,
+                                {
+                                    interpreter::MatcherValue(interpreter::MatcherVariable(0, true)),
+                                    interpreter::MatcherValue(interpreter::MatcherVariable(1, true))
+                                }
+                            )),
+                            2
+                        ),
+                    },
+                    {}
+                )
             },
             Optional<interpreter::PredicateReference>()
         )
@@ -177,20 +183,23 @@ TEST(TestASTLower, builtin_predicate_lowering) {
         lower(ast),
         interpreter::Program(
             {
-                interpreter::Predicate({
-                    interpreter::Implication(
-                        interpreter::PredicateReference(0, {}),
-                        interpreter::Expression(interpreter::BuiltinPredicateReference(
-                            interpreter::getBuiltinPredicateByName("concat"),
-                            {
-                                interpreter::MatcherValue(interpreter::String("a")),
-                                interpreter::MatcherValue(interpreter::String("b")),
-                                interpreter::MatcherValue(interpreter::String("ab"))
-                            }
-                        )),
-                        0
-                    ),
-                })
+                interpreter::Predicate(
+                    {
+                        interpreter::Implication(
+                            interpreter::PredicateReference(0, {}),
+                            interpreter::Expression(interpreter::BuiltinPredicateReference(
+                                interpreter::getBuiltinPredicateByName("concat"),
+                                {
+                                    interpreter::MatcherValue(interpreter::String("a")),
+                                    interpreter::MatcherValue(interpreter::String("b")),
+                                    interpreter::MatcherValue(interpreter::String("ab"))
+                                }
+                            )),
+                            0
+                        ),
+                    },
+                    {}
+                )
             },
             interpreter::PredicateReference(0, {})
         )

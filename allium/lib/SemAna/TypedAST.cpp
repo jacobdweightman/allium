@@ -302,13 +302,16 @@ const Effect &AST::resolveEffectRef(const Name<Effect> &er) const {
     return *effect;
 }
 
-const EffectCtor &AST::resolveEffectCtorRef(const EffectCtorRef &ecr) const {
-    const Effect &effect = resolveEffectRef(ecr.effectName);
+const EffectCtor &AST::resolveEffectCtorRef(
+    const EffectRef &effectName,
+    const Name<EffectCtor> &ctorName
+) const {
+    const Effect &effect = resolveEffectRef(effectName);
 
     const auto eCtor = std::find_if(
         effect.constructors.begin(),
         effect.constructors.end(),
-        [&](const EffectCtor &eCtor) { return eCtor.name == ecr.ctorName; });
+        [&](const EffectCtor &eCtor) { return eCtor.name == ctorName; });
     
     assert(eCtor != effect.constructors.end());
     return *eCtor;

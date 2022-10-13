@@ -1,0 +1,21 @@
+effect Repeat {
+    ctor repeat;
+}
+
+pred main: IO {
+    main <-
+        do repeat,
+        do print("Hello world!");
+
+    handle Repeat {
+        do repeat <- continue, continue;
+    }
+}
+
+// CHECK: prove: main()
+// CHECK: handle effect: do 1.0 { do 0.0 { true } }
+// CHECK: handle effect: do 0.0 { true }
+// CHECK: Hello world!
+// CHECK: handle effect: do 0.0 { true }
+// CHECK: Hello world!
+// CHECK: Exit code: 0
