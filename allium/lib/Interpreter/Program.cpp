@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "Interpreter/BuiltinEffects.h"
 #include "Interpreter/BuiltinPredicates.h"
 #include "Interpreter/Program.h"
 #include "Interpreter/WitnessProducer.h"
@@ -10,9 +11,9 @@ namespace interpreter {
 
 bool Program::prove(const Expression &expr) {
     // TODO: if `main` ever takes arguments, they need to be allocated here.
-    // TODO: push default handlers into the handler stack.
     Context mainContext;
     HandlerStack handlers;
+    handlers.emplace_back(0, builtinHandlerIO);
 
     if(witnesses(*this, expr, mainContext, handlers).next()) {
         return true;
@@ -281,7 +282,7 @@ std::ostream& operator<<(std::ostream &out, const EffectImplication &eImpl) {
     return out << eImpl.head << " <- " << eImpl.body << ";";
 }
 
-std::ostream& operator<<(std::ostream &out, const Handler &h) {
+std::ostream& operator<<(std::ostream &out, const UserHandler &h) {
     out << "handle " << h.effect << "{\n";
     for(const auto &hImpl : h.implications) out << "    " << hImpl << "\n";
     return out << "}";

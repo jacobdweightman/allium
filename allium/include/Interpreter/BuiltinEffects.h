@@ -4,13 +4,16 @@
 #include <vector>
 
 #include "Interpreter/Program.h"
+#include "Utils/Generator.h"
+#include "Utils/Unit.h"
 
 namespace interpreter {
 
-void handleDefaultIO(
+Generator<Unit> builtinHandlerIO(
+    const Program &prog,
     const EffectCtorRef &ecr,
-    Context &context
-);
+    Context &context,
+    HandlerStack &handlers);
 
 }
 

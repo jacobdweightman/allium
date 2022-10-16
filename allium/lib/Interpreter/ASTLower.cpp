@@ -214,7 +214,7 @@ public:
         return interpreter::EffectImplication(head, body, 0);
     }
 
-    interpreter::Handler visit(const Handler &h) {
+    interpreter::UserHandler visit(const Handler &h) {
         size_t effectIndex = getEffectIndex(h.effect);
 
         std::vector<interpreter::EffectImplication> implications;
@@ -223,7 +223,7 @@ public:
             implications.push_back(visit(hImpl));
         }
 
-        return interpreter::Handler(effectIndex, implications);
+        return interpreter::UserHandler(effectIndex, implications);
     }
 
     interpreter::Predicate visit(const UserPredicate &up) {
@@ -233,7 +233,7 @@ public:
             implications.push_back(visit(impl));
         }
 
-        std::vector<interpreter::Handler> handlers;
+        std::vector<interpreter::UserHandler> handlers;
         handlers.reserve(up.handlers.size());
         for(const Handler &h : up.handlers) {
             handlers.push_back(visit(h));

@@ -1,6 +1,7 @@
 #include <vector>
 
 #include "Interpreter/Program.h"
+#include "Interpreter/WitnessProducer.h"
 
 namespace interpreter {
 
@@ -14,14 +15,24 @@ static void printStringValue(const RuntimeValue &v) {
     );
 }
 
-void handleDefaultIO(
+Generator<Unit> builtinHandlerIO(
+    const Program &prog,
     const EffectCtorRef &ecr,
-    Context &context
+    Context &context,
+    HandlerStack &handlers
 ) {
-    if(ecr.effectCtorIndex == 0) {
+    switch(ecr.effectCtorIndex) {
+    case 0:
         // IO.print(String)
         printStringValue(ecr.arguments[0].lower(context));
+        break;
+    default:
+        assert(false && "unknown IO effect");
     }
+
+    auto k = witnesses(prog, ecr.getContinuation(), context, handlers);
+    while(k.next())
+        co_yield {};
 }
 
 }

@@ -31,6 +31,8 @@
 
 namespace interpreter {
 
+class Program;
+
 struct TruthValue;
 struct Continuation;
 struct PredicateReference;
@@ -450,8 +452,17 @@ bool operator==(const EffectImplication &, const EffectImplication &);
 bool operator!=(const EffectImplication &, const EffectImplication &);
 std::ostream& operator<<(std::ostream &out, const EffectImplication &eImpl);
 
-struct Handler {
-    Handler(size_t effect, std::vector<EffectImplication> implications):
+struct Handler;
+using HandlerStack = std::vector<Handler>;
+
+typedef Generator<Unit> (*BuiltinHandler)(
+    const Program &prog,
+    const EffectCtorRef &ecr,
+    Context &context,
+    HandlerStack &handlers);
+
+struct UserHandler {
+    UserHandler(size_t effect, std::vector<EffectImplication> implications):
         effect(effect), implications(implications) {}
 
     /// A number which uniquely identifies the effect type that this handler
@@ -462,14 +473,31 @@ struct Handler {
     std::vector<EffectImplication> implications;
 };
 
-bool operator==(const Handler &, const Handler &);
-bool operator!=(const Handler &, const Handler &);
-std::ostream& operator<<(std::ostream &out, const Handler &h);
+struct Handler {
+    Handler(size_t effect, BuiltinHandler h):
+        effect(effect), implementation(h) {}
+    Handler(UserHandler h):
+        effect(h.effect), implementation(h) {}
+
+    /// A number which uniquely identifies the effect type that this handler
+    /// handles.
+    size_t effect;
+
+    /// The underlying implementation for this handler.
+    TaggedUnion<
+        BuiltinHandler,
+        UserHandler
+    > implementation;
+};
+
+bool operator==(const UserHandler &, const UserHandler &);
+bool operator!=(const UserHandler &, const UserHandler &);
+std::ostream& operator<<(std::ostream &out, const UserHandler &h);
 
 struct Predicate {
     Predicate(
         std::vector<Implication> implications,
-        std::vector<Handler> handlers
+        std::vector<UserHandler> handlers
     ): implications(implications), handlers(handlers) {}
 
     Predicate operator=(Predicate other) {
@@ -478,7 +506,7 @@ struct Predicate {
     }
 
     std::vector<Implication> implications;
-    std::vector<Handler> handlers;
+    std::vector<UserHandler> handlers;
 };
 
 bool operator==(const Predicate &, const Predicate &);

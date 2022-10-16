@@ -75,47 +75,61 @@ Generator<Unit> witnesses(
 Generator<Unit> witnesses(
     const Program &prog,
     const EffectCtorRef &ecr,
+    const UserHandler &h,
+    Context &context,
+    HandlerStack &handlers
+) {
+    // Save the original context so that mutations from pattern matching don't
+    // persist beyond backtracking.
+    Context originalContextCopy = context;
+
+    for(const auto &hImpl : h.implications) {
+        if(prog.config.debugLevel >= Config::LogLevel::MAX)
+            std::cout << "  try handler implication: " << hImpl << std::endl;
+        Context localContext(hImpl.variableCount);
+
+        if(match(ecr, hImpl.head, context, localContext)) {
+            auto w = witnesses(
+                prog,
+                hImpl.body,
+                ecr.getContinuation(),
+                localContext,
+                handlers);
+            while(w.next())
+                co_yield {};
+        }
+
+        // Restore the context to its original state between each implication
+        // to undo mutations from matching the previous implication's head.
+        context = originalContextCopy;
+    }
+}
+
+Generator<Unit> witnesses(
+    const Program &prog,
+    const EffectCtorRef &ecr,
     Context &context,
     HandlerStack &handlers
 ) {
     if(prog.config.debugLevel >= Config::LogLevel::QUIET)
         std::cout << "handle effect: " << ecr << "\n";
-    if(ecr.effectIndex == 0) {
-        handleDefaultIO(ecr, context);
-        auto k = witnesses(prog, ecr.getContinuation(), context, handlers);
-        while(k.next())
+
+    const auto &h = std::find_if(
+        handlers.rbegin(),
+        handlers.rend(),
+        [&](const Handler &h) { return ecr.effectIndex == h.effect; });
+    assert(h != handlers.rend() && "no handler found at runtime!");
+
+    BuiltinHandler bih;
+    std::unique_ptr<UserHandler> uh;
+    if(h->implementation.as_a<BuiltinHandler>().unwrapInto(bih)) {
+        auto w = bih(prog, ecr, context, handlers);
+        while(w.next())
             co_yield {};
-    } else {
-        const auto &h = std::find_if(
-            handlers.rbegin(),
-            handlers.rend(),
-            [&](const Handler &h) { return ecr.effectIndex == h.effect; });
-        assert(h != handlers.rend() && "no handler found at runtime!");
-
-        // Save the original context so that mutations from pattern matching don't
-        // persist beyond backtracking.
-        Context originalContextCopy = context;
-
-        for(const auto &hImpl : h->implications) {
-            if(prog.config.debugLevel >= Config::LogLevel::MAX)
-                std::cout << "  try handler implication: " << hImpl << std::endl;
-            Context localContext(hImpl.variableCount);
-
-            if(match(ecr, hImpl.head, context, localContext)) {
-                auto w = witnesses(
-                    prog,
-                    hImpl.body,
-                    ecr.getContinuation(),
-                    localContext,
-                    handlers);
-                while(w.next())
-                    co_yield {};
-            }
-
-            // Restore the context to its original state between each implication
-            // to undo mutations from matching the previous implication's head.
-            context = originalContextCopy;
-        }
+    } else if(h->implementation.as_a<UserHandler>().unwrapInto(uh)) {
+        auto w = witnesses(prog, ecr, *uh, context, handlers);
+        while(w.next())
+            co_yield {};
     }
 }
 

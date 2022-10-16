@@ -26,8 +26,6 @@ bool match(RuntimeValue *var, const String &str);
 bool match(RuntimeValue *var, const Int &i);
 bool match(RuntimeValue &val1, RuntimeValue &val2);
 
-using HandlerStack = std::vector<Handler>;
-
 /**
  * A generator which enumerates the witnesses of expr.
  * 
