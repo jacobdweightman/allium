@@ -303,28 +303,22 @@ Optional<Type> AST::resolveTypeRef(const Name<Type> &tr) const {
 }
 
 Optional<const Effect*> AST::resolveEffectRef(const EffectRef &er) const {
-    // Type definitions for builtins
-    // TODO: this won't scale well with many builtin effect types.
-    if(er.name == "IO") {
-        return new Effect(
-            EffectDecl("IO", SourceLocation()),
-            {
-                EffectConstructor(
-                    "print",
-                    { Parameter("String", true, SourceLocation()) },
-                    SourceLocation()
-                )
-            }
-        );
-    }
-
-    const auto &x = std::find_if(
+    auto x = std::find_if(
         effects.begin(),
         effects.end(),
         [&](const Effect &e) { return e.declaration.name == er.name; });
 
     if(x == effects.end()) {
-        return Optional<const Effect*>();
+        x = std::find_if(
+            builtinEffects.begin(),
+            builtinEffects.end(),
+            [&](const Effect &e) { return e.declaration.name == er.name; });
+        
+        if(x == builtinEffects.end()) {
+            return Optional<const Effect*>();
+        } else {
+            return &*x;
+        }
     } else {
         return &*x;
     }
