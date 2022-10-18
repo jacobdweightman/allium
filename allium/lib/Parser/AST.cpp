@@ -326,15 +326,15 @@ Optional<const Effect*> AST::resolveEffectRef(const EffectRef &er) const {
 
 Optional<std::pair<const Effect*, const EffectConstructor*>>
 AST::resolveEffectCtorRef(const EffectCtorRef &ecr) const {
-    // Type definitions for builtins
-    // TODO: this won't scale well with many builtin effect types.
-    if(ecr.name == "print") {
-        const Effect *e;
-        if(resolveEffectRef(EffectRef("IO", {})).unwrapGuard(e)) {
-            assert(false && "failed to resolve IO!");
-            return Optional<std::pair<const Effect*, const EffectConstructor*>>();
+    for(const auto &e : builtinEffects) {
+        const auto eCtor = std::find_if(
+            e.constructors.begin(),
+            e.constructors.end(),
+            [&](const EffectConstructor &eCtor) { return eCtor.name == ecr.name; });
+        
+        if(eCtor != e.constructors.end()) {
+            return std::make_pair(&e, &*eCtor);
         }
-        return std::make_pair(e, &e->constructors[0]);
     }
 
     for(const auto &e : effects) {
