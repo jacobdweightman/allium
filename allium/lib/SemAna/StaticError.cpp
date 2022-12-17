@@ -13,6 +13,8 @@ std::string formatString(ErrorMessage msg) {
         return "Allium builtin \"%s\" cannot be redefined.";
     case ErrorMessage::constructor_argument_count:
         return "Constructor \"%s\" of type %s expects %s arguments.";
+    case ErrorMessage::continue_in_predicate_impl:
+        return "Predicates do not have a continuation. The \"continue\" keyword can only be used inside of a handler.";
     case ErrorMessage::effect_argument_count:
         return "Effect constructor \"%s\" of effect %s expects %s arguments.";
     case ErrorMessage::effect_from_predicate_unhandled:
@@ -21,8 +23,12 @@ std::string formatString(ErrorMessage msg) {
         return "Effect \"%s\" was already defined at %s and cannot be redefined.";
     case ErrorMessage::effect_type_undefined:
         return "Use of undefined effect type \"%s\".";
-    case ErrorMessage::effect_unknown:
-        return "Effect constructor \"%s\" does not match any effect constructor of effects produced by predicate \"%s\".";
+    case ErrorMessage::effect_constructor_undefined:
+        return "Effect constructor \"%s\" is not a constructor of any known effect.";
+    case ErrorMessage::effect_unhandled:
+        return "Predicate \"%s\" does not handle effect \"%s\".";
+    case ErrorMessage::effect_impl_head_mismatches_effect:
+        return "Implication head \"%s\" does not match any constructors of effect \"%s\".";
     case ErrorMessage::input_only_argument_contains_variable_definition:
         return "Parameter was marked \"in\" and cannot be instantiated with definition of variable \"%s\".";
     case ErrorMessage::int_literal_not_convertible:

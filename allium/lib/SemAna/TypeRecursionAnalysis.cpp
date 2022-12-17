@@ -13,7 +13,7 @@ bool TypeRecursionAnalysis::immediatelyContains(const Type &a, const Type &b) {
     return false;
 }
 
-bool TypeRecursionAnalysis::areMutuallyRecursive(const Type &a, const Type &b) {
+bool TypeRecursionAnalysis::recursivelyContains(const Type &a, const Type &b) {
     if(immediatelyContains(a, b))
         return true;
     

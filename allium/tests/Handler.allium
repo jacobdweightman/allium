@@ -1,0 +1,21 @@
+effect Repeat {
+    ctor repeat;
+}
+
+pred main: IO {
+    main <-
+        do repeat,
+        do print("Hello world!");
+
+    handle Repeat {
+        do repeat <- continue, continue;
+    }
+}
+
+// CHECK: prove: main()
+// CHECK: handle effect: do [[REPEAT:[0-9]+.[0-9]+]] { do 0.0 { true } }
+// CHECK: handle effect: do [[PRINT:[0-9]+.[0-9]+]] { true }
+// CHECK: Hello world!
+// CHECK: handle effect: do [[PRINT]] { true }
+// CHECK: Hello world!
+// CHECK: Exit code: 0

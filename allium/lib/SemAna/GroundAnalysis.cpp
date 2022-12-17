@@ -370,7 +370,42 @@ class GroundAnalysis {
         // std::cout << "analyze: " << pr << std::endl;
 
         const Predicate &p = ast.resolvePredicateRef(pr);
+        return p.match<bool>(
+        [&](const UserPredicate *up) { return analyzeUserPredicateRef(ctx, *up, pr); },
+        [&](const BuiltinPredicate *bp) { return analyzeBuiltinPredicateRef(ctx, *bp, pr); }
+        );
+    }
 
+    bool analyzeBuiltinPredicateRef(Context &ctx, const BuiltinPredicate &p, const PredicateRef &pr) {
+        // The groundness of the predicate arguments before the subproof.
+        PRGroundness initialGroundness = getGroundness(ctx, pr);
+
+        // pr matches a mode iff initialGroundness is sufficiently grounded for
+        // the mode to apply. This means that all arguments that must be ground
+        // for it to apply are actually ground.
+        auto matches = [&](const Mode &m) {
+            for(size_t i=0; i<pr.arguments.size(); ++i) {
+                if(m.inGroundness[i] && !initialGroundness.arguments[i].isGround())
+                    return false;
+            }
+            return true;
+        };
+
+        bool changed = false;
+
+        for(const Mode &m : p.modes) {
+            if(matches(m)) {
+                for(size_t i=0; i<pr.arguments.size(); ++i) {
+                    if(m.outGroundness[i])
+                        changed |= groundAllVariables(ctx, pr.arguments[i]);
+                }
+            }
+        }
+
+        return changed;
+    }
+
+    bool analyzeUserPredicateRef(Context &ctx, const UserPredicate &p, const PredicateRef &pr) {
         // The groundness of the predicate arguments before the subproof.
         PRGroundness initialGroundness = getGroundness(ctx, pr);
 
@@ -433,13 +468,13 @@ class GroundAnalysis {
     }
 
     std::pair<std::vector<Implication>, std::vector<Implication>>
-    partitionRecursiveImpls(const Predicate &p) {
+    partitionRecursiveImpls(const UserPredicate &up) {
         std::vector<Implication> nonrecursiveImpls, recursiveImpls;
 
-        for(const auto &impl : p.implications) {
+        for(const auto &impl : up.implications) {
             bool implIsRecursive;
             forAllPredRefs(impl.body, [&](const PredicateRef &pr) {
-                implIsRecursive |= pdg.dependsOn(pr.name, p.declaration.name);
+                implIsRecursive |= pdg.dependsOn(pr.name, up.declaration.name);
             });
             if(implIsRecursive) {
                 recursiveImpls.push_back(impl);
@@ -459,8 +494,8 @@ class GroundAnalysis {
     ) {
         // std::cout << "next impl\n";
         Context innerCtx;
-        for(const auto &variable : getVariables(impl)) {
-            innerCtx.insert({ variable, false });
+        for(const auto &variable : getVariables(ast, impl)) {
+            innerCtx.insert({ variable.first, false });
         }
 
         // Propagate groundness from caller to head
@@ -484,7 +519,9 @@ class GroundAnalysis {
     bool analyzeEffectCtorRef(Context &ctx, const EffectCtorRef &ecr) {
         // TODO: once handlers are supported, we will need to resolve them
         // in order to see if their arguments are provably ground.
-        const auto &parameters = ast.resolveEffectCtorRef(ecr).parameters;
+        const auto &parameters = ast
+            .resolveEffectCtorRef(ecr.effectName, ecr.ctorName)
+            .parameters;
         for(int i=0; i<parameters.size(); ++i) {
             if(parameters[i].isInputOnly && !isGround(ctx, ecr.arguments[i])) {
                 emitGroundingError(ecr.location);

@@ -57,6 +57,7 @@ GENERATE_EXPORT_HEADER(AlliumSemAna)
 add_library(AlliumInterpreter SHARED
   lib/Interpreter/ASTLower.cpp
   lib/Interpreter/BuiltinEffects.cpp
+  lib/Interpreter/BuiltinPredicates.cpp
   lib/Interpreter/Program.cpp
   lib/Interpreter/WitnessProducer.cpp)
 
@@ -67,8 +68,10 @@ if(BUILD_COMPILER)
   add_subdirectory(lib/LLVMCodeGen)
 endif()
 
-add_library(Allium SHARED
+add_library(AlliumRuntime SHARED
   lib/LibAllium/libAllium.c)
+set_target_properties(AlliumRuntime PROPERTIES
+  OUTPUT_NAME Allium)
 
 #############################
 # unit tests
@@ -79,6 +82,7 @@ add_executable(unittests
   unittests/TestASTRaise.cpp
   unittests/TestGenerator.cpp
   unittests/TestInterpreter.cpp
+  unittests/TestInterpreterBuiltins.cpp
   unittests/TestOptional.cpp
   unittests/TestParse.cpp
   unittests/TestSema.cpp

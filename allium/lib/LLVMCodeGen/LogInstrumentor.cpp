@@ -13,8 +13,6 @@ void LogInstrumentor::log(int minimumLogLevel, const std::string &message) {
     assert(logLevelPtr && "couldn't find global variable logLevel");
     Value *logLevel = cg.builder.CreateLoad(Type::getInt32Ty(cg.ctx), logLevelPtr, "log.level");
     Constant *threshold = ConstantInt::get(Type::getInt32Ty(cg.ctx), minimumLogLevel);
-    logLevel->getType()->dump();
-    threshold->getType()->dump();
     Value *cmp = cg.builder.CreateCmp(CmpInst::Predicate::ICMP_SGE, logLevel, threshold);
     cg.builder.CreateCondBr(cmp, logBB, next);
 

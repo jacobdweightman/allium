@@ -1,21 +1,32 @@
 #include "LLVMCodeGen/CGPred.h"
 #include "LLVMCodeGen/LogInstrumentor.h"
 #include "SemAna/TypedAST.h"
+#include "SemAna/VariableAnalysis.h"
 
 using namespace llvm;
+
+StructType *PredicateGenerator::getTypeIRType(const Name<TypedAST::Type> &type) {
+    StructType *irType = StructType::getTypeByName(ctx, mangledTypeName(type));
+    assert(irType && "type was not already lowered!");
+    return irType;
+}
 
 FunctionType *PredicateGenerator::getPredIRType(const TypedAST::PredicateDecl &pred) {
     Type *i8ptr = Type::getInt8PtrTy(ctx, 0);
     std::vector<Type*> paramTypes;
     for(const TypedAST::Parameter &param : pred.parameters) {
-        Type *type = StructType::getTypeByName(ctx, mangledTypeName(param.type));
-        assert(type && "type was not already lowered!");
-        paramTypes.push_back(type);
+        Type *type = getTypeIRType(param.type);
+        Type *typePtr = PointerType::get(type, 0);
+        paramTypes.push_back(typePtr);
     }
     return FunctionType::get(i8ptr, paramTypes, false);
 }
 
-void PredicateGenerator::lower(const TypedAST::TruthLiteral &tl, BasicBlock *fail) {
+void PredicateGenerator::lower(
+    const Scope &scope,
+    const TypedAST::TruthLiteral &tl,
+    BasicBlock *fail
+) {
     if(!tl.value) {
         Instruction *br = builder.CreateBr(fail);
 
@@ -28,11 +39,15 @@ void PredicateGenerator::lower(const TypedAST::TruthLiteral &tl, BasicBlock *fai
     }
 }
 
-void PredicateGenerator::lower(const TypedAST::PredicateRef &pr, BasicBlock *fail) {
-    const TypedAST::Predicate &p = ast.resolvePredicateRef(pr);
+void PredicateGenerator::lower(
+    const Scope &scope,
+    const TypedAST::PredicateRef &pr,
+    BasicBlock *fail
+) {
+    const auto &pDecl = ast.resolvePredicateRef(pr).getDeclaration();
     FunctionCallee pFunc = mod.getOrInsertFunction(
         mangledPredName(pr.name),
-        getPredIRType(p.declaration));
+        getPredIRType(pDecl));
 
     if(cg.instrumentWithLogs) {
         LogInstrumentor(cg).logSubproof(pr);
@@ -41,7 +56,13 @@ void PredicateGenerator::lower(const TypedAST::PredicateRef &pr, BasicBlock *fai
     Function *f = builder.GetInsertBlock()->getParent();
     BasicBlock *success = BasicBlock::Create(ctx, "", f);
 
-    Value *hdl = builder.CreateCall(pFunc, {}, "hdl");
+    std::vector<Value*> arguments;
+    for(size_t i=0; i<pr.arguments.size(); ++i) {
+        AlliumType type = cg.loweredTypes.at(pDecl.parameters[i].type);
+        arguments.push_back(lower(scope, type, pr.arguments[i]));
+    }
+
+    Value *hdl = builder.CreateCall(pFunc, arguments, "hdl");
     Function *coroDone = Intrinsic::getDeclaration(&mod, Intrinsic::coro_done);
     Value *done = builder.CreateCall(
         coroDone->getFunctionType(),
@@ -53,28 +74,37 @@ void PredicateGenerator::lower(const TypedAST::PredicateRef &pr, BasicBlock *fai
     builder.SetInsertPoint(success);
 }
 
-void PredicateGenerator::lower(const TypedAST::Conjunction &conj, BasicBlock *fail) {
-    lower(conj.getLeft(), fail);
-    lower(conj.getRight(), fail);
+void PredicateGenerator::lower(
+    const Scope &scope,
+    const TypedAST::Conjunction &conj,
+    BasicBlock *fail
+) {
+    lower(scope, conj.getLeft(), fail);
+    lower(scope, conj.getRight(), fail);
 }
 
-void PredicateGenerator::lower(const TypedAST::Expression &expr, BasicBlock *fail) {
+void PredicateGenerator::lower(
+    const Scope &scope,
+    const TypedAST::Expression &expr,
+    BasicBlock *fail
+) {
     expr.switchOver(
-    [&](TypedAST::TruthLiteral &tl) { lower(tl, fail); },
-    [&](TypedAST::PredicateRef &pr) { lower(pr, fail); },
+    [&](TypedAST::TruthLiteral &tl) { lower(scope, tl, fail); },
+    [&](TypedAST::PredicateRef &pr) { lower(scope, pr, fail); },
     [](TypedAST::EffectCtorRef &ecr) { assert(false && "not implemented!"); },
-    [&](TypedAST::Conjunction &conj) { lower(conj, fail); }
+    [&](TypedAST::Conjunction &conj) { lower(scope, conj, fail); }
     );
 }
 
-PredCoroutine PredicateGenerator::createPredicateCoroutine(const TypedAST::Predicate &pred) {
+PredCoroutine PredicateGenerator::createPredicateCoroutine(const TypedAST::PredicateDecl &pDecl) {
     PredCoroutine coro;
 
-    coro.func = Function::Create(
-        getPredIRType(pred.declaration),
-        GlobalValue::LinkageTypes::ExternalLinkage,
-        mangledPredName(pred.declaration.name),
-        mod);
+    coro.func = cast<Function>(
+        mod.getOrInsertFunction(
+            mangledPredName(pDecl.name),
+            getPredIRType(pDecl)
+        ).getCallee());
+    coro.func->setLinkage(GlobalValue::LinkageTypes::ExternalLinkage);
     coro.func->addFnAttr("coroutine.presplit", "0");
 
     // This initializes coro's id and handle, so it must precede the other
@@ -194,8 +224,8 @@ void PredicateGenerator::addCleanup(PredCoroutine &coro) {
 }
 
 // Note: assumes all types have already been lowered.
-Function *PredicateGenerator::lower(const TypedAST::Predicate &pred) {
-    PredCoroutine coro = createPredicateCoroutine(pred);
+Function *PredicateGenerator::lower(const TypedAST::UserPredicate &pred) {
+    PredCoroutine coro = createPredicateCoroutine(pred.declaration);
 
     Function *coroSuspend = Intrinsic::getDeclaration(&mod, Intrinsic::coro_suspend);
 
@@ -212,9 +242,41 @@ Function *PredicateGenerator::lower(const TypedAST::Predicate &pred) {
             LogInstrumentor(cg).logImplication(*impl);
         }
 
+        // Allocate variables that are local to this implication.
+        Scope scope;
+        const auto variables = getVariables(ast, *impl);
+        for(const auto &variable : variables) {
+            StructType *irType = getTypeIRType(variable.second->declaration.name);
+            Value *var = builder.CreateAlloca(irType);
+            Value *tagPtr = builder.CreateStructGEP(irType, var, getTagIndex());
+            builder.CreateStore(ConstantInt::get(ctx, APInt(8, 0)), tagPtr);
+            scope.insert({ variable.first, var });
+        }
+
+        // Generate code for unifying arguments in the head.
+        for(unsigned int i=0; i<pred.declaration.parameters.size(); ++i) {
+            const auto &param = pred.declaration.parameters[i];
+            Value *matcher = lower(
+                scope,
+                cg.loweredTypes.at(param.type),
+                impl->head.arguments[i]);
+            Function *unify = mod.getFunction(unifyFuncName(param.type));
+            Value *unified = builder.CreateCall(
+                unify->getFunctionType(),
+                unify,
+                { coro.func->getArg(i), matcher });
+
+            // If unification succeeded, try to unify the next argument. If not,
+            // then continue with the next implication.
+            // TODO: roll back any changes made during unification.
+            BasicBlock *unifyNext = BasicBlock::Create(ctx, "", coro.func, nextBB);
+            builder.CreateCondBr(unified, unifyNext, nextBB);
+            builder.SetInsertPoint(unifyNext);
+        }
+
         // Generate code for the implication body. On failure, continue with
         // the next implication.
-        lower(impl->body, nextBB);
+        lower(scope, impl->body, nextBB);
 
         // there should be one non-final suspend at the end of each implication,
         // which is used if a witness is found for the implication's body.
@@ -236,6 +298,39 @@ Function *PredicateGenerator::lower(const TypedAST::Predicate &pred) {
     return coro.func;
 }
 
+Value *PredicateGenerator::lower(
+    const Scope &scope,
+    AlliumType type,
+    const TypedAST::Value &v
+) {
+    return v.match<llvm::Value*>(
+    [&](TypedAST::AnonymousVariable av) {
+        assert(false && "anonymous variable lowering not implemented");
+        return nullptr;
+    },
+    [&](const TypedAST::Variable &v) {
+        return scope.at(v.name);
+    },
+    [&](const TypedAST::ConstructorRef &cr) {
+        assert(cr.arguments.size() == 0 && "ctor argument lowering not implemented");
+        // Tags of 0 and 1 are reserved for undefined and pointer values, so
+        // constructors start from 2.
+        size_t tag = getConstructorIndex(*type.astType, cr) + 2;
+        Value *alloc = builder.CreateAlloca(type.irType);
+        Value *tagPtr = builder.CreateStructGEP(type.irType, alloc, getTagIndex());
+        builder.CreateStore(ConstantInt::get(ctx, APInt(8, tag)), tagPtr);
+        return alloc;
+    },
+    [&](const TypedAST::StringLiteral &str) {
+        assert(false && "string literal lowering not implemented");
+        return nullptr;
+    },
+    [&](TypedAST::IntegerLiteral x) {
+        assert(false && "integer literal lowering not implemented");
+        return nullptr;
+    });
+}
+
 Function *PredicateGenerator::createMain() {
     Function *main = Function::Create(
         FunctionType::get(IntegerType::get(ctx, 32), {}, false),
@@ -250,7 +345,7 @@ Function *PredicateGenerator::createMain() {
     FunctionType *initTy = FunctionType::get(Type::getVoidTy(ctx), {}, false);
     FunctionCallee init = mod.getOrInsertFunction("allium_init", initTy);
     builder.CreateCall(init, {});
-    lower(TypedAST::PredicateRef("main", {}), failure);
+    lower({}, TypedAST::PredicateRef("main", {}), failure);
 
     // This goes into the "success" block created by lower
     builder.CreateRet(ConstantInt::get(ctx, APInt(32, 0, true)));

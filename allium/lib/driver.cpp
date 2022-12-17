@@ -211,6 +211,12 @@ int main(int argc, char *argv[]) {
     })
     .map<TypedAST::AST>([&](parser::AST ast) {
         return checkAll(ast, errorEmitter);
+    }).then([&](TypedAST::AST) {
+        unsigned errors = errorEmitter.getErrors();
+        if(errors > 0) {
+            std::cout << "Compilation failed with " << errors << " errors.\n";
+            exit(1);
+        }
     }).then([&](TypedAST::AST ast) {
         checkGroundParameters(ast, errorEmitter);
     }).then([&](TypedAST::AST) {

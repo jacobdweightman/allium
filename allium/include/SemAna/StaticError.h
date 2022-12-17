@@ -12,8 +12,16 @@ enum class ErrorMessage {
     /// An argument that must be ground contains an anonymous variable.
     argument_is_not_ground_anonymous,
 
+    /// The user has attempted to define something with the same name as a builtin.
     builtin_redefined,
+
+    /// A constructor was invoked with the wrong number of arguments.
     constructor_argument_count,
+
+    /// The "continue" keyword was used inside of an implication for a predicate.
+    continue_in_predicate_impl,
+
+    /// An effect was invoked with the wrong number of arguments.
     effect_argument_count,
 
     // A predicate uses another predicate in its subproof, but does not provide
@@ -26,9 +34,17 @@ enum class ErrorMessage {
     /// An effect type reference could not be matched to its definition.
     effect_type_undefined,
 
-    /// The definition of an effect constructor use could not be deduced.
-    effect_unknown,
+    /// An effect constructor could not be resolved to any effect type in the program.
+    effect_constructor_undefined,
 
+    /// An effect is used inside of a predicate without a handler or being declared
+    /// as unhandled.
+    effect_unhandled,
+
+    /// The head of an effect implication isn't a constructor of the handled effect type.
+    effect_impl_head_mismatches_effect,
+
+    /// The head of an implication isn't a reference to the enclosing predicate.
     impl_head_mismatches_predicate,
 
     /// A parameter marked `in` contains a variable definition.

@@ -60,6 +60,11 @@ public:
             return Optional<T>();
         }
     }
+
+    template <typename T>
+    bool is_a() const {
+        return std::holds_alternative<T>(wrapped);
+    }
 };
 
 // TODO: the constructor does not work as expected when case types are

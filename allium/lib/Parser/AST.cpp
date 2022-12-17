@@ -2,12 +2,14 @@
 
 #include "Parser/AST.h"
 #include "Parser/ASTPrinter.h"
+#include "Parser/Builtins.h"
 
 namespace parser {
 
 std::ostream& operator<<(std::ostream &out, const Expression &e) {
     return e.match<std::ostream&>(
         [&](TruthLiteral tl) -> std::ostream& { out << tl; return out; },
+        [&](Continuation k) -> std::ostream& { out << k; return out; },
         [&](PredicateRef p) -> std::ostream& { out << p; return out; },
         [&](EffectCtorRef ecr) -> std::ostream& { out << ecr; return out; },
         [&](Conjunction conj) -> std::ostream& {
@@ -35,6 +37,19 @@ bool operator!=(const TruthLiteral &lhs, const TruthLiteral &rhs) {
 
 std::ostream& operator<<(std::ostream &out, const TruthLiteral &tl) {
     ASTPrinter(out).visit(tl);
+    return out;
+}
+
+bool operator==(const Continuation &lhs, const Continuation &rhs) {
+    return lhs.location == rhs.location;
+}
+
+bool operator!=(const Continuation &lhs, const Continuation &rhs) {
+    return !(lhs == rhs);
+}
+
+std::ostream& operator<<(std::ostream &out, const Continuation &k) {
+    ASTPrinter(out).visit(k);
     return out;
 }
 
@@ -66,9 +81,47 @@ std::ostream& operator<<(std::ostream &out, const PredicateRef &p) {
     return out;
 }
 
-bool operator==(const EffectCtorRef &lhs, const EffectCtorRef &rhs) {
+bool operator==(const EffectImplHead &lhs, const EffectImplHead &rhs) {
     return lhs.location == rhs.location && lhs.name == rhs.name &&
         lhs.arguments == rhs.arguments;
+}
+
+bool operator!=(const EffectImplHead &lhs, const EffectImplHead &rhs) {
+    return !(lhs == rhs);
+}
+
+std::ostream& operator<<(std::ostream &out, const EffectImplHead &eih) {
+    ASTPrinter(out).visit(eih);
+    return out;
+}
+
+EffectCtorRef::EffectCtorRef(
+    std::string name,
+    std::vector<Value> arguments,
+    const Expression &continuation,
+    SourceLocation location
+): name(name), arguments(arguments), _continuation(new auto(continuation)),
+    location(location) {}
+
+EffectCtorRef::EffectCtorRef(const EffectCtorRef &other):
+    name(other.name), arguments(other.arguments), location(other.location),
+    _continuation(new auto(*other._continuation)) {}
+
+EffectCtorRef& EffectCtorRef::operator=(EffectCtorRef other) {
+    using std::swap;
+    swap(name, other.name);
+    swap(arguments, other.arguments);
+    swap(_continuation, other._continuation);
+    swap(location, other.location);
+    return *this;
+}
+
+Expression& EffectCtorRef::getContinuation() const { return *_continuation; }
+
+bool operator==(const EffectCtorRef &lhs, const EffectCtorRef &rhs) {
+    return lhs.location == rhs.location && lhs.name == rhs.name &&
+        lhs.arguments == rhs.arguments &&
+        lhs.getContinuation() == rhs.getContinuation();
 }
 
 bool operator!=(const EffectCtorRef &lhs, const EffectCtorRef &rhs) {
@@ -232,13 +285,10 @@ std::ostream& operator<<(std::ostream &out, const Type &type) {
 }
 
 Optional<Type> AST::resolveTypeRef(const Name<Type> &tr) const {
-    // Type definitions for builtins
-    // TODO: this won't scale well with many builtin types.
-    if(tr == "String") {
-        return Type(TypeDecl("String", SourceLocation()), {});
-    } else if(tr == "Int") {
-        return Type(TypeDecl("Int", SourceLocation()), {});
-    }
+    // TODO: this works well for literal types, but won't work well
+    // for builtin types with constructors.
+    if(nameIsBuiltinType(tr))
+        return Type(TypeDecl(tr.string(), SourceLocation()), {});
 
     const auto &x = std::find_if(
         types.begin(),
@@ -253,43 +303,72 @@ Optional<Type> AST::resolveTypeRef(const Name<Type> &tr) const {
 }
 
 Optional<const Effect*> AST::resolveEffectRef(const EffectRef &er) const {
-    // Type definitions for builtins
-    // TODO: this won't scale well with many builtin effect types.
-    if(er.name == "IO") {
-        return new Effect(
-            EffectDecl("IO", SourceLocation()),
-            {
-                EffectConstructor(
-                    "print",
-                    { Parameter("String", true, SourceLocation()) },
-                    SourceLocation()
-                )
-            }
-        );
-    }
-
-    const auto &x = std::find_if(
+    auto x = std::find_if(
         effects.begin(),
         effects.end(),
         [&](const Effect &e) { return e.declaration.name == er.name; });
 
     if(x == effects.end()) {
-        return Optional<const Effect*>();
+        x = std::find_if(
+            builtinEffects.begin(),
+            builtinEffects.end(),
+            [&](const Effect &e) { return e.declaration.name == er.name; });
+        
+        if(x == builtinEffects.end()) {
+            return Optional<const Effect*>();
+        } else {
+            return &*x;
+        }
     } else {
         return &*x;
     }
 }
 
-Optional<Predicate> AST::resolvePredicateRef(const PredicateRef &pr) const {
+Optional<std::pair<const Effect*, const EffectConstructor*>>
+AST::resolveEffectCtorRef(const EffectCtorRef &ecr) const {
+    for(const auto &e : builtinEffects) {
+        const auto eCtor = std::find_if(
+            e.constructors.begin(),
+            e.constructors.end(),
+            [&](const EffectConstructor &eCtor) { return eCtor.name == ecr.name; });
+        
+        if(eCtor != e.constructors.end()) {
+            return std::make_pair(&e, &*eCtor);
+        }
+    }
+
+    for(const auto &e : effects) {
+        const auto eCtor = std::find_if(
+            e.constructors.begin(),
+            e.constructors.end(),
+            [&](const EffectConstructor &eCtor) { return eCtor.name == ecr.name; });
+        
+        if(eCtor != e.constructors.end()) {
+            return std::make_pair(&e, &*eCtor);
+        }
+    }
+    return Optional<std::pair<const Effect*, const EffectConstructor*>>();
+}
+
+Optional<PredicateDecl> AST::resolvePredicateRef(const PredicateRef &pr) const {
     const auto &x = std::find_if(
         predicates.begin(),
         predicates.end(),
         [&](const Predicate &p) { return p.name.name == pr.name; });
+    
+    if(x != predicates.end()) {
+        return x->name;
+    }
 
-    if(x == predicates.end()) {
-        return Optional<Predicate>();
+    const auto &y = std::find_if(
+        builtinPredicates.begin(),
+        builtinPredicates.end(),
+        [&](const PredicateDecl &pDecl) { return pDecl.name == pr.name; });
+
+    if(y == builtinPredicates.end()) {
+        return Optional<PredicateDecl>();
     } else {
-        return *x;
+        return *y;
     }
 }
 
@@ -375,8 +454,8 @@ std::ostream& operator<<(std::ostream &out, const Handler &h) {
 }
 
 bool operator==(const EffectImplication &lhs, const EffectImplication &rhs) {
-    return lhs.ctor == rhs.ctor &&
-        lhs.expression == rhs.expression;
+    return lhs.head == rhs.head &&
+        lhs.body == rhs.body;
 }
 
 bool operator!=(const EffectImplication &lhs, const EffectImplication &rhs) {

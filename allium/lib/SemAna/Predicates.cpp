@@ -45,6 +45,10 @@ public:
         return TypedAST::TruthLiteral(tl.value);
     }
 
+    TypedAST::Continuation visit(const Continuation &k) {
+        return TypedAST::Continuation();
+    }
+
     Optional<TypedAST::PredicateDecl> visit(const PredicateDecl &pd) {
         const auto originalDeclaration = std::find_if(
             ast.predicates.begin(),
@@ -85,8 +89,8 @@ public:
             return Optional<TypedAST::PredicateRef>();
         }
 
-        Predicate referencedPred;
-        if(ast.resolvePredicateRef(pr).unwrapGuard(referencedPred)) {
+        PredicateDecl pDecl;
+        if(ast.resolvePredicateRef(pr).unwrapGuard(pDecl)) {
             error.emit(
                 pr.location,
                 ErrorMessage::undefined_predicate,
@@ -94,17 +98,17 @@ public:
             return Optional<TypedAST::PredicateRef>();
         }
 
-        for(const auto &unhandledEffect : referencedPred.name.effects) {
+        for(const auto &unhandledEffect : pDecl.effects) {
             bool handledInEnclosing = std::find_if(
                 enclosingPred.handlers.begin(),
                 enclosingPred.handlers.end(),
                 [&](const Handler &h) { return h.effect.name == unhandledEffect.name; }
             ) != enclosingPred.handlers.end();
 
-            bool handledAboveEnclosing = std::find(
+            bool handledAboveEnclosing = std::find_if(
                 enclosingPred.name.effects.begin(),
                 enclosingPred.name.effects.end(),
-                unhandledEffect
+                [&](const EffectRef &er) { return er.name == unhandledEffect.name; }
             ) != enclosingPred.name.effects.end();
 
             if(!handledInEnclosing && !handledAboveEnclosing) {
@@ -118,16 +122,16 @@ public:
             }
         }
 
-        if(referencedPred.name.parameters.size() != pr.arguments.size()) {
+        if(pDecl.parameters.size() != pr.arguments.size()) {
             error.emit(
                 pr.location,
                 ErrorMessage::predicate_argument_count,
                 pr.name.string(),
-                std::to_string(referencedPred.name.parameters.size()));
+                std::to_string(pDecl.parameters.size()));
             return Optional<TypedAST::PredicateRef>();
         }
 
-        auto parameter = referencedPred.name.parameters.begin();
+        auto parameter = pDecl.parameters.begin();
         auto arguments = compactMap<Value, TypedAST::Value>(
             pr.arguments,
             [&](Value argument) {
@@ -155,31 +159,36 @@ public:
             return Optional<TypedAST::EffectCtorRef>();
         }
 
-        std::vector<EffectConstructor>::const_iterator eCtor;
-        auto effect = std::find_if(
-            p.name.effects.begin(),
-            p.name.effects.end(),
-            [&](const EffectRef &er) {
-                const Effect *e;
-                if(ast.resolveEffectRef(er).unwrapGuard(e)) {
-                    // The effect is undefined.
-                    return false;
-                }
-                eCtor = std::find_if(
-                    e->constructors.begin(),
-                    e->constructors.end(),
-                    [&](const EffectConstructor &eCtor) { return eCtor.name == ecr.name; }
-                );
-                return eCtor != e->constructors.end();
-            });
-
-        if(effect == p.name.effects.end()) {
+        std::pair<const Effect*, const EffectConstructor*> resolved;
+        if(ast.resolveEffectCtorRef(ecr).unwrapGuard(resolved)) {
             error.emit(
                 ecr.location,
-                ErrorMessage::effect_unknown,
-                ecr.name.string(),
-                p.name.name.string());
+                ErrorMessage::effect_constructor_undefined,
+                ecr.name.string());
             return Optional<TypedAST::EffectCtorRef>();
+        }
+        const Effect *effect = resolved.first;
+        const EffectConstructor *eCtor = resolved.second;
+
+        auto handledEffect = std::find_if(
+            p.handlers.begin(),
+            p.handlers.end(),
+            [&](const Handler &h) { return h.effect.name == resolved.first->declaration.name; });
+        
+        if(handledEffect == p.handlers.end()) {
+            auto unhandledEffect = std::find_if(
+                p.name.effects.begin(),
+                p.name.effects.end(),
+                [&](const EffectRef &er) { return er.name == resolved.first->declaration.name; });
+
+            if(unhandledEffect == p.name.effects.end()) {
+                error.emit(
+                    ecr.location,
+                    ErrorMessage::effect_unhandled,
+                    p.name.name.string(),
+                    ecr.name.string());
+                return Optional<TypedAST::EffectCtorRef>(); 
+            }
         }
 
         if(ecr.arguments.size() != eCtor->parameters.size()) {
@@ -187,7 +196,7 @@ public:
                 ecr.location,
                 ErrorMessage::effect_argument_count,
                 eCtor->name.string(),
-                effect->name.string(),
+                effect->declaration.name.string(),
                 std::to_string(eCtor->parameters.size()));
             return Optional<TypedAST::EffectCtorRef>();
         }
@@ -210,11 +219,35 @@ public:
             }
         );
 
-        return TypedAST::EffectCtorRef(
-            effect->name.string(),
-            eCtor->name.string(),
-            raisedArguments,
-            ecr.location);
+        auto continuation = visit(ecr.getContinuation());
+
+        return continuation.map<TypedAST::EffectCtorRef>(
+            [&](TypedAST::Expression continuation) {
+                return TypedAST::EffectCtorRef(
+                    effect->declaration.name.string(),
+                    eCtor->name.string(),
+                    raisedArguments,
+                    continuation,
+                    ecr.location);
+            }
+        );
+    }
+
+    Optional<TypedAST::EffectImplHead> visit(const EffectImplHead &eih) {
+        EffectCtorRef ecr(
+            eih.name.string(),
+            eih.arguments,
+            TruthLiteral(true, {}),
+            eih.location);
+        return visit(ecr).map<TypedAST::EffectImplHead>(
+            [](TypedAST::EffectCtorRef ecr) {
+                return TypedAST::EffectImplHead(
+                    ecr.effectName.string(),
+                    ecr.ctorName.string(),
+                    ecr.arguments,
+                    ecr.location);
+            }
+        );
     }
 
     Optional<TypedAST::Conjunction> visit(const Conjunction &conj) {
@@ -226,9 +259,24 @@ public:
         return TypedAST::Conjunction(*left, *right);
     }
 
+    Optional<TypedAST::HandlerConjunction> visitHandlerConj(
+        const Conjunction &conj
+    ) {
+        std::unique_ptr<TypedAST::HandlerExpression> left, right;
+        if( visitHandlerExpr(conj.getLeft()).unwrapGuard(left) ||
+            visitHandlerExpr(conj.getRight()).unwrapGuard(right)) {
+                return Optional<TypedAST::HandlerConjunction>();
+        }
+        return TypedAST::HandlerConjunction(*left, *right);
+    }
+
     Optional<TypedAST::Expression> visit(const Expression &expr) {
         return expr.match<Optional<TypedAST::Expression> >(
         [&](TruthLiteral tl) { return TypedAST::Expression(visit(tl)); },
+        [&](Continuation k) {
+            error.emit(k.location, ErrorMessage::continue_in_predicate_impl);
+            return Optional<TypedAST::Expression>();
+        },
         [&](PredicateRef pr) {
             return visit(pr).map<TypedAST::Expression>(
                 [](TypedAST::PredicateRef tpr) { return TypedAST::Expression(tpr); }
@@ -246,6 +294,27 @@ public:
         });
     }
 
+    Optional<TypedAST::HandlerExpression> visitHandlerExpr(const Expression &expr) {
+        return expr.match<Optional<TypedAST::HandlerExpression> >(
+        [&](TruthLiteral tl) { return TypedAST::HandlerExpression(visit(tl)); },
+        [&](Continuation k) { return TypedAST::HandlerExpression(visit(k)); },
+        [&](PredicateRef pr) {
+            return visit(pr).map<TypedAST::HandlerExpression>(
+                [](TypedAST::PredicateRef tpr) { return TypedAST::HandlerExpression(tpr); }
+            );
+        },
+        [&](EffectCtorRef ecr) {
+            return visit(ecr).map<TypedAST::HandlerExpression>(
+                [](TypedAST::EffectCtorRef ecr) { return TypedAST::HandlerExpression(ecr); }
+            );
+        },
+        [&](Conjunction conj) {
+            return visitHandlerConj(conj).map<TypedAST::HandlerExpression>(
+                [](TypedAST::HandlerConjunction tconj) { return TypedAST::HandlerExpression(tconj); }
+            );
+        });
+    }
+
     Optional<TypedAST::Implication> visit(const Implication &impl) {
         enclosingScope = TypedAST::Scope();
         auto head = visit(impl.lhs);
@@ -259,13 +328,13 @@ public:
         });
     }
 
-    Optional<TypedAST::Predicate> visit(const Predicate &p) {
+    Optional<TypedAST::UserPredicate> visit(const Predicate &p) {
         enclosingPredicate = p;
 
         std::unique_ptr<TypedAST::PredicateDecl> declaration;
         if(visit(p.name).unwrapGuard(declaration)) {
             enclosingPredicate = Optional<Predicate>();
-            return Optional<TypedAST::Predicate>();
+            return Optional<TypedAST::UserPredicate>();
         }
 
         std::vector<TypedAST::Implication> raisedImplications;
@@ -289,7 +358,7 @@ public:
         }
 
         enclosingPredicate = Optional<Predicate>();
-        return TypedAST::Predicate(
+        return TypedAST::UserPredicate(
             *declaration,
             raisedImplications,
             raisedHandlers);
@@ -398,7 +467,7 @@ public:
         if(v.isDefinition) {
             auto name = Name<TypedAST::Variable>(v.name.string());
             if(scope->find(name) == scope->end()) {
-                scope->insert({ name, *raisedType });
+                scope->insert({ name, &*raisedType });
             } else {
                 error.emit(v.location, ErrorMessage::variable_redefined, v.name.string());
                 return Optional<TypedAST::Variable>();
@@ -414,12 +483,12 @@ public:
                     type.declaration.name.string());
                 return Optional<TypedAST::Variable>();
             }
-            if(*raisedType != iterVariableInfo->second) {
+            if(*raisedType != *iterVariableInfo->second) {
                 error.emit(
                     v.location,
                     ErrorMessage::variable_type_mismatch,
                     v.name.string(),
-                    iterVariableInfo->second.declaration.name.string(),
+                    iterVariableInfo->second->declaration.name.string(),
                     type.declaration.name.string());
                 return Optional<TypedAST::Variable>();
             }
@@ -628,9 +697,51 @@ public:
         return TypedAST::Effect(raisedDeclaration, raisedCtors);
     }
 
+    Optional<TypedAST::EffectImplication> visit(const EffectImplication &eImpl) {
+        // The previous scope will be empty for handlers at the predicate level.
+        // It will be set for handlers that occur inside of an implication.
+        auto previousScope = enclosingScope;
+        enclosingScope = TypedAST::Scope();
+        auto head = visit(eImpl.head);
+        auto body = visitHandlerExpr(eImpl.body);
+        enclosingScope = previousScope;
+
+        return head.flatMap<TypedAST::EffectImplication>([&](TypedAST::EffectImplHead h) {
+            return body.map<TypedAST::EffectImplication>([&](TypedAST::HandlerExpression b) {
+                return TypedAST::EffectImplication(h, b);
+            });
+        });
+    }
+
     Optional<TypedAST::Handler> visit(const Handler &h) {
-        assert(false && "Handlers aren't implemented yet!");
-        return TypedAST::Handler();
+        const Effect *e;
+        if(ast.resolveEffectRef(h.effect).unwrapGuard(e)) {
+            return Optional<TypedAST::Handler>();
+        }
+
+        std::vector<TypedAST::EffectImplication> raisedEffectImpls;
+        for(const auto &eImpl : h.implications) {
+            const auto &fullECtor = std::find_if(
+                e->constructors.begin(),
+                e->constructors.end(),
+                [&](const EffectConstructor &eCtor) { return eImpl.head.name == eCtor.name; });
+            
+            if(fullECtor == e->constructors.end()) {
+                error.emit(
+                    eImpl.head.location,
+                    ErrorMessage::effect_impl_head_mismatches_effect,
+                    eImpl.head.name.string(),
+                    h.effect.name.string());
+                continue;
+            }
+
+            visit(eImpl).map([&](TypedAST::EffectImplication eImpl) {
+                raisedEffectImpls.push_back(eImpl);
+            });
+        }
+
+        TypedAST::EffectRef effect(h.effect.name.string());
+        return TypedAST::Handler(effect, raisedEffectImpls);
     }
 
     TypedAST::AST visit(const AST &ast) {
@@ -644,7 +755,7 @@ public:
             [&](Effect effect) { return visit(effect); }
         );
 
-        auto raisedPredicates = compactMap<Predicate, TypedAST::Predicate>(
+        auto raisedPredicates = compactMap<Predicate, TypedAST::UserPredicate>(
             ast.predicates,
             [&](Predicate predicate) { return visit(predicate); }
         );

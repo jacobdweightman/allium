@@ -25,6 +25,16 @@ TEST(TestParser, parse_false_as_truth_literal) {
     );
 }
 
+TEST(TestParser, parse_continue) {
+    std::istringstream f("continue");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseContinuation(),
+        Continuation(SourceLocation(1, 0))
+    );
+}
+
 TEST(TestParser, lexer_ignores_comments) {
     std::istringstream f("// comment\ntrue");
     Parser p(f);
@@ -225,6 +235,16 @@ TEST(TestParser, parse_truth_literal_as_expression) {
     );
 }
 
+TEST(TestParser, parse_continue_as_expression) {
+    std::istringstream f("continue;");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseExpression(),
+        Expression(Continuation(SourceLocation(1, 0)))
+    );
+}
+
 TEST(TestParser, parse_predicate_name_as_expression) {
     std::istringstream f("open;");
     Parser p(f);
@@ -241,7 +261,7 @@ TEST(TestParser, parse_simple_effect_expression) {
 
     EXPECT_EQ(
         p.parseExpression(),
-        Expression(EffectCtorRef("abort", {}, SourceLocation(1, 3)))
+        Expression(EffectCtorRef("abort", {}, TruthLiteral(true, {}), SourceLocation(1, 3)))
     );
 }
 
@@ -254,6 +274,22 @@ TEST(TestParser, parse_effect_expression_with_arguments) {
         Expression(EffectCtorRef(
             "print",
             { Value(StringLiteral("Hello world", SourceLocation(1, 9))) },
+            TruthLiteral(true, {}),
+            SourceLocation(1, 3)
+        ))
+    );
+}
+
+TEST(TestParser, parse_effect_expression_with_continuation) {
+    std::istringstream f("do print(\"Hello world\"), false;");
+    Parser p(f);
+
+    EXPECT_EQ(
+        p.parseExpression(),
+        Expression(EffectCtorRef(
+            "print",
+            { Value(StringLiteral("Hello world", SourceLocation(1, 9))) },
+            TruthLiteral(false, {1, 25}),
             SourceLocation(1, 3)
         ))
     );
@@ -949,7 +985,7 @@ TEST(TestParser, parse_effect_handler_with_implications) {
             EffectRef("Log", SourceLocation(1, 7)),
             {
                 EffectImplication(
-                    EffectCtorRef(
+                    EffectImplHead(
                         "message",
                         {
                             NamedValue("Error", {}, SourceLocation(1, 23)),
@@ -957,19 +993,16 @@ TEST(TestParser, parse_effect_handler_with_implications) {
                         },
                         SourceLocation(1, 15)
                     ),
-                    Expression(Conjunction(
-                        Expression(Conjunction(
-                                Expression(EffectCtorRef(
-                                "print",
-                                {Value(StringLiteral("Error:", SourceLocation(1, 49)))},
-                                SourceLocation(1, 43)
-                            )),
-                            Expression(EffectCtorRef(
-                                "print",
-                                {NamedValue("s", {}, SourceLocation(1, 69))},
-                                SourceLocation(1, 63)
-                            )))),
-                        Expression(TruthLiteral(false, SourceLocation(1, 73)))
+                    Expression(EffectCtorRef(
+                        "print",
+                        {Value(StringLiteral("Error:", SourceLocation(1, 49)))},
+                        Expression(EffectCtorRef(
+                            "print",
+                            {NamedValue("s", {}, SourceLocation(1, 69))},
+                            TruthLiteral(false, SourceLocation(1, 73)),
+                            SourceLocation(1, 63)
+                        )),
+                        SourceLocation(1, 43)
                     ))
                 )
             }

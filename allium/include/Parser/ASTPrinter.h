@@ -15,6 +15,11 @@ public:
             " line:" << tl.location << ">\n";
     }
 
+    void visit(const Continuation &k) {
+        indent();
+        out << "<Continuation line:" << k.location << ">\n";
+    }
+
     void visit(const PredicateDecl &pd) {
         indent();
         out << "<PredicateDecl \"" << pd.name << "\" line:" <<
@@ -40,6 +45,17 @@ public:
         --depth;
     }
 
+    void visit(const EffectImplHead &eih) {
+        indent();
+        out << "<EffectImplHead \"" << eih.name << "\" line:" << eih.location <<
+            ">\n";
+        ++depth;
+        for(const auto &argument : eih.arguments) {
+            visit(argument);
+        }
+        --depth;
+    }
+
     void visit(const EffectCtorRef &ecr) {
         indent();
         out << "<EffectCtorRef \"" << ecr.name << "\" line:" << ecr.location <<
@@ -48,6 +64,7 @@ public:
         for(const auto &argument : ecr.arguments) {
             visit(argument);
         }
+        visit(ecr.getContinuation());
         --depth;
     }
 
@@ -63,6 +80,7 @@ public:
     void visit(const Expression &expr) {
         expr.switchOver(
         [&](TruthLiteral tl) { visit(tl); },
+        [&](Continuation k) { visit(k); },
         [&](PredicateRef pr) { visit(pr); },
         [&](EffectCtorRef ecr) { visit(ecr); },
         [&](Conjunction conj) { visit(conj); }
@@ -207,8 +225,8 @@ public:
         indent();
         out << "<EffectImplication>\n";
         ++depth;
-        visit(effectImplication.ctor);
-        visit(effectImplication.expression);
+        visit(effectImplication.head);
+        visit(effectImplication.body);
         --depth;
     }
 

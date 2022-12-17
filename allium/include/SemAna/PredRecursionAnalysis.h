@@ -41,7 +41,9 @@ inline void forAllPredRefs(
     expr.switchOver(
     [](const TruthLiteral &) {},
     [&](const PredicateRef &pr) { f(pr); },
-    [](const EffectCtorRef &) {},
+    [&](const EffectCtorRef &ecr) {
+        forAllPredRefs(ecr.getContinuation(), f);
+    },
     [&](const Conjunction &conj) {
         forAllPredRefs(conj.getLeft(), f);
         forAllPredRefs(conj.getRight(), f);

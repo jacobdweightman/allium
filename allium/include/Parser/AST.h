@@ -13,6 +13,7 @@
 namespace parser {
 
 struct TruthLiteral;
+struct Continuation;
 struct PredicateRef;
 struct EffectCtorRef;
 struct Conjunction;
@@ -20,6 +21,7 @@ struct Conjunction;
 /// Represents a logical expression in the AST.
 typedef TaggedUnion<
     TruthLiteral,
+    Continuation,
     PredicateRef,
     EffectCtorRef,
     Conjunction
@@ -66,6 +68,18 @@ bool operator==(const TruthLiteral &lhs, const TruthLiteral &rhs);
 bool operator!=(const TruthLiteral &lhs, const TruthLiteral &rhs);
 std::ostream& operator<<(std::ostream &out, const TruthLiteral &tl);
 
+/// Represents an effect's continuation inside of a handler in the AST.
+struct Continuation {
+    Continuation(): location(SourceLocation()) {}
+    Continuation(SourceLocation location): location(location) {}
+
+    SourceLocation location;
+};
+
+bool operator==(const Continuation &lhs, const Continuation &rhs);
+bool operator!=(const Continuation &lhs, const Continuation &rhs);
+std::ostream& operator<<(std::ostream &out, const Continuation &tl);
+
 /// Represents the signature of a predicate at the start of its definition.
 struct PredicateDecl {
     PredicateDecl() {}
@@ -109,12 +123,12 @@ bool operator==(const PredicateRef &lhs, const PredicateRef &rhs);
 bool operator!=(const PredicateRef &lhs, const PredicateRef &rhs);
 std::ostream& operator<<(std::ostream &out, const PredicateRef &p);
 
-/// Represents a concrete effect which should be performed when proving a
-/// predicate.
-struct EffectCtorRef {
-    EffectCtorRef() {}
+/// Represents the head of an effect implementation inside of a handler. This is
+/// essentially an EffectCtorRef without a continuation.
+struct EffectImplHead {
+    EffectImplHead() {}
 
-    EffectCtorRef(
+    EffectImplHead(
         std::string name,
         std::vector<Value> arguments,
         SourceLocation location
@@ -123,6 +137,35 @@ struct EffectCtorRef {
     Name<EffectConstructor> name;
     std::vector<Value> arguments;
     SourceLocation location;
+};
+
+bool operator==(const EffectImplHead &lhs, const EffectImplHead &rhs);
+bool operator!=(const EffectImplHead &lhs, const EffectImplHead &rhs);
+std::ostream& operator<<(std::ostream &out, const EffectImplHead &eih);
+
+/// Represents a concrete effect which should be performed when proving a
+/// predicate. This includes the effect's continuation.
+struct EffectCtorRef {
+    EffectCtorRef() {}
+
+    EffectCtorRef(
+        std::string name,
+        std::vector<Value> arguments,
+        const Expression &continuation,
+        SourceLocation location);
+
+    EffectCtorRef(const EffectCtorRef &other);
+
+    EffectCtorRef& operator=(EffectCtorRef other);
+
+    Name<EffectConstructor> name;
+    std::vector<Value> arguments;
+    SourceLocation location;
+
+    Expression& getContinuation() const;
+
+protected:
+    std::unique_ptr<Expression> _continuation;
 };
 
 bool operator==(const EffectCtorRef &lhs, const EffectCtorRef &rhs);
@@ -433,11 +476,11 @@ struct Handler {
 // Represents an individual effect implication in an effect handler
 struct EffectImplication {
     EffectImplication() {}
-    EffectImplication(EffectCtorRef ctor, Expression expression):
-        ctor(ctor), expression(expression) {}
+    EffectImplication(EffectImplHead head, Expression body):
+        head(head), body(body) {}
 
-    EffectCtorRef ctor;
-    Expression expression;
+    EffectImplHead head;
+    Expression body;
 };
 
 bool operator==(const Handler &lhs, const Handler &rhs);
@@ -453,7 +496,8 @@ struct AST {
 
     Optional<Type> resolveTypeRef(const Name<Type> &tr) const;
     Optional<const Effect*> resolveEffectRef(const EffectRef &er) const;
-    Optional<Predicate> resolvePredicateRef(const PredicateRef &pr) const;
+    Optional<std::pair<const Effect*, const EffectConstructor*>> resolveEffectCtorRef(const EffectCtorRef &ecr) const;
+    Optional<PredicateDecl> resolvePredicateRef(const PredicateRef &pr) const;
 
     std::vector<Type> types;
     std::vector<Effect> effects;
@@ -484,6 +528,7 @@ struct has_visit {
 template <typename Subclass>
 constexpr bool has_all_visitors() {
     static_assert(has_visit<Subclass, TruthLiteral>::value, "missing TruthLiteral visitor");
+    static_assert(has_visit<Subclass, Continuation>::value, "missing Continuation visitor");
     static_assert(has_visit<Subclass, PredicateDecl>::value, "missing PredicateDecl visitor");
     static_assert(has_visit<Subclass, PredicateRef>::value, "missing PredicateRef visitor");
     static_assert(has_visit<Subclass, EffectCtorRef>::value, "missing EffectCtorRef visitor");
@@ -507,6 +552,7 @@ constexpr bool has_all_visitors() {
     static_assert(has_visit<Subclass, Handler>::value, "missing Handler visitor");
 
     return has_visit<Subclass, TruthLiteral>::value &&
+        has_visit<Subclass, Continuation>::value &&
         has_visit<Subclass, PredicateDecl>::value &&
         has_visit<Subclass, PredicateRef>::value &&
         has_visit<Subclass, EffectCtorRef>::value &&

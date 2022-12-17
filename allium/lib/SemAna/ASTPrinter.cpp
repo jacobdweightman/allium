@@ -71,18 +71,34 @@ void ASTPrinter::visit(const Effect &e) {
     depth--;
 }
 
-void ASTPrinter::visit(const Predicate &p) {
+void ASTPrinter::visit(const UserPredicate &up) {
     indent();
     out << "<Predicate>\n";
     depth++;
-    visit(p.declaration);
-    for(const auto &x : p.implications) visit(x);
+    visit(up.declaration);
+    for(const auto &x : up.implications) visit(x);
+    for(const auto &h : up.handlers) visit(h);
+    depth--;
+}
+
+void ASTPrinter::visit(const Handler &h) {
+    indent();
+    out << "<Handler " << h.effect << ">\n";
+    depth++;
+    for(const auto &eImpl : h.implications) {
+        visit(eImpl);
+    }
     depth--;
 }
 
 void ASTPrinter::visit(const TruthLiteral &tl) {
     indent();
     out << "<TruthLiteral " << tl.value << ">\n";
+}
+
+void ASTPrinter::visit(const Continuation &k) {
+    indent();
+    out << "<Continuation>\n";
 }
 
 void ASTPrinter::visit(const PredicateDecl &pd) {
@@ -101,14 +117,26 @@ void ASTPrinter::visit(const PredicateRef &pr) {
     depth--;
 }
 
+void ASTPrinter::visit(const EffectImplHead &eih) {
+    indent();
+    out << "<EffectCtorRef \"" << eih.effectName << "." << eih.ctorName <<
+        "\">\n";
+    depth++;
+    for(const auto &arg : eih.arguments) {
+        visit(arg);
+    }
+    depth--;
+}
+
 void ASTPrinter::visit(const EffectCtorRef &ecr) {
     indent();
-    out << "EffectCtorRef \"" << ecr.effectName << "." << ecr.ctorName <<
+    out << "<EffectCtorRef \"" << ecr.effectName << "." << ecr.ctorName <<
         "\">\n";
     depth++;
     for(const auto &arg : ecr.arguments) {
         visit(arg);
     }
+    visit(ecr.getContinuation());
     depth--;
 }
 
@@ -121,6 +149,15 @@ void ASTPrinter::visit(const Conjunction &conj) {
     depth--;
 }
 
+void ASTPrinter::visit(const HandlerConjunction &hConj) {
+    indent();
+    out << "<HandlerConjunction>\n";
+    depth++;
+    visit(hConj.getLeft());
+    visit(hConj.getRight());
+    depth--;
+}
+
 void ASTPrinter::visit(const Expression &expr) {
     expr.switchOver(
     [&](TruthLiteral tl) { visit(tl); },
@@ -130,12 +167,31 @@ void ASTPrinter::visit(const Expression &expr) {
     );
 }
 
+void ASTPrinter::visit(const HandlerExpression &hExpr) {
+    hExpr.switchOver(
+    [&](TruthLiteral tl) { visit(tl); },
+    [&](Continuation k) { visit(k); },
+    [&](PredicateRef pr) { visit(pr); },
+    [&](EffectCtorRef ecr) { visit(ecr); },
+    [&](HandlerConjunction hConj) { visit(hConj); }
+    );
+}
+
 void ASTPrinter::visit(const Implication &impl) {
     indent();
     out << "<Implication>\n";
     depth++;
     visit(impl.head);
     visit(impl.body);
+    depth--;
+}
+
+void ASTPrinter::visit(const EffectImplication &eImpl) {
+    indent();
+    out << "<EffectImplication>\n";
+    depth++;
+    visit(eImpl.head);
+    visit(eImpl.body);
     depth--;
 }
 

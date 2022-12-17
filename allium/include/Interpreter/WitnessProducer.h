@@ -11,8 +11,13 @@ bool match(
     const PredicateReference &goalPred,
     const PredicateReference &matcherPred,
     Context &parentContext,
-    Context &localContext
-);
+    Context &localContext);
+
+bool match(
+    const EffectCtorRef &goalEffect,
+    const EffectImplHead &matcherEffect,
+    Context &parentContext,
+    Context &localContext);
 
 bool match(RuntimeValue *var1, RuntimeValue *var2);
 bool match(RuntimeValue *var, RuntimeCtorRef &ctor);
@@ -31,22 +36,42 @@ bool match(RuntimeValue &val1, RuntimeValue &val2);
 Generator<Unit> witnesses(
     const Program &prog,
     const Expression expr,
-    Context &context
-);
+    Context &context,
+    HandlerStack &handlers);
 
 Generator<Unit> witnesses(const TruthValue &tv);
 
 Generator<Unit> witnesses(
     const Program &prog,
     const PredicateReference &pr,
-    Context &context
-);
+    Context &context,
+    HandlerStack &handlers);
+
+template <int N>
+Generator<Unit> witnesses(
+    const Program &prog,
+    BuiltinPredicateReference &bpr,
+    Context &context);
 
 Generator<Unit> witnesses(
     const Program &prog,
     const Conjunction conj,
-    Context &context
-);
+    Context &context,
+    HandlerStack &handlers);
+
+Generator<Unit> witnesses(
+    const Program &prog,
+    const HandlerExpression hExpr,
+    const Expression &continuation,
+    Context &context,
+    HandlerStack &handlers);
+
+Generator<Unit> witnesses(
+    const Program &prog,
+    const HandlerConjunction hConj,
+    const Expression &continuation,
+    Context &context,
+    HandlerStack &handlers);
 
 } // namespace interpreter
 

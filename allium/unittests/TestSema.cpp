@@ -136,6 +136,28 @@ TEST_F(TestSemAnaPredicates, predicate_argument_count_mismatch) {
     checkAll(AST(ts, {}, ps), error);
 }
 
+TEST_F(TestSemAnaPredicates, continue_in_predicate) {
+    // pred p { p <- continue; }
+
+    SourceLocation errorLocation(1, 14);
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", {}, {}, {1, 5}),
+            {
+                Implication(
+                    PredicateRef("p", {1, 9}),
+                    Expression(Continuation({1, 14}))
+                )
+            },
+            {}
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::continue_in_predicate_impl));
+
+    checkAll(AST({}, {}, ps), error);
+}
+
 TEST_F(TestSemAnaPredicates, constructor_argument_count_mismatch) {
     // type Nat { ctor zero; ctor s(Nat); }
     // pred p(Nat) { p(s(zero, zero)) <- true; }
@@ -277,6 +299,37 @@ TEST_F(TestSemAnaPredicates, predicate_redefined) {
     };
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::predicate_redefined, "p", originalLocation.toString()));
+
+    checkAll(AST({}, {}, ps), error);
+}
+
+TEST_F(TestSemAnaPredicates, builtin_predicate_resolves_correctly) {
+    // pred p {
+    //     p <- concat("a", "b", "ab");
+    // }
+
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", {}, {}, {1, 5}),
+            {
+                Implication(
+                    PredicateRef("p", {2, 4}),
+                    Expression(
+                        PredicateRef(
+                            "concat",
+                            {
+                                Value(StringLiteral("a", {2, 16})),
+                                Value(StringLiteral("b", {2, 21})),
+                                Value(StringLiteral("ab", {2, 26}))
+                            },
+                            {2, 9}
+                        )
+                    )
+                )
+            },
+            {}
+        )
+    };
 
     checkAll(AST({}, {}, ps), error);
 }
@@ -656,6 +709,37 @@ TEST_F(TestSemAnaPredicates, int_literal_not_convertible) {
     checkAll(AST(ts, {}, ps), error);
 }
 
+TEST_F(TestSemAnaPredicates, effect_handled_in_parent) {
+    // effect Foo {}
+    // pred p: Foo {}
+    // pred q: Foo {
+    //     q <- p;
+    // }
+
+    std::vector<Effect> es = {
+        Effect(EffectDecl("Foo", {1, 7}), {})
+    };
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", {}, { EffectRef("Foo", {2, 8}) }, {2, 5}),
+            {},
+            {}
+        ),
+        Predicate(
+            PredicateDecl("q", {}, { EffectRef("Foo", {3, 8}) }, {3, 5}),
+            {
+                Implication(
+                    PredicateRef("q", {}, {4, 4}),
+                    Expression(PredicateRef("p", {4, 8}))
+                )
+            },
+            {}
+        )
+    };
+
+    checkAll(AST({}, es, ps), error);
+}
+
 TEST_F(TestSemAnaPredicates, undefined_effect) {
     // pred p: Foo {}
 
@@ -674,6 +758,30 @@ TEST_F(TestSemAnaPredicates, undefined_effect) {
     };
 
     EXPECT_CALL(error, emit(errorLocation, ErrorMessage::effect_type_undefined, "Foo"));
+
+    checkAll(AST({}, {}, ps), error);
+}
+
+TEST_F(TestSemAnaPredicates, undefined_effect_ctor) {
+    // pred p {
+    //     p <- do fake;
+    // }
+
+    SourceLocation errorLocation(2, 9);
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", {}, {}, SourceLocation(1, 5)),
+            {
+                Implication(
+                    PredicateRef("p", SourceLocation(2, 4)),
+                    Expression(EffectCtorRef("fake", {}, TruthLiteral(true, {}), errorLocation))
+                )
+            },
+            {}
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::effect_constructor_undefined, "fake"));
 
     checkAll(AST({}, {}, ps), error);
 }
@@ -699,14 +807,54 @@ TEST_F(TestSemAnaPredicates, unhandled_effect) {
             {
                 Implication(
                     PredicateRef("p", SourceLocation(5, 4)),
-                    Expression(EffectCtorRef("abort", {}, errorLocation))
+                    Expression(EffectCtorRef("abort", {}, TruthLiteral(true, {}), errorLocation))
                 )
             },
             {}
         )
     };
 
-    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::effect_unknown, "abort", "p"));
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::effect_unhandled, "p", "abort"));
+
+    checkAll(AST({}, es, ps), error);
+}
+
+TEST_F(TestSemAnaPredicates, effect_impl_head_mismatch) {
+    // effect Repeat {
+    //    ctor repeat;
+    // }
+    // pred p {
+    //     handle Repeat {
+    //         do repat <- true;
+    //     }
+    // }
+
+    SourceLocation errorLocation(6, 11);
+    std::vector<Effect> es = {
+        Effect(
+            EffectDecl("Repeat", SourceLocation(1, 7)),
+            { EffectConstructor("repeat", {}, SourceLocation(2, 9)) }
+        )
+    };
+    std::vector<Predicate> ps = {
+        Predicate(
+            PredicateDecl("p", {}, {}, {4, 5}),
+            {},
+            {
+                Handler(
+                    EffectRef("Repeat", {5, 11}),
+                    {
+                        EffectImplication(
+                            EffectImplHead("repat", {}, {6, 11}),
+                            Expression(TruthLiteral(true, {6, 20}))
+                        )
+                    }
+                )
+            }
+        )
+    };
+
+    EXPECT_CALL(error, emit(errorLocation, ErrorMessage::effect_impl_head_mismatches_effect, "repat", "Repeat"));
 
     checkAll(AST({}, es, ps), error);
 }
@@ -749,6 +897,7 @@ TEST_F(TestSemAnaPredicates, effect_argument_count) {
                     Expression(EffectCtorRef(
                         "bar",
                         { Value(StringLiteral("a", SourceLocation(5, 17))) },
+                        TruthLiteral(true, {}),
                         errorLocation
                     ))
                 )
@@ -818,7 +967,11 @@ TEST_F(TestSemAnaPredicates, effect_ctor_with_undefined_type_error_type_inferenc
             {
                 Implication(
                     PredicateRef("p", {5, 4}),
-                    Expression(EffectCtorRef("bar", { NamedValue("Baz", {}, {5, 16}) }, {5, 12}))
+                    Expression(EffectCtorRef(
+                        "bar",
+                        { NamedValue("Baz", {}, {5, 16}) },
+                        TruthLiteral(true, {}),
+                        {5, 12}))
                 )
             },
             {}

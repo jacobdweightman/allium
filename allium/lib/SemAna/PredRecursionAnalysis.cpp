@@ -10,7 +10,9 @@ PredDependenceGraph::PredDependenceGraph(const AST &ast) {
         adjacencyList[p.declaration.name] = {};
         for(const auto &impl : p.implications) {
             forAllPredRefs(impl.body, [&](const PredicateRef &pr) {
-                adjacencyList[p.declaration.name].insert(pr.name);
+                if(ast.resolvePredicateRef(pr).is_a<const UserPredicate*>()) {
+                    adjacencyList[p.declaration.name].insert(pr.name);
+                }
             });
         }
     }
@@ -27,6 +29,14 @@ bool PredDependenceGraph::dependsOnHelper(
     const Name<Predicate> &second,
     std::set<Name<Predicate>> &visited
 ) const {
+    // There's no need to track recursion for builtin predicates, since this is
+    // an implementation detail. Any place where this "would be" used needs to
+    // get this information from somewhere else; for example, ground analysis
+    // uses explicitly tabulated groundness information for each builtin.
+    const auto callees = adjacencyList.find(first);
+    if(callees == adjacencyList.end())
+        return false;
+
     if(adjacencyList.at(first).contains(second))
         return true;
 

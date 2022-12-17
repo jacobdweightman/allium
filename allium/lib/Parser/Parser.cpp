@@ -20,6 +20,17 @@ ParserResult<TruthLiteral> Parser::parseTruthLiteral() {
     }
 }
 
+/// Consumes a "continue" token from the lexer, and produces an AST node to match.
+///
+/// Note: rewinds the lexer on failure.
+ParserResult<Continuation> Parser::parseContinuation() {
+    Token token;
+    if(lexer.take_token(Token::Type::kw_continue).unwrapGuard(token)) {
+        return ParserResult<Continuation>();
+    }
+    return Continuation(token.location);
+}
+
 /// Consumes an identifier from the lexer, and produces an AST node to match.
 ///
 /// Note: rewinds the lexer on failure.
@@ -227,17 +238,17 @@ ParserResult<PredicateRef> Parser::parsePredicateRef() {
     }
 }
 
-ParserResult<EffectCtorRef> Parser::parseEffectCtorRef() {
+ParserResult<EffectImplHead> Parser::parseEffectImplHead() {
     std::vector<SyntaxError> errors;
     Token first = lexer.take_next();
 
     auto rewindAndReturn = [&]() {
         lexer.rewind(first);
-        return ParserResult<EffectCtorRef>(errors);
+        return ParserResult<EffectImplHead>(errors);
     };
 
-    // <effect-ctor-ref> := "do" <identifier>
-    // <effect-ctor-ref> := "do" <identifier" "(" <comma-separated-arguments> ")"
+    // <effect-impl-head> := "do" <identifier>
+    // <effect-impl-head> := "do" <identifier" "(" <comma-separated-arguments> ")"
     if(first.type != Token::Type::kw_do) {
         return rewindAndReturn();
     }
@@ -268,13 +279,89 @@ ParserResult<EffectCtorRef> Parser::parseEffectCtorRef() {
         } while(lexer.take(Token::Type::comma));
 
         if(lexer.take(Token::Type::paren_r)) {
-            return ParserResult<EffectCtorRef>(EffectCtorRef(identifier.text, arguments, identifier.location), errors);
+            return ParserResult<EffectImplHead>(EffectImplHead(identifier.text, arguments, identifier.location), errors);
         } else {
             errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument.", lexer.peek_next().location));
         }
     }
 
-    return ParserResult<EffectCtorRef>(EffectCtorRef(identifier.text, {}, identifier.location), errors);
+    return ParserResult<EffectImplHead>(EffectImplHead(identifier.text, {}, identifier.location), errors);
+}
+
+ParserResult<EffectCtorRef> Parser::parseEffectCtorRef() {
+    std::vector<SyntaxError> errors;
+    Token first = lexer.take_next();
+
+    auto rewindAndReturn = [&]() {
+        lexer.rewind(first);
+        return ParserResult<EffectCtorRef>(errors);
+    };
+
+    // <effect-ctor-ref> := "do" <identifier>
+    // <effect-ctor-ref> := "do" <identifier> "," <expression>
+    // <effect-ctor-ref> := "do" <identifier> "(" <comma-separated-arguments> ")"
+    // <effect-ctor-ref> := "do" <identifier> "(" <comma-separated-arguments> ")" "," <expression>
+    if(first.type != Token::Type::kw_do) {
+        return rewindAndReturn();
+    }
+
+    Token identifier = lexer.take_next();
+    if(identifier.type != Token::Type::identifier) {
+        errors.push_back(SyntaxError("Expected identifier after \"do\".", identifier.location));
+    }
+
+    std::vector<Value> arguments;
+    if(lexer.take(Token::Type::paren_l)) {
+        do {
+            parseValue().switchOver<void>(
+            [&](Value val) {
+                arguments.push_back(val);
+            },
+            [&]() {
+                if (arguments.empty()) {
+                    errors.push_back(SyntaxError("Expected argument after \"(\" in argument list.", lexer.peek_next().location));
+                } else {
+                    errors.push_back(SyntaxError("Expected an additional argument after \",\" in argument list.", lexer.peek_next().location));
+                }
+            },
+            [&](std::vector<SyntaxError> resultErrors){
+                errors.insert(std::end(errors), std::begin(resultErrors), std::end(resultErrors));
+            });
+        } while(lexer.take(Token::Type::comma));
+
+        if(!lexer.take(Token::Type::paren_r)) {
+            errors.push_back(SyntaxError("Expected a \",\" or \")\" after argument.", lexer.peek_next().location));
+        }
+    }
+
+    Token next = lexer.take_next();
+    if(next.type == Token::Type::comma) {
+        Expression continuation;
+        if(parseExpression().unwrapResultInto(continuation, errors)) {
+            return ParserResult<EffectCtorRef>(
+                EffectCtorRef(
+                    identifier.text,
+                    arguments,
+                    continuation,
+                    identifier.location),
+                errors);
+        }
+    } else if(next.type == Token::Type::end_of_statement) {
+        // If an expression ends by doing an effect, then the continuation is
+        // implied to be the expression "true."
+        lexer.rewind(next);
+        return ParserResult<EffectCtorRef>(
+            EffectCtorRef(
+                identifier.text,
+                arguments,
+                TruthLiteral(true, {}),
+                identifier.location),
+            errors);
+    } else {
+        errors.push_back(SyntaxError("Expected a \",\" or \";\" after an effect constructor.", next.location));
+    }
+
+    return rewindAndReturn();
 }
 
 /// Parses an effect handler declaration
@@ -327,10 +414,10 @@ ParserResult<EffectImplication> Parser::parseEffectImplication() {
         return ParserResult<EffectImplication>(errors);
     };
 
-    EffectCtorRef ec;
+    EffectImplHead eih;
 
     // <effect-implication> := <effect-ctor-ref> "<-" <expression> ";"
-    if(parseEffectCtorRef().unwrapResultInto(ec, errors)) {
+    if(parseEffectImplHead().unwrapResultInto(eih, errors)) {
         if(!lexer.take(Token::Type::implied_by)) {
             errors.push_back(SyntaxError("Expected a \"<-\" after the head of an effect implication.", lexer.peek_next().location));
         }
@@ -341,7 +428,7 @@ ParserResult<EffectImplication> Parser::parseEffectImplication() {
         }
 
         if(lexer.take(Token::Type::end_of_statement)) {
-            return ParserResult<EffectImplication>(EffectImplication(ec, expr), errors);
+            return ParserResult<EffectImplication>(EffectImplication(eih, expr), errors);
         } else {
             errors.push_back(SyntaxError("Expected a \";\" at the end of an effect implication.", lexer.peek_next().location));
         }
@@ -353,6 +440,7 @@ ParserResult<EffectImplication> Parser::parseEffectImplication() {
 /// Parses a truth literal, predicate, or effect constructor from the stream.
 ParserResult<Expression> Parser::parseAtom() {
     TruthLiteral tl;
+    Continuation k;
     PredicateRef p;
     EffectCtorRef ecr;
     std::vector<SyntaxError> errors;
@@ -361,11 +449,16 @@ ParserResult<Expression> Parser::parseAtom() {
     if(parseTruthLiteral().unwrapResultInto(tl, errors)) {
         return ParserResult<Expression>(Expression(tl), errors);
 
+    // <atom> := <continuation>
+    } else if(parseContinuation().unwrapResultInto(k, errors)) {
+        return ParserResult<Expression>(Expression(k), errors);
+
     // <atom> := <predicate-name>
     } else if(parsePredicateRef().unwrapResultInto(p, errors)) {
         return ParserResult<Expression>(Expression(p), errors);
 
     // <atom> := <effect-constructor-ref>
+    // Note: <effect-constructor-ref> also includes the continuation.
     } else if(parseEffectCtorRef().unwrapResultInto(ecr, errors)) {
         return ParserResult<Expression>(Expression(ecr), errors);
     } else {

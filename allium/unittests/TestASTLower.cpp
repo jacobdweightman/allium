@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "Interpreter/ASTLower.h"
+#include "Interpreter/BuiltinPredicates.h"
 #include "SemAna/Builtins.h"
 
 using namespace TypedAST;
@@ -10,7 +11,7 @@ TEST(TestASTLower, variables_of_uninhabited_types_are_marked) {
         { Type(TypeDecl("Void"), {}) },
         {},
         {
-            Predicate(
+            UserPredicate(
                 PredicateDecl("foo", { Parameter("Void", false) }, {}),
                 {
                     Implication(
@@ -30,13 +31,16 @@ TEST(TestASTLower, variables_of_uninhabited_types_are_marked) {
         lower(ast),
         interpreter::Program(
             {
-                interpreter::Predicate({
-                    interpreter::Implication(
-                        interpreter::PredicateReference(0, { anon }),
-                        interpreter::TruthValue(true),
-                        0
-                    ),
-                })
+                interpreter::Predicate(
+                    {
+                        interpreter::Implication(
+                            interpreter::PredicateReference(0, { anon }),
+                            interpreter::TruthValue(true),
+                            0
+                        ),
+                    },
+                    {}
+                )
             },
             Optional<interpreter::PredicateReference>()
         )
@@ -49,7 +53,7 @@ TEST(TestASTLower, string_is_inhabited) {
         TypedAST::builtinTypes,
         {},
         {
-            Predicate(
+            UserPredicate(
                 PredicateDecl("p", { Parameter("String", false) }, {}),
                 {
                     Implication(
@@ -75,7 +79,7 @@ TEST(TestASTLower, string_is_inhabited_2) {
         TypedAST::builtinTypes,
         {},
         {
-            Predicate(
+            UserPredicate(
                 PredicateDecl("p", { Parameter("String", false) }, {}),
                 {
                     Implication(
@@ -105,7 +109,7 @@ TEST(TestASTLower, variables_are_uniquely_indexed) {
         },
         {},
         {
-            Predicate(
+            UserPredicate(
                 PredicateDecl("foo", { Parameter("T", false), Parameter("T", false) }, {}),
                 {
                     Implication(
@@ -131,21 +135,73 @@ TEST(TestASTLower, variables_are_uniquely_indexed) {
         lower(ast),
         interpreter::Program(
             {
-                interpreter::Predicate({
-                    interpreter::Implication(
-                        interpreter::PredicateReference(0, { anon, anon }),
-                        interpreter::Expression(interpreter::PredicateReference(
-                            0,
-                            {
-                                interpreter::MatcherValue(interpreter::MatcherVariable(0, true)),
-                                interpreter::MatcherValue(interpreter::MatcherVariable(1, true))
-                            }
-                        )),
-                        2
-                    ),
-                })
+                interpreter::Predicate(
+                    {
+                        interpreter::Implication(
+                            interpreter::PredicateReference(0, { anon, anon }),
+                            interpreter::Expression(interpreter::PredicateReference(
+                                0,
+                                {
+                                    interpreter::MatcherValue(interpreter::MatcherVariable(0, true)),
+                                    interpreter::MatcherValue(interpreter::MatcherVariable(1, true))
+                                }
+                            )),
+                            2
+                        ),
+                    },
+                    {}
+                )
             },
             Optional<interpreter::PredicateReference>()
+        )
+    );
+}
+
+TEST(TestASTLower, builtin_predicate_lowering) {
+    AST ast(
+        {},
+        {},
+        {
+            UserPredicate(
+                PredicateDecl("main", {}, {}),
+                {
+                    Implication(
+                        PredicateRef("main", {}),
+                        Expression(PredicateRef("concat", {
+                            Value(StringLiteral("a")),
+                            Value(StringLiteral("b")),
+                            Value(StringLiteral("ab"))
+                        }))
+                    )
+                },
+                {}
+            )
+        }
+    );
+
+    EXPECT_EQ(
+        lower(ast),
+        interpreter::Program(
+            {
+                interpreter::Predicate(
+                    {
+                        interpreter::Implication(
+                            interpreter::PredicateReference(0, {}),
+                            interpreter::Expression(interpreter::BuiltinPredicateReference(
+                                interpreter::getBuiltinPredicateByName("concat"),
+                                {
+                                    interpreter::MatcherValue(interpreter::String("a")),
+                                    interpreter::MatcherValue(interpreter::String("b")),
+                                    interpreter::MatcherValue(interpreter::String("ab"))
+                                }
+                            )),
+                            0
+                        ),
+                    },
+                    {}
+                )
+            },
+            interpreter::PredicateReference(0, {})
         )
     );
 }

@@ -12,43 +12,55 @@ public:
     Program program = Program(
         {
             // pred a { a <- true; }
-            Predicate({
-                Implication(PredicateReference(0, {}), TruthValue(true), 0)
-            }),
+            Predicate(
+                {
+                    Implication(PredicateReference(0, {}), TruthValue(true), 0)
+                },
+                {}
+            ),
             // pred b { }
-            Predicate({}),
+            Predicate({}, {}),
             // pred c(Nat) { 
             //     c(zero) <- true;
             //     c(s(let x)) <- c(x);
             // }
-            Predicate({
-                Implication(PredicateReference(2, { MatcherValue(MatcherCtorRef(0, {})) }), TruthValue(true), 0),
-                Implication(
-                    PredicateReference(2, { MatcherValue(MatcherCtorRef(1, { MatcherValue(MatcherVariable(0)) })) }),
-                    Expression(PredicateReference(2, { MatcherValue(MatcherVariable(0)) })),
-                    1
-                )
-            }),
+            Predicate(
+                {
+                    Implication(PredicateReference(2, { MatcherValue(MatcherCtorRef(0, {})) }), TruthValue(true), 0),
+                    Implication(
+                        PredicateReference(2, { MatcherValue(MatcherCtorRef(1, { MatcherValue(MatcherVariable(0)) })) }),
+                        Expression(PredicateReference(2, { MatcherValue(MatcherVariable(0)) })),
+                        1
+                    )
+                },
+                {}
+            ),
             // pred d(Nat) {
             //     d(s(zero)) <- true;
             // }
-            Predicate({
-                Implication(
-                    PredicateReference(3, { MatcherValue(MatcherCtorRef(1, { MatcherValue(MatcherCtorRef(0, {})) })) }),
-                    TruthValue(true),
-                    0
-                )
-            }),
+            Predicate(
+                {
+                    Implication(
+                        PredicateReference(3, { MatcherValue(MatcherCtorRef(1, { MatcherValue(MatcherCtorRef(0, {})) })) }),
+                        TruthValue(true),
+                        0
+                    )
+                },
+                {}
+            ),
             // pred e {
             //     e <- c(let x);
             // }
-            Predicate({
-                Implication(
-                    PredicateReference(4, {}),
-                    Expression(PredicateReference(2, { MatcherValue(MatcherVariable(0)) })),
-                    1
-                )
-            })
+            Predicate(
+                {
+                    Implication(
+                        PredicateReference(4, {}),
+                        Expression(PredicateReference(2, { MatcherValue(MatcherVariable(0)) })),
+                        1
+                    )
+                },
+                {}
+            )
         },
         Optional<PredicateReference>()
     );

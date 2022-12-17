@@ -61,9 +61,18 @@ bool operator!=(const Effect &left, const Effect &right) {
     return !(left == right);
 }
 
+bool operator==(const EffectImplication &left, const EffectImplication &right) {
+    assert(false && "effect implications not implemented yet!");
+    return false;
+}
+
+bool operator!=(const EffectImplication &left, const EffectImplication &right) {
+    return !(left == right);
+}
+
+
 bool operator==(const Handler &left, const Handler &right) {
-    assert(false && "handlers not implemented yet!");
-    return true;
+    return left.implications == right.implications;
 }
 
 bool operator!=(const Handler &left, const Handler &right) {
@@ -72,6 +81,32 @@ bool operator!=(const Handler &left, const Handler &right) {
 
 PredicateRef::PredicateRef(std::string name, std::vector<Value> arguments):
     name(name), arguments(arguments) {}
+
+EffectCtorRef::EffectCtorRef(
+    std::string effectName,
+    std::string ctorName,
+    std::vector<Value> arguments,
+    Expression continuation,
+    SourceLocation location
+): effectName(effectName), ctorName(ctorName), arguments(arguments),
+    _continuation(new auto(continuation)), location(location) {}
+
+EffectCtorRef::EffectCtorRef(const EffectCtorRef &other):
+    effectName(other.effectName), ctorName(other.ctorName),
+    arguments(other.arguments), _continuation(new auto(*other._continuation)),
+    location(other.location) {}
+
+EffectCtorRef& EffectCtorRef::operator=(EffectCtorRef other) {
+    using std::swap;
+    swap(effectName, other.effectName);
+    swap(ctorName, other.ctorName);
+    swap(arguments, other.arguments);
+    swap(_continuation, other._continuation);
+    swap(location, other.location);
+    return *this;
+}
+
+Expression& EffectCtorRef::getContinuation() const { return *_continuation; }
 
 Conjunction::Conjunction(Expression left, Expression right):
     _left(new auto(left)), _right(new auto(right)) {}
@@ -90,6 +125,25 @@ Expression &Conjunction::getLeft() const { return *_left; }
 
 Expression &Conjunction::getRight() const { return *_right; }
 
+HandlerConjunction::HandlerConjunction(
+    HandlerExpression left,
+    HandlerExpression right
+): _left(new auto(left)), _right(new auto(right)) {}
+
+HandlerConjunction::HandlerConjunction(const HandlerConjunction &other):
+    _left(new auto(*other._left)), _right(new auto(*other._right)) {}
+
+HandlerConjunction HandlerConjunction::operator=(HandlerConjunction other) {
+    using std::swap;
+    swap(_left, other._right);
+    swap(_right, other._right);
+    return *this;
+}
+
+HandlerExpression &HandlerConjunction::getLeft() const { return *_left; }
+
+HandlerExpression &HandlerConjunction::getRight() const { return *_right; }
+
 ConstructorRef::ConstructorRef(std::string name, std::vector<Value> arguments):
     name(name), arguments(arguments) {}
 
@@ -102,6 +156,16 @@ bool operator==(const ConstructorRef &left, const ConstructorRef &right) {
 
 bool operator!=(const ConstructorRef &left, const ConstructorRef &right) {
     return !(left == right);
+}
+
+size_t getConstructorIndex(const Type &type, const ConstructorRef &cr) {
+    auto ctor = std::find_if(
+        type.constructors.begin(),
+        type.constructors.end(),
+        [&](const Constructor &ctor) { return ctor.name == cr.name; });
+
+    assert(ctor != type.constructors.end());
+    return ctor - type.constructors.begin();
 }
 
 bool operator==(const Type &left, const Type &right) {
@@ -184,7 +248,8 @@ std::ostream& operator<<(std::ostream &out, const PredicateRef &pr) {
 }
 
 std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr) {
-    return out << "do " << ecr.effectName << "." << ecr.ctorName;
+    return out << "do " << ecr.effectName << "." << ecr.ctorName <<
+        " { " << ecr.getContinuation() << " }";
 }
 
 std::ostream& operator<<(std::ostream &out, const Implication &impl) {
@@ -192,12 +257,19 @@ std::ostream& operator<<(std::ostream &out, const Implication &impl) {
 }
 
 const Type &AST::resolveTypeRef(const Name<Type> &tr) const {
-    const auto x = std::find_if(
+    auto x = std::find_if(
         types.begin(),
         types.end(),
         [&](const Type &type) { return type.declaration.name == tr; });
 
-    assert(x != types.end());
+    if(x == types.end()) {
+        x = std::find_if(
+            builtinTypes.begin(),
+            builtinTypes.end(),
+            [&](const Type &type) { return type.declaration.name == tr; });
+        assert(x != builtinTypes.end());
+    }
+
     return *x;
 }
 
@@ -230,26 +302,38 @@ const Effect &AST::resolveEffectRef(const Name<Effect> &er) const {
     return *effect;
 }
 
-const EffectCtor &AST::resolveEffectCtorRef(const EffectCtorRef &ecr) const {
-    const Effect &effect = resolveEffectRef(ecr.effectName);
+const EffectCtor &AST::resolveEffectCtorRef(
+    const EffectRef &effectName,
+    const Name<EffectCtor> &ctorName
+) const {
+    const Effect &effect = resolveEffectRef(effectName);
 
     const auto eCtor = std::find_if(
         effect.constructors.begin(),
         effect.constructors.end(),
-        [&](const EffectCtor &eCtor) { return eCtor.name == ecr.ctorName; });
+        [&](const EffectCtor &eCtor) { return eCtor.name == ctorName; });
     
     assert(eCtor != effect.constructors.end());
     return *eCtor;
 }
 
-const Predicate &AST::resolvePredicateRef(const PredicateRef &pr) const {
-    const auto p = std::find_if(
+const Predicate AST::resolvePredicateRef(const PredicateRef &pr) const {
+    const auto up = std::find_if(
         predicates.begin(),
         predicates.end(),
-        [&](const Predicate &p) { return p.declaration.name == pr.name; });
+        [&](const UserPredicate &up) { return up.declaration.name == pr.name; });
 
-    assert(p != predicates.end());
-    return *p;
+    if(up == predicates.end()) {
+        const auto bp = std::find_if(
+            builtinPredicates.begin(),
+            builtinPredicates.end(),
+            [&](const BuiltinPredicate &bp) { return bp.declaration.name == pr.name; });
+        assert(bp != builtinPredicates.end());
+        return Predicate(&*bp);
+    }
+
+    assert(up != predicates.end());
+    return Predicate(&*up);
 }
 
 }

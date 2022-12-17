@@ -120,6 +120,8 @@ struct ConstructorRef {
 bool operator==(const ConstructorRef &left, const ConstructorRef &right);
 bool operator!=(const ConstructorRef &left, const ConstructorRef &right);
 
+size_t getConstructorIndex(const Type &type, const ConstructorRef &cr);
+
 /// Represents string literals, which are used to construct values of the
 /// builtin type String.
 struct StringLiteral {
@@ -151,7 +153,7 @@ public:
  */
 
 struct Effect;
-typedef Name<Type> EffectRef;
+typedef Name<Effect> EffectRef;
 
 struct EffectDecl {
     EffectDecl() {}
@@ -196,24 +198,28 @@ struct Effect {
 bool operator==(const Effect &left, const Effect &right);
 bool operator!=(const Effect &left, const Effect &right);
 
-// TODO: full implementation of handlers
-struct Handler {};
-
-bool operator==(const Handler &left, const Handler &right);
-bool operator!=(const Handler &left, const Handler &right);
-
 
 /*
  * Predicates
  */
 
+struct UserPredicate;
+struct BuiltinPredicate;
+
+typedef TaggedUnion<
+    const UserPredicate *,
+    const BuiltinPredicate *
+> PredicateBase;
 struct Predicate;
 
 struct TruthLiteral;
+struct Continuation;
 struct PredicateRef;
 struct EffectCtorRef;
 struct Conjunction;
+struct HandlerConjunction;
 
+/// Represents a logical expression that may occur inside of a predicate.
 typedef TaggedUnion<
     TruthLiteral,
     PredicateRef,
@@ -223,6 +229,17 @@ typedef TaggedUnion<
 
 std::ostream& operator<<(std::ostream &out, const Expression &expr);
 
+/// Represents a logical expression that may occur inside of a handler.
+typedef TaggedUnion<
+    TruthLiteral,
+    Continuation,
+    PredicateRef,
+    EffectCtorRef,
+    HandlerConjunction
+> HandlerExpression;
+
+std::ostream& operator<<(std::ostream &out, const HandlerExpression &hExpr);
+
 struct TruthLiteral {
     TruthLiteral(bool value): value(value) {}
 
@@ -230,6 +247,9 @@ struct TruthLiteral {
 };
 
 std::ostream& operator<<(std::ostream &out, const TruthLiteral &tl);
+
+struct Continuation {};
+std::ostream& operator<<(std::ostream &out, const Continuation &k);
 
 struct PredicateDecl {
     PredicateDecl(
@@ -252,8 +272,35 @@ struct PredicateRef {
 
 std::ostream& operator<<(std::ostream &out, const PredicateRef &pr);
 
+/// Represents a use of an effect inside of a logical expression, including its
+/// continuation.
 struct EffectCtorRef {
     EffectCtorRef(
+        std::string effectName,
+        std::string ctorName,
+        std::vector<Value> arguments,
+        Expression continuation,
+        SourceLocation location);
+    EffectCtorRef(const EffectCtorRef &other);
+    EffectCtorRef& operator=(EffectCtorRef other);
+
+    Name<Effect> effectName;
+    Name<EffectCtor> ctorName;
+    std::vector<Value> arguments;
+    SourceLocation location;
+
+    Expression& getContinuation() const;
+
+protected:
+    std::unique_ptr<Expression> _continuation;
+};
+
+std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr);
+
+/// Represents the head of an implication inside of a handler definition. This
+/// is essentially an EffectCtorRef with no continuation.
+struct EffectImplHead {
+    EffectImplHead(
         std::string effectName,
         std::string ctorName,
         std::vector<Value> arguments,
@@ -261,14 +308,18 @@ struct EffectCtorRef {
     ): effectName(effectName), ctorName(ctorName), arguments(arguments),
         location(location) {}
 
+    EffectImplHead(const EffectCtorRef &ecr):
+        effectName(ecr.effectName), ctorName(ecr.ctorName),
+        arguments(ecr.arguments), location(ecr.location) {}
+
     Name<Effect> effectName;
     Name<EffectCtor> ctorName;
     std::vector<Value> arguments;
     SourceLocation location;
 };
 
-std::ostream& operator<<(std::ostream &out, const EffectCtorRef &ecr);
-
+/// Represents the conjunction of two logical expressions in the context of a
+/// predicate.
 struct Conjunction {
     Conjunction(Expression left, Expression right);
     Conjunction(const Conjunction &other);
@@ -282,6 +333,21 @@ protected:
     std::unique_ptr<Expression> _left, _right;
 };
 
+/// Represents the conjunction of two logical expressions in the context of a
+/// handler.
+struct HandlerConjunction {
+    HandlerConjunction(HandlerExpression left, HandlerExpression right);
+    HandlerConjunction(const HandlerConjunction &other);
+
+    HandlerConjunction operator=(HandlerConjunction other);
+
+    HandlerExpression &getLeft() const;
+    HandlerExpression &getRight() const;
+
+protected:
+    std::unique_ptr<HandlerExpression> _left, _right;
+};
+
 struct Implication {
     Implication(PredicateRef head, Expression body):
         head(head), body(body) {}
@@ -292,8 +358,31 @@ struct Implication {
 
 std::ostream& operator<<(std::ostream &out, const Implication &impl);
 
-struct Predicate {
-    Predicate(
+struct EffectImplication {
+    EffectImplication(EffectImplHead head, HandlerExpression body):
+        head(head), body(body) {}
+
+    EffectImplHead head;
+    HandlerExpression body;
+};
+
+bool operator==(const EffectImplication &left, const EffectImplication &right);
+bool operator!=(const EffectImplication &left, const EffectImplication &right);
+
+struct Handler {
+    Handler(EffectRef effect, std::vector<EffectImplication> implications):
+        effect(effect), implications(implications) {}
+
+    EffectRef effect;
+    std::vector<EffectImplication> implications;
+};
+
+bool operator==(const Handler &left, const Handler &right);
+bool operator!=(const Handler &left, const Handler &right);
+
+/// A predicate defined in user code.
+struct UserPredicate {
+    UserPredicate(
         PredicateDecl declaration,
         std::vector<Implication> implications,
         std::vector<Handler> handlers
@@ -305,13 +394,49 @@ struct Predicate {
     std::vector<Handler> handlers;
 };
 
+/// Represents the effect of executing a builtin predicate on the groundness of
+/// its arguments. Semantically, this is tied to Allium's left-to-right, depth-
+/// first-search execution model.
+struct Mode {
+    Mode(std::vector<bool> in, std::vector<bool> out):
+        inGroundness(in), outGroundness(out) {}
+    std::vector<bool> inGroundness;
+    std::vector<bool> outGroundness;
+};
+
+/// Represents a predicate which is hardcoded into the Allium interpreter. For
+/// example, `concat` is a builtin predicate because the user doesn't have to
+/// define it, and it is implemented in C++ inside the interpreter.
+struct BuiltinPredicate {
+    BuiltinPredicate(PredicateDecl declaration, std::vector<Mode> modes):
+        declaration(declaration), modes(modes) {}
+
+    /// A pointer to the coroutine which implements this predicate.
+    PredicateDecl declaration;
+
+    /// Represents all possible effects that executing this builtin predicate 
+    /// might have on its arguments' groundness.
+    std::vector<Mode> modes;
+};
+
+struct Predicate : public PredicateBase {
+    using PredicateBase::PredicateBase;
+
+    const PredicateDecl &getDeclaration() const {
+        return this->match<const PredicateDecl&>(
+        [](const UserPredicate *up) -> const PredicateDecl& { return up->declaration; },
+        [](const BuiltinPredicate *bp) -> const PredicateDecl& { return bp->declaration; }
+        );
+    }
+};
+
 std::ostream& operator<<(std::ostream &out, const Value &val);
 
 class AST {
 public:
     AST(std::vector<Type> types,
         std::vector<Effect> effects,
-        std::vector<Predicate> predicates
+        std::vector<UserPredicate> predicates
     ): types(types), effects(effects), predicates(predicates) {}
 
     const Type &resolveTypeRef(const Name<Type> &tr) const;
@@ -320,17 +445,20 @@ public:
 
     const Effect &resolveEffectRef(const Name<Effect> &er) const;
 
-    const EffectCtor &resolveEffectCtorRef(const EffectCtorRef &ecr) const;
+    const EffectCtor &resolveEffectCtorRef(
+        const EffectRef &effectName,
+        const Name<EffectCtor> &ctorName
+    ) const;
 
-    const Predicate &resolvePredicateRef(const PredicateRef &pr) const;
+    const Predicate resolvePredicateRef(const PredicateRef &pr) const;
 
     std::vector<Type> types;
     std::vector<Effect> effects;
-    std::vector<Predicate> predicates;
+    std::vector<UserPredicate> predicates;
 };
 
 /// Represents the variables and their types defined in a scope.
-typedef std::map<Name<Variable>, const Type &> Scope;
+typedef std::map<Name<Variable>, const Type *> Scope;
 
 };
 
