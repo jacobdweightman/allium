@@ -74,9 +74,14 @@ JSON JSONRPCServer::handle(JSON request) {
 
 void JSONRPCServer::serveNextRequest() {
     parseContentLength().error([&]() {
-        out << "error parsing content length\n";
+        out << "error parsing content length" << std::endl;
     }).map([&](int length) {
-        in.get(); // '\n'
+        char c = in.get(); // '\r' or '\r\n' (Windows only)
+
+        // Get the '\n' character separately on Unix
+        if (c == '\r') {
+            in.get();
+        }
 
         std::stringstream body;
         for(int i=0; i<length; ++i) {
@@ -85,7 +90,7 @@ void JSONRPCServer::serveNextRequest() {
 
         // TODO: request is not valid JSON?
         JSON::parse(body).error([&]() {
-            out << "error parsing JSON\n";
+            out << "error parsing JSON" << std::endl;
         }).map([&](JSON request) {
             JSON result = handle(request);
             std::stringstream buffer;

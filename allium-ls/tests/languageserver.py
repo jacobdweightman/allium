@@ -21,16 +21,15 @@ class LSPClient:
         }, separators=(',', ':'))
         length = len(content)
         self.requestCount += 1
-        return f"Content-Length: {length}\n\n{content}".encode('utf-8')
+        return f"Content-Length: {length}\r\n\r\n{content}".encode('utf-8')
     
     def send(self, method: str, params: Any) -> str:
         query = self.encode(method, params)
         self.serverStdIn.write(query)
         self.serverStdIn.flush()
         print("query:", query)
-        content_length = self.serverStdOut.readline() # Content-Length: ...\n
-        print(f"Content Length: {content_length}")
-        self.serverStdOut.readline() # \n
+        self.serverStdOut.readline() # Content-Length: ...\r\n
+        self.serverStdOut.readline() # \r\n
         response = self.serverStdOut.readline().decode('utf-8')
         print("output:", response)
         return response
@@ -42,13 +41,13 @@ class LanguageServerTest(unittest.TestCase):
         self.serverProc = subprocess.Popen(
             [alliumLSP],
             stdin=subprocess.PIPE,
-            stdout=sys.stdout,
-            stderr=sys.stdout)
+            stdout=subprocess.PIPE)
         self.client = LSPClient(self.serverProc.stdin, self.serverProc.stdout)
-    
+        
     def tearDown(self) -> None:
         super().tearDown()
-        self.serverProc.__exit__(None, None, None)
+        self.serverProc.terminate()
+        self.serverProc.wait()
     
     def testInitialize(self):
         responseStr = self.client.send("initialize", {
@@ -74,7 +73,6 @@ class LanguageServerTest(unittest.TestCase):
                 "version": "0.0.1"
             }
         })
-
 
 
 if __name__ == "__main__":
