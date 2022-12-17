@@ -48,6 +48,8 @@ class LanguageServerTest(unittest.TestCase):
         super().tearDown()
         self.serverProc.terminate()
         self.serverProc.wait()
+        self.serverProc.stdin.close()
+        self.serverProc.stdout.close()
     
     def testInitialize(self):
         responseStr = self.client.send("initialize", {
