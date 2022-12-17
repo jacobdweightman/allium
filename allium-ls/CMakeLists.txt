@@ -39,10 +39,5 @@ target_link_libraries(allium-ls-unittests gtest_main)
 # functional tests
 #############################
 
-# TODO: This test hangs for some reason — this might be due to compiling with
-# MSVC++ or due to running on windows. I'm not sure which, but I'm disabling
-# the test for now.
-if(NOT MSVC)
 add_test(NAME language-server-functional-tests
   COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/languageserver.py $<TARGET_FILE:allium-ls>)
-endif()
