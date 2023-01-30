@@ -43,10 +43,13 @@ class LanguageServerTest(unittest.TestCase):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE)
         self.client = LSPClient(self.serverProc.stdin, self.serverProc.stdout)
-    
+        
     def tearDown(self) -> None:
         super().tearDown()
-        self.serverProc.__exit__(None, None, None)
+        self.serverProc.terminate()
+        self.serverProc.wait()
+        self.serverProc.stdin.close()
+        self.serverProc.stdout.close()
     
     def testInitialize(self):
         responseStr = self.client.send("initialize", {
@@ -72,7 +75,6 @@ class LanguageServerTest(unittest.TestCase):
                 "version": "0.0.1"
             }
         })
-
 
 
 if __name__ == "__main__":
